@@ -433,23 +433,27 @@ async function removePrefixedItemInBackground(key, prefix = null) {
 
 
 async function processQueue(fromSyncro = false) {
-  const allTypes = ['Priv', 'Work', 'Story', 'Comm'];
+  const baseTypes = ['Priv', 'Work', 'Story', 'Comm'];
   const username = getStoragePrefix();
 
-  for (const type of allTypes) {
-    await processQueueForType(type, false, username);
+  for (const type of baseTypes) {
+    await processQueueForType(type, username);
 
     if (fromSyncro) {
-      await processQueueForType(type, true, username);
+      await processQueueForType(`${type}_CRH`, username);
     }
   }
 }
 
-async function processQueueForType(type, isCRH = false, username) {
-  let queueKeyType = `${type}_processQueue`;
-  if (isCRH) {
-    queueKeyType = `${type}_CRH_processQueue`;
-  }
+/**
+ * Process queued operations for a given data type.
+ * If the type ends with "_CRH", the corresponding CRH queue is processed.
+ *
+ * @param {string} type - Data category to process (e.g., "Priv" or "Priv_CRH").
+ * @param {string} username - User identifier used when communicating with the server.
+ */
+async function processQueueForType(type, username) {
+  const queueKeyType = `${type}_processQueue`;
 
   const prefix = getStoragePrefix();
   const finalQueueKey = `${prefix}${queueKeyType}`;
