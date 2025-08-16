@@ -78,7 +78,7 @@ function getUsernameFromURL() {
 function nettoyerCRH() {
   const output = document.getElementById("cleanCRHResult");
   const btn = document.getElementById("btnCleanCRH");
-  const username = getUsernameFromUrl();
+  const username = getUsernameFromURL();
   console.log('username : ' + username)
 
   btn.disabled = true;
