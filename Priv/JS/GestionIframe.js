@@ -128,7 +128,7 @@ case 'centerIframe': {
                     const iframeASupprimer = document.getElementById(iframeId);
                     if (iframeASupprimer) {
                         await gererFermetureIframe(iframeData.data);
-                        await removePrefixedItem(iframeData.data + '_CRH');
+                        await removePrefixedItem(iframeData.data);
 
                     }
                 } catch (error) {
@@ -499,7 +499,7 @@ async function ouvrirIframe(nomLieu, temps, liste1, liste2, Text1, Text2, arret)
     });
 
         nombreChronosActifs++;
-        await removePrefixedItem(nomLieuAffiche + '_CRH');
+        await removePrefixedItem(nomLieuAffiche);
         mettreAJourBoutonChrono(nombreChronosActifs);
         Restolieu(nomLieuAffiche);
         ajouterTitreEtIframe(nomLieuAffiche, temps, Text1, Text2, liste1, liste2, arret);
