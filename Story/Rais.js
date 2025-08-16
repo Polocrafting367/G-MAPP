@@ -1,0 +1,7 @@
+const lieuData = {
+    types: [
+],
+    causes: [
+] 
+};
+
