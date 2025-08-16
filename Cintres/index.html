@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Interface de Contrôle</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="scanner-bar">
+  Code scanné : <span id="scanned-code">Aucun cintre scanner</span>
+  <button id="open-scanner">📷</button>
+      <button class="control-button" id="quitt_butt" onclick="window.location.href='../index.html'" id="btnSupprimerCode">Quitter</button>
+
+</div>
+
+    <div id="creation-info">
+        Création : <span id="creation-date">N/A</span> par <span id="creator">N/A</span>
+            <div id="last-read-section">
+        Dernière lecture : <span id="last-read">N/A</span>
+    </div>
+    </div>
+
+<div id="status-buttons">
+    <button class="status-button" disabled>
+        Puce changé
+        <img src="Puce.png" alt="Puce" class="button-icon">
+    </button>
+    <button class="status-button" disabled>
+        Réparation mecanique
+        <img src="rep.png" alt="Réparation" class="button-icon">
+    </button>
+    <button class="status-button" disabled>
+        Cintre OK
+        <img src="OK.png" alt="Cintre" class="button-icon">
+    </button>
+</div>
+    <div id="history-section">
+        <div id="history-content">
+            <!-- L'historique du JSON sera chargé ici -->
+        </div>
+    </div>
+
+
+
+<div id="control-panel">
+    <button class="control-button" id="btnChangerCode">
+        Changer code
+        <img src="Barre.png" alt="Changer code" class="button-icon">
+    </button>
+    <button class="control-button" id="btnCombinerCode">
+        Combiner code
+        <img src="Comb.png" alt="Combiner code" class="button-icon">
+    </button>
+    <button class="control-button forced-green" id="btnOuvrirStat">Afficher Stats
+            <img src="stat.png" alt="Combiner code" class="button-icon">
+        </button>
+</div>
+<!-- Fond semi-noir -->
+<div id="overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0, 0, 0, 0.5); z-index:999;"></div>
+
+<!-- Conteneur de l'iframe -->
+<div id="iframe-container" style="display:none; position:fixed; top:2%; left:2%; width:95%; height:95%; background:white; border:2px solid black; z-index:1000; box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3);">
+    <button id="btnFermerIframe" style="position:absolute; top:5px; right:5px; background:red; color:white; border:none; padding:5px; cursor:pointer;">X</button>
+    <div id="iframe-wrapper" style="width:100%; height:100%;"></div> <!-- Conteneur dynamique pour l'iframe -->
+</div>
+
+<style>
+    .forced-green {
+        background-color: green;
+        color: white;
+        font-weight: bold;
+    }
+</style>
+
+<script>
+    document.getElementById('btnOuvrirStat').addEventListener('click', function() {
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('iframe-container').style.display = 'block';
+
+        // Charger l'iframe dynamiquement
+        let iframeWrapper = document.getElementById('iframe-wrapper');
+        iframeWrapper.innerHTML = '<iframe id="statIframe" src="Stat.html" style="width:100%; height:100%; border:none;"></iframe>';
+    });
+
+    function fermerIframe() {
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('iframe-container').style.display = 'none';
+
+        // Supprimer l'iframe pour forcer le rechargement à la prochaine ouverture
+        document.getElementById('iframe-wrapper').innerHTML = '';
+    }
+
+    document.getElementById('btnFermerIframe').addEventListener('click', fermerIframe);
+
+    // Fermer aussi en cliquant sur le fond noir
+    document.getElementById('overlay').addEventListener('click', fermerIframe);
+</script>
+
+
+
+<!-- Modal pour scanner le code-barres -->
+<div id="scanner-modal" class="modal" style="display:none;">
+
+  <div class="modal-content">
+            <span class="modal-close" id="close-scanner">&times;</span>
+
+    <h2>Scanner Code-barres</h2>
+    <p>Veuillez scanner automatiquement le code-barres ou saisir manuellement.</p>
+    
+    <div class="modal-section">
+      <label for="camera-select">Caméra :</label>
+      <select id="camera-select"></select>
+    </div>
+    
+    <div class="modal-section">
+      <label for="manual-input">Saisie manuelle :</label>
+      <input type="text" id="manual-input" placeholder="Entrée manuelle" autocomplete="off">
+      <div class="modal-buttons">
+        <button id="manual-valider">Valider</button>
+      </div>
+    </div>
+    
+    <div class="modal-section">
+      <video id="camera-preview" autoplay playsinline></video>
+    </div>
+  </div>
+</div>
+
+
+<!-- Fenêtre modale cachée pour changer le code -->
+<div id="modalChangerCode" class="modal">
+  <div class="modal-content">
+    <h2>Changer code</h2>
+    <p>Veuillez scanner ou saisir le nouveau code-barres (utilisez la séquence "scan-codebarre-fin") :</p>
+    <input type="text" id="nouveauCode" placeholder="Nouveau code..." autocomplete="off">
+    <div class="modal-buttons">
+      <button id="modalValider">Valider</button>
+      <button id="modalAnnuler">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal pour combiner code -->
+<div id="modalCombinerCode" class="modal">
+  <div class="modal-content">
+    <span class="modal-close" id="modalCombinerClose">&times;</span>
+    <h2>Combiner Code</h2>
+    <p>Veuillez vérifier les codes et sélectionner celui en meilleur état :</p>
+    <div class="combine-section">
+      <div class="combine-item">
+         <label>Code actuel :</label>
+         <!-- Ce champ est en lecture seule -->
+         <input type="text" id="codeActuel" readonly>
+         <!-- Bouton radio associé -->
+         <label><input type="radio" name="bestCode" value="actuel"> Meilleur état</label>
+      </div>
+      <div class="combine-item">
+         <label>Nouveau code :</label>
+         <input type="text" id="nouveauCodeCombine" placeholder="scan-codebarre-fin">
+         <label><input type="radio" name="bestCode" value="nouveau"> Meilleur état</label>
+      </div>
+    </div>
+    <div class="modal-buttons">
+      <button id="modalCombinerValider">Combiner</button>
+      <button id="modalCombinerAnnuler">Annuler</button>
+    </div>
+  </div>
+</div>
+
+
+    <!-- Charger le script à la fin pour éviter les erreurs -->
+    <script src="script.js"></script>
+    <script src="script2.js"></script>
+    <script src="camera.js"></script>
+
+</body>
+</html>

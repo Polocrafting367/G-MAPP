@@ -1,0 +1,625 @@
+    /* Base CSS existant */
+    html, body {
+       margin: 0;
+      padding: 0;
+          user-select: none;
+    }
+      #bgFrame {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    body {
+  font-family: 'Arial', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+    }
+.window {
+background-color: #00000091;
+    border-radius: 10px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    z-index: 1;
+    width: 100%;
+    height: 85%;
+    display: flex;
+max-width: 650px;
+    flex-direction: column;
+    margin-bottom: 70px;
+}
+    .title-bar {
+background-color: #ff06066e;
+      color: white;
+      padding: 10px;
+      font-size: 18px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .top-right {
+position: absolute;
+    bottom: 5px;
+    right: 20px;
+    margin: 10px;
+    width: 85px;
+    height: auto;
+    z-index: 0;
+    }
+        .top-left {
+position: absolute;
+    bottom: 3px;
+    right: 120px;
+    margin: 10px;
+    width: 75px;
+    height: auto;
+    z-index: 0;
+    }
+    .window-body {
+      padding: 5px;
+      flex: 1;
+      overflow-y: auto;
+        overflow: hidden; /* Désactive le défilement */
+
+    }
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #5046a77a;
+      padding: 10px;
+      color: white;
+      border-radius: 8px;
+    }
+    .status-bar-field {
+      font-size: 15px;
+      font-weight: bold;
+      color: #333;
+    }
+    button {
+      margin: 3px;
+    }
+    .status-bar-button {
+      background-color: #C0D008;
+      color: black;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 15px;
+
+      transition: background-color 0.3s ease;
+    }
+    .status-bar-button:hover {
+      background-color: #939E06;
+    }
+    /* Modal tutoriel */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.6); /* Fond sombre semi-transparent */
+}
+.modal-content {
+  position: fixed; /* Permet de garder la modal centrée même en scrollant */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* Centre la modal parfaitement */
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 3px;
+  width: 90%;
+  max-width: 800px; /* Largeur max pour un beau rendu sur grands écrans */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  height: 95%; /* La modal occupe 95% de la hauteur */
+}
+
+
+.modal-content h2 {
+  text-align: center;
+  margin: 0 0 15px;
+  color: #333;
+}
+
+/* Le conteneur de l'iframe prend toute la place disponible */
+#iframeContainer {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+
+}
+
+/* L'iframe s'ajuste à 100% du conteneur */
+#iframeContainer iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+    border-radius: 15px;
+
+}
+
+/* Style du bouton (exemple pour le bouton de fermeture ou d'action) */
+.button {
+  background-color: #A72583;
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.button:hover {
+  background-color: #D30574;
+}
+
+/* Animation de slideDown (optionnel) */
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+#carousel {
+  height: 100%;
+}
+
+    /* Vertical carousel pour les utilisateurs réguliers */
+.vertical-carousel {
+  height: calc(100% - 85px);
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0px;
+  flex-wrap: wrap;
+  justify-content: center;
+  transition: height 500ms ease-in-out;
+}
+
+    .vertical-carousel .user-card {
+    height: 120px;
+    scroll-snap-align: center;
+    width: 130px;
+    transition: transform 0.3s ease;
+    }
+    /* Carte de base */
+.user-card {
+  background-color: #ffffff45;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 10px;
+  margin: 5px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: height 300ms ease, opacity 300ms ease !important;
+  /* Hauteur initiale auto ou fixée si souhaité */
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+
+    .user-card h2 {
+      margin-top: 0px;
+      font-size: 1.4em;
+      color: white;
+          overflow: hidden;
+          text-overflow: ellipsis;
+    }
+.user-card button {
+    position: absolute;
+    left: 7px;
+    width: 130px;
+    bottom: 7px;
+    background-color: #A72583;
+    color: #fff;
+    border: none;
+    padding: 7px 11px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+    .user-card button:hover {
+      background-color: #D30574;
+    }
+    /* Section pour sessions spéciales : PRODUCTION & STAGIAIRE BIH */
+    .special-sessions {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .special-card {
+      background-color: #f9f9f9;
+      border: 1px solid #bbb;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      width: 150px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .special-card h3 {
+      margin-bottom: 10px;
+      font-size: 1.2em;
+      color: #555;
+    }
+    .special-card button {
+      background-color: #A72583;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s ease;
+    }
+    .special-card button:hover {
+      background-color: #D30574;
+    }
+    /* Section pour le gestionnaire ("Gestion") */
+    .manager-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 7px;
+      height: 86px;
+        transition: height 500ms ease-in-out;
+
+    }
+    .manager-card {
+      background-color: #00000082;
+      border: 2px solid #A72583;
+      border-radius: 10px;
+      padding: 5px;
+      text-align: center;
+      width: 100%;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .manager-card h3 {
+      margin: 3px;
+      font-size: 1.4em;
+      color: white ;
+    }
+    .manager-card button {
+      background-color: #A72583;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    .manager-card button:hover {
+      background-color: #D30574;
+    }
+
+
+/* Conteneur de la connexion gestion */
+.gestion-login-form {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+
+
+/* Champs de texte et boutons - Initialement cachés */
+.gestion-login-form input,
+.gestion-login-form button {
+
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+
+
+/* Style du champ de saisie */
+.gestion-password-input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+/* Boutons de connexion et d'annulation */
+.gestion-connect-btn,
+.gestion-cancel-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: background 300ms ease;
+}
+
+.gestion-connect-btn {
+  background-color: #A72583;
+  color: white;
+}
+
+.gestion-connect-btn:hover {
+  background-color: #D30574;
+}
+
+.gestion-cancel-btn {
+  background-color: #ccc;
+  color: #333;
+}
+
+.gestion-cancel-btn:hover {
+  background-color: #aaa;
+}
+
+.user-card.expanded {
+  height: 170px;
+}
+
+/* Les cartes non sélectionnées deviennent opaques */
+.user-card.dimmed {
+  opacity: 0.5;
+}
+
+/* Style du conteneur de boutons qui apparaît lors de l'extension */
+.login-options {
+  margin-top: 10px;
+}
+
+/* Pour le bouton "Se connecter" affiché dans la carte étendue */
+.user-card.expanded .login-options button:first-child {
+  position: absolute;
+  bottom: 80px;
+
+}
+.user-card.expanded .login-options button:nth-child(2) {
+  position: absolute;
+  bottom: 44px;
+}
+
+.login-options button {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+/* Style générique des boutons */
+.login-options button {
+  background-color: #A72583;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 300ms ease;
+}
+
+.login-options button:hover {
+  background-color: #D30574;
+}
+
+/* Conteneur du formulaire */
+.gestion-login-form {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+/* Affichage progressif du formulaire */
+.gestion-login-form.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Champs de texte et boutons - Initialement cachés */
+.gestion-login-form input,
+.gestion-login-form button {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+/* Animation d'affichage */
+.gestion-login-form.show input,
+.gestion-login-form.show button {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Animation de disparition */
+.gestion-login-form.hide {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.4s ease-in, transform 0.4s ease-in;
+}
+
+p {
+    display: block;
+    margin-block-start: 0em;
+    margin-block-end: 0em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+    unicode-bidi: isolate;
+  }
+
+      .illu-clip {
+position: absolute;
+    top: -9px;
+
+    margin: 10px;
+    width: 30px;
+    height: auto;
+    z-index: -100;
+    }
+
+
+.illu-clip-h {
+    position: absolute;
+    top: -9px;
+    margin: 10px;
+    width: 30px;
+    height: auto;
+    z-index: 0;
+}
+
+
+@media screen and (max-width: 500px) {
+  /* Ici, tu mets les styles à appliquer pour les petits écrans */
+
+
+  .window {
+    margin-bottom: 30px;
+  }
+
+.top-right {
+    width: 60px;
+    right: 20px;
+        bottom: 5px;
+}
+
+.top-left {
+    width: 50px;
+    right: 90px;
+      bottom: 3px;
+}
+      .illu-clip {
+position: absolute;
+    top: 11px;
+
+    margin: 10px;
+    width: 30px;
+    height: auto;
+    z-index: -100;
+    }
+
+
+.illu-clip-h {
+    position: absolute;
+    top: 11px;
+    margin: 10px;
+    width: 30px;
+    height: auto;
+
+}}
+
+
+
+@media screen and (min-width: 1200px) {
+  /* Ici, tu mets les styles à appliquer pour les petits écrans */
+
+
+  .window {
+    margin-bottom: 1px;
+  }
+.top-right {
+    width: 100px;
+    right: 20px;
+        bottom: 20px;
+}
+
+.top-left {
+    width: 90px;
+    right: 130px;
+      bottom: 13px;
+}
+
+      .illu-clip {
+position: absolute;
+    top: 25px;
+
+    margin: 10px;
+    width: 30px;
+    height: auto;
+    z-index: -100;
+    }
+
+
+.illu-clip-h {
+    position: absolute;
+    top: 25px;
+    margin: 10px;
+    width: 30px;
+    height: auto;
+
+}
+}
+input[type="text"], input[type="password"], input[type="number"], input[type="time"], select {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 16px;
+    color: #fff;
+    outline: none;
+    backdrop-filter: blur(10px);
+    width: 100%;
+}
+
+
+
+   .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+.modal-content {
+    background-color: #fefefe;
+    width: 80%;
+    overflow-y: auto;
+    border-radius: 5px;
+    word-wrap: break-word;
+}
+
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color:
+}
+#changelogContent {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+
+
+
+@media screen and (max-height: 600px) {
+  .status-bar {
+    display: none;
+  }
+
+  .window {
+    margin-bottom: 0px;
+    height: 96%;
+  }
+}

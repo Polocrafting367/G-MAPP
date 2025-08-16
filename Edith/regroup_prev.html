@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Codes Barre Machines</title>
+    <script src="../Priv/regroup.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="block">
+        <h1>Gestion des Codes Barre Machines</h1>
+
+        <label for="regroupSelect">Sélectionnez un Code Barre Machine :</label>
+        <select id="regroupSelect">
+            <option value="">-- Nouveau --</option>
+        </select>
+        <button id="deleteRegroup">Supprimer ce Regroupement</button>
+
+        <label for="regroupName">Code Barre Machine :</label>
+        <input type="text" id="regroupName" placeholder="Code barre machine">
+    </div>
+
+    <div id="block">
+        <h2>Gestion des Fiches</h2>
+        <label for="ficheNumber">Numéro de fiche :</label>
+        <input type="text" id="ficheNumber" placeholder="N° de fiche">
+        <button id="addFiche">Ajouter</button>
+
+        <h3>Liste des Fiches :</h3>
+        <ul id="ficheList"></ul>
+
+        <button id="saveRegroup">Enregistrer ce Regroupement</button>
+    </div>
+<div id="block">
+    <h2>Contenu brut de regroup.js</h2>
+    <pre id="fileContent" style="background: #f4f4f4; border: 1px solid #ccc; padding: 10px; max-height: 400px; overflow: auto;"></pre>
+</div>
+
+
+
+    <script>
+
+// Lire le contenu brut du fichier regroup.js
+fetch("../Priv/regroup.js")
+    .then(response => {
+        if (!response.ok) throw new Error("Erreur de chargement du fichier regroup.js");
+        return response.text();
+    })
+    .then(text => {
+        document.getElementById("fileContent").textContent = text;
+    })
+    .catch(err => {
+        document.getElementById("fileContent").textContent = "Impossible de charger regroup.js : " + err;
+    });
+
+
+
+        if (typeof Regroups === 'undefined') {
+            alert("Erreur : regroup.js non chargé");
+        }
+
+        const regroupSelect = document.getElementById("regroupSelect");
+        const regroupName = document.getElementById("regroupName");
+        const ficheNumber = document.getElementById("ficheNumber");
+        const ficheList = document.getElementById("ficheList");
+
+        let currentFiches = [];
+
+        function remplirListeRegroupements() {
+            regroupSelect.innerHTML = '<option value="">-- Nouveau --</option>';
+            Object.keys(Regroups).forEach(name => {
+                const opt = document.createElement("option");
+                opt.value = name;
+                opt.textContent = name;
+                regroupSelect.appendChild(opt);
+            });
+        }
+
+        regroupSelect.addEventListener("change", () => {
+            const selected = regroupSelect.value;
+            if (!selected) {
+                regroupName.value = "";
+                currentFiches = [];
+                renderFiches();
+            } else {
+                regroupName.value = selected;
+                currentFiches = Regroups[selected] || [];
+                renderFiches();
+            }
+        });
+
+        document.getElementById("addFiche").addEventListener("click", () => {
+            const fiche = ficheNumber.value.trim();
+            if (fiche === "") {
+                alert("Numéro de fiche vide.");
+                return;
+            }
+            if (!currentFiches.includes(fiche)) {
+                currentFiches.push(fiche);
+                renderFiches();
+                ficheNumber.value = "";
+            } else {
+                alert("Cette fiche est déjà ajoutée.");
+            }
+        });
+
+        function renderFiches() {
+            ficheList.innerHTML = "";
+            currentFiches.forEach((fiche, index) => {
+                const li = document.createElement("li");
+                li.textContent = fiche;
+
+                const btnMod = document.createElement("button");
+                btnMod.textContent = "Modifier";
+                btnMod.onclick = () => {
+                    const nouv = prompt("Modifier le numéro de fiche :", fiche);
+                    if (nouv !== null && nouv.trim() !== "") {
+                        currentFiches[index] = nouv.trim();
+                        renderFiches();
+                    }
+                };
+
+                const btnDel = document.createElement("button");
+                btnDel.textContent = "Supprimer";
+                btnDel.onclick = () => {
+                    currentFiches.splice(index, 1);
+                    renderFiches();
+                };
+
+                li.appendChild(btnMod);
+                li.appendChild(btnDel);
+                ficheList.appendChild(li);
+            });
+        }
+
+        document.getElementById("saveRegroup").addEventListener("click", () => {
+            const name = regroupName.value.trim();
+            if (name === "") {
+                alert("Code barre machine obligatoire.");
+                return;
+            }
+
+            Regroups[name] = currentFiches;
+
+            fetch('updateRegroups_prev.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Regroups),
+            })
+            .then(resp => resp.text())
+            .then(text => {
+                alert(text);
+                remplirListeRegroupements();
+                regroupSelect.value = name;
+            })
+            .catch(err => alert("Erreur lors de la sauvegarde."));
+        });
+
+        document.getElementById("deleteRegroup").addEventListener("click", () => {
+            const name = regroupName.value.trim();
+            if (!name || !Regroups[name]) {
+                alert("Sélectionnez un regroupement valide à supprimer.");
+                return;
+            }
+
+            if (confirm(`Supprimer le regroupement "${name}" ?`)) {
+                delete Regroups[name];
+                fetch('updateRegroups_prev.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(Regroups),
+                })
+                .then(resp => resp.text())
+                .then(text => {
+                    alert(text);
+                    regroupName.value = "";
+                    currentFiches = [];
+                    renderFiches();
+                    remplirListeRegroupements();
+                })
+                .catch(err => alert("Erreur lors de la suppression."));
+            }
+        });
+
+        remplirListeRegroupements();
+    </script>
+</body>
+</html>

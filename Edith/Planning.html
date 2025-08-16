@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Éditeur Planning Quotidien</title>
+<link rel="stylesheet" href="../Ressources/CSS/style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/dom-to-image-more/dist/dom-to-image-more.min.js"></script>
+
+<style>
+  #overlay{
+    width: auto;
+    height: auto;
+    background-color: rgba(255,255,255,0.8);
+    border: 1px solid #AAA;
+    transform: translate(20px, -50px);
+    z-index: 9999;
+     position: absolute;
+  transition: top 0.1s ease, left 0.1s ease;
+  }
+  body {
+    font-family: Arial, sans-serif;
+background: linear-gradient(to bottom, #D30574, #A72583);    margin: 0;
+    padding: 20px;
+    color: #333;
+        user-select: none;
+}
+</style>
+</head>
+<body>
+ <div class="controls">
+  <fieldset>
+    <legend>📅 Paramètres du jour</legend>
+<div class="jour-selector">
+  <button onclick="changerJour(-1)">◀</button>
+  <span id="jourAffichage">Lundi</span>
+  <button onclick="changerJour(1)">▶</button>
+</div>
+
+
+        <div class="line">
+          <label>Heure de début :
+            <input id="startHourInput" type="number" step="0.25" value="16.5" min="0" max="23.75">
+          </label>
+          <label>Durée :
+            <input id="totalHoursInput" type="number" step="0.25" value="8" min="1" max="24">
+          </label>
+        </div>q
+
+        <div class="line" style="display: none;">
+          <label>Pause de :
+            <input id="pauseStartInput" type="number" value="17" min="0" max="23">
+            à :
+            <input id="pauseEndInput" type="number" value="17.5" min="0" max="23">
+          </label>
+        </div>
+
+        <div class="line buttons">
+          <button onclick="rebuildPlanning(true)">🔄 Mettre à jour données heurs</button>
+
+          <button onclick="ouvrirGestionUtilisateurs()">👥 Gérer les utilisateurs</button>
+
+       
+            <div style="flex-basis: 100%; height: 0;"></div> 
+
+          <button onclick="exporterPlanning()">📤 Exporter Planning</button>
+<input type="file" id="importJSON" accept="application/json" onchange="chargerDepuisJSON(event)" style="display: none;">
+<button onclick="document.getElementById('importJSON').click()" class="btn-fichier">📂 Charger un planning</button>
+<span id="etatFichier" style="margin-left: 10px; font-weight: bold;"></span>
+
+            <div style="flex-basis: 100%; height: 0;"></div> 
+
+<button onclick="ouvrirModalExportpng()">📤 Export png</button>
+   <button onclick="enregistrerJSON()">💾 Enregistré sur serveur</button>
+
+        </div>
+      </fieldset>
+    </div>
+  </div>
+
+  <!-- Panneau droit scrollable -->
+  <div class="right-panel">
+  </div>
+
+<div class="table-container">
+  <table id="planningTable">
+    <thead id="planningHead"></thead>
+    <tbody id="planningBody"></tbody>
+  </table>
+</div>
+
+
+  <button class="add-machine" onclick="ajouterLigneMachine()">+ Ajouter une ligne</button>
+
+  <div id="overlay" class="selection-overlay">
+    <label>Technicien :
+<select id="overlayTech"></select>
+<label>Fréquence :
+  <select id="overlayFrequence">
+    <option value="none">--</option>
+    <option value="HQ">Hebdo/Quoti</option>
+    <option value="S1">Semaine 1</option>
+    <option value="S2">Semaine 2</option>
+    <option value="S3">Semaine 3</option>
+    <option value="S4">Semaine 4</option>
+  </select>
+</label><br>
+
+    </label><br>
+<label>Texte visible : <input type="text" id="overlayTexte"></label><br>
+<label>Code fiche : <input type="text" id="overlayFiche"></label><br>
+    <button onclick="applySelection()">Appliquer</button>
+    <button onclick="resetSelection()">🗑 Réinitialiser</button>
+    <button onclick="fermerOverlay()">❌ Fermer</button>
+
+  </div>
+
+
+  <div id="modalUtilisateurs" style="display:none; position:fixed; top:20%; left:30%; background:#fff; border:2px solid #333; padding:20px; z-index:9999;">
+  <h3>Gestion des utilisateurs</h3>
+  <ul id="listeUtilisateurs"></ul>
+
+  <input type="text" id="nouvelUtilisateur" placeholder="Nom de l'utilisateur">
+  <input type="color" id="couleurUtilisateur" value="#00aa00">
+<button id="utilisateurBtn" onclick="ajouterUtilisateur()">➕ Ajouter</button>
+
+  <br><br>
+  <button onclick="fermerModalUtilisateurs()">❌ Fermer</button>
+</div>
+
+<div id="modalExportpng" >
+  <h3>📤 Export du planning (plage horaire)</h3>
+<span id="dureeExportAffichee" style="margin-left:20px;"></span>
+
+  <label>De :
+    <input type="number" id="exportStartHour" step="1" min="0" max="23.75">
+  </label>
+  <label><br>à :
+    <input type="number" id="exportEndHour" step="1" min="0" max="24">
+  </label>
+  <button onclick="genererPreviewExport()">🔍 Prévisualiser</button>
+  <button onclick="imprimerpng()">📄 Exporter png</button>
+  <button onclick="document.getElementById('modalExportpng').style.display='none'">❌ Fermer</button>
+
+
+  <div id="previewExport" style="margin-top:20px;"></div>
+</div>
+
+
+
+  <script>
+let utilisateurs = {
+  A: "#a8e3a2",
+  B: "#ffcba4"
+};
+let utilisateurEnEdition = null;
+let planningData = {};
+
+
+    const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+    let currentJourIndex = 0;
+    let selectedCells = [];
+    let isMouseDown = false;
+    let lignesMachine = [];
+    const parametresParJour = {};
+    const blocsParJour = {};
+
+fetch('charger.php')
+  .then(res => res.json())
+  .then(data => {
+    console.log("🔍 Données chargées :", data); // 🧪 ajoute ça temporairement
+    Object.assign(parametresParJour, data.parametres);
+    Object.assign(blocsParJour, data.blocs);
+    lignesMachine = data.machines || [];
+    if (data.utilisateurs) utilisateurs = data.utilisateurs;
+    majListeUtilisateurs();
+    chargerParametresJour();
+  })
+
+
+    document.body.addEventListener("mousedown", () => isMouseDown = true);
+    document.body.addEventListener("mouseup", () => {
+      isMouseDown = false;
+      if (selectedCells.length > 0) {
+        const rect = selectedCells[0].getBoundingClientRect();
+        const overlay = document.getElementById("overlay");
+        overlay.style.top = `${window.scrollY + rect.top - 90}px`;
+        overlay.style.left = `${rect.left}px`;
+        overlay.style.display = "block";
+      }
+    });
+function fermerOverlay() {
+  const overlay = document.getElementById("overlay");
+  overlay.style.display = "none";
+  selectedCells.forEach(cell => cell.classList.remove("selected"));
+  selectedCells = [];
+}
+
+    function changerJour(delta) {
+      enregistrerEtatCourant();
+      currentJourIndex = (currentJourIndex + delta + 7) % 7;
+      document.getElementById("jourAffichage").textContent = jours[currentJourIndex];
+      chargerParametresJour();
+    }
+
+    function enregistrerEtatCourant() {
+      const jour = jours[currentJourIndex];
+      parametresParJour[jour] = {
+startHour: parseFloat(document.getElementById("startHourInput").value),
+totalHours: parseFloat(document.getElementById("totalHoursInput").value),
+pauseStart: parseFloat(document.getElementById("pauseStartInput").value),
+pauseEnd: parseFloat(document.getElementById("pauseEndInput").value)
+
+
+      };
+
+      const blocs = [];
+      document.querySelectorAll("#planningBody tr").forEach((tr, rowIndex) => {
+        let colIndex = 0;
+tr.querySelectorAll("td:not(:first-child)").forEach(td => {
+  if (!td.classList.contains("pause") && td.classList.contains("merged")) {
+    let user = "";
+    for (const nom in utilisateurs) {
+      if (td.classList.contains(nom)) {
+        user = nom;
+        break;
+      }
+    }
+
+blocs.push({
+  ligne: rowIndex,
+  start: colIndex,
+  end: colIndex + (td.colSpan || 1) - 1,
+  texte: td.textContent,
+  codeFiche: td.dataset.codeFiche || "",
+  user: user,
+  frequence: td.dataset.frequence || "none"
+});
+
+  }
+  colIndex += td.colSpan || 1;
+});
+
+
+      });
+      blocsParJour[jour] = blocs;
+    }
+
+function enregistrerJSON() {
+  enregistrerEtatCourant();
+  const data = {
+    parametres: parametresParJour,
+    blocs: blocsParJour,
+    machines: lignesMachine,
+    utilisateurs: utilisateurs // ✅ AJOUT
+
+  };
+
+  fetch('sauver.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Erreur serveur");
+    return res.text();
+  })
+  .then(msg => alert("✅ Sauvegarde réussie"))
+  .catch(err => alert("❌ Échec de la sauvegarde : " + err.message));
+}
+
+function chargerDepuisJSON(event) {
+  const file = event.target.files[0];
+  const etat = document.getElementById("etatFichier");
+
+  if (!file) {
+    etat.textContent = "❌ Aucun fichier sélectionné.";
+    etat.style.color = "red";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      Object.assign(parametresParJour, data.parametres);
+      Object.assign(blocsParJour, data.blocs);
+      lignesMachine = data.machines || [];
+      if (data.utilisateurs) {
+  utilisateurs = data.utilisateurs;
+}
+majListeUtilisateurs();
+
+      chargerParametresJour();
+
+      etat.textContent = `✅ Chargé : ${file.name}`;
+      etat.style.color = "green";
+    } catch (err) {
+      etat.textContent = "❌ Erreur dans le fichier JSON.";
+      etat.style.color = "red";
+    }
+  };
+  reader.readAsText(file);
+}
+
+
+    function chargerParametresJour() {
+      const jour = jours[currentJourIndex];
+      const params = parametresParJour[jour] || { startHour: 18, totalHours: 8, pauseStart: 19, pauseEnd: 19.5 };
+      document.getElementById("startHourInput").value = params.startHour;
+      document.getElementById("totalHoursInput").value = params.totalHours;
+      document.getElementById("pauseStartInput").value = params.pauseStart;
+      document.getElementById("pauseEndInput").value = params.pauseEnd;
+      rebuildPlanning();
+      majListeUtilisateurs();
+
+    }
+
+function rebuildPlanning(force = false) {
+  const jour = jours[currentJourIndex];
+  const startHour = parseFloat(document.getElementById("startHourInput").value);
+  const totalHours = parseFloat(document.getElementById("totalHoursInput").value);
+  const pauseStart = parseFloat(document.getElementById("pauseStartInput").value);
+  const pauseEnd = parseFloat(document.getElementById("pauseEndInput").value);
+  generatePlanning(startHour, totalHours, pauseStart, pauseEnd); // ✅ APPEL MANQUANT
+}
+
+
+  function generatePlanning(startHour, totalHours, pauseStart, pauseEnd) {
+  const thead = document.getElementById("planningHead");
+  const tbody = document.getElementById("planningBody");
+  thead.innerHTML = "";
+  tbody.innerHTML = "";
+  selectedCells = [];
+
+  const startOffset = startHour % 1; // Décalage décimal
+  const fullStartHour = Math.floor(startHour); // Heure entière de départ
+  const nbQuarts = Math.ceil(totalHours * 4);
+
+  // Création de l'en-tête à deux lignes
+  const headRow1 = document.createElement("tr");
+  const headRow2 = document.createElement("tr");
+  headRow1.innerHTML = '<th rowspan="2">Machine</th>';
+  headRow2.innerHTML = '';
+
+for (let i = 0; i < Math.ceil(totalHours); i++) {
+  const hour = Math.floor(startHour + i); // force affichage heure entière
+  const thHour = document.createElement("th");
+  thHour.textContent = `${hour % 24}h`;
+  thHour.colSpan = 4;
+  headRow1.appendChild(thHour);
+
+
+    for (let q = 0; q < 4; q++) {
+      const thQ = document.createElement("th");
+      thQ.textContent = ""; // ou afficher "¼", "½", etc.
+      headRow2.appendChild(thQ);
+    }
+  }
+  thead.appendChild(headRow1);
+  thead.appendChild(headRow2);
+
+  const jour = jours[currentJourIndex];
+  const blocs = blocsParJour[jour] || [];
+
+  lignesMachine.forEach((nom, rowIndex) => {
+    const tr = document.createElement("tr");
+    const tdLabel = document.createElement("td");
+tdLabel.innerHTML = `<span class="machine-label">${nom}</span> <button class="delete-machine" title="Supprimer">🗑</button>`;
+// Modifier le nom de la machine
+tdLabel.querySelector(".machine-label").addEventListener("click", () => {
+  const nouveauNom = prompt("Modifier le nom de la machine :", nom);
+  if (nouveauNom && nouveauNom.trim()) {
+    lignesMachine[rowIndex] = nouveauNom.trim();
+    rebuildPlanning();
+  }
+});
+
+// Supprimer la ligne
+tdLabel.querySelector(".delete-machine").addEventListener("click", () => {
+  if (confirm(`Supprimer la ligne "${nom}" ?`)) {
+    lignesMachine.splice(rowIndex, 1);
+    rebuildPlanning();
+  }
+});
+
+    tr.appendChild(tdLabel);
+
+    let cursor = 0;
+    while (cursor < nbQuarts) {
+      const bloc = blocs.find(b => b.ligne === rowIndex && b.start === cursor);
+
+      const td = document.createElement("td");
+      const currentHour = fullStartHour + Math.floor(cursor / 4) + (cursor % 4) * 0.25;
+
+      if (bloc) {
+          bloc.frequence = bloc.frequence || "none"; // ✅ juste ici
+
+td.colSpan = bloc.end - bloc.start + 1;
+td.innerHTML = bloc.texte === " " ? "&nbsp;" : bloc.texte;
+        td.dataset.codeFiche = bloc.codeFiche || "";
+if (bloc.user) {
+  td.classList.add(bloc.user);
+  const baseColor = utilisateurs[bloc.user] || "#ccc";
+const { backgroundColor, textColor } = ajusterCouleur(baseColor, bloc.frequence);
+td.style.backgroundColor = backgroundColor;
+td.style.color = textColor;
+}
+
+
+        td.classList.add("merged");
+td.addEventListener("click", () => {
+  selectedCells.forEach(c => c.classList.remove("selected"));
+  selectedCells = [td];
+  td.classList.add("selected");
+td.id = "selectedCell"; // ✅ Ajoute l'ID ici
+td.dataset.frequence = bloc.frequence || "none";
+const baseColor = utilisateurs[bloc.user] || "#ccc";
+const { backgroundColor, textColor } = ajusterCouleur(baseColor, bloc.frequence);
+td.style.backgroundColor = backgroundColor;
+td.style.color = textColor;
+
+  // Préremplir proprement même si vide
+  document.getElementById("overlayTexte").value = td.textContent?.trim() || "";
+  document.getElementById("overlayFiche").value = td.dataset.codeFiche || "";
+  document.getElementById("overlayTech").value = td.classList.contains("A") ? "A" :
+                                                 td.classList.contains("B") ? "B" : "A";
+
+  const rect = td.getBoundingClientRect();
+  const overlay = document.getElementById("overlay");
+  overlay.style.top = `${window.scrollY + rect.top - 90}px`;
+  overlay.style.left = `${rect.left}px`;
+  overlay.style.display = "block";
+});
+
+        if (cursor < startOffset * 4) {
+          td.classList.add("hors-duree");
+          td.textContent = "";
+        }
+        cursor = bloc.end + 1;
+      } else {
+        if (currentHour >= pauseStart && currentHour < pauseEnd) {
+          td.classList.add("pause");
+          td.dataset.row = rowIndex;
+        } else {
+          td.classList.add("editable");
+          td.dataset.row = rowIndex;
+          td.addEventListener("mousedown", () => toggleSelection(td));
+          td.addEventListener("mouseover", () => { if (isMouseDown) toggleSelection(td); });
+        }
+
+        const maxQuarts = totalHours * 4;
+        const isExtra = cursor >= maxQuarts;
+        const isBeforeStart = cursor < startOffset * 4;
+        if (isExtra || isBeforeStart) {
+          td.classList.add("hors-duree");
+        }
+        cursor++;
+      }
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+
+
+
+function toggleSelection(td) {
+  // ❌ Ne rien faire si c’est une cellule de pause
+  if (td.classList.contains("pause")) return;
+
+  if (!isMouseDown) {
+    selectedCells.forEach(cell => cell.classList.remove("selected"));
+    selectedCells = [];
+  }
+
+  const row = td.parentElement;
+  const allCells = Array.from(row.querySelectorAll("td:not(:first-child)"));
+  const tdIndex = allCells.indexOf(td);
+
+  if (selectedCells.length > 0) {
+    const firstIndex = allCells.indexOf(selectedCells[0]);
+    const min = Math.min(firstIndex, tdIndex);
+    const max = Math.max(firstIndex, tdIndex);
+
+    // ❌ Bloquer si une cellule fusionnée, remplie ou pause est entre deux
+    for (let i = min + 1; i < max; i++) {
+      const cell = allCells[i];
+      if (
+        cell.classList.contains("merged") ||
+        cell.classList.contains("pause") ||
+        cell.textContent.trim()
+      ) {
+        return;
+      }
+    }
+
+    // Même ligne uniquement
+    if (td.dataset.row !== selectedCells[0].dataset.row) return;
+
+    const range = allCells.slice(min, max + 1);
+    selectedCells.forEach(cell => cell.classList.remove("selected"));
+    selectedCells = range;
+    selectedCells.forEach(cell => cell.classList.add("selected"));
+  } else {
+    selectedCells.push(td);
+    td.classList.add("selected");
+  }
+}
+
+
+function applySelection() {
+  const tech = document.getElementById("overlayTech").value;
+  const texteVisible = document.getElementById("overlayTexte").value;
+  const ficheCode = document.getElementById("overlayFiche").value;
+const frequence = document.getElementById("overlayFrequence").value;
+const baseColor = utilisateurs[tech] || "#ccc";
+
+  if (selectedCells.length === 0) return;
+
+  const row = selectedCells[0].parentElement;
+  const firstIndex = Array.from(row.children).indexOf(selectedCells[0]);
+
+  const isMerged = selectedCells.length === 1 && selectedCells[0].classList.contains("merged");
+  const colspan = isMerged ? (selectedCells[0].colSpan || 1) : selectedCells.length;
+
+  selectedCells.forEach(cell => cell.remove());
+
+  const merged = document.createElement("td");
+  merged.colSpan = colspan;
+  merged.textContent = texteVisible;
+merged.className = tech + " merged";
+merged.style.backgroundColor = utilisateurs[tech] || "";
+  merged.dataset.row = selectedCells[0].dataset.row;
+  merged.dataset.codeFiche = ficheCode; // 🔧 Enregistrement de la donnée
+merged.dataset.frequence = frequence;
+const { backgroundColor, textColor } = ajusterCouleur(baseColor, frequence);
+merged.style.backgroundColor = backgroundColor;
+merged.style.color = textColor;
+
+
+  merged.addEventListener("click", () => {
+    selectedCells.forEach(c => c.classList.remove("selected"));
+    selectedCells = [merged];
+    merged.classList.add("selected");
+
+    const rect = merged.getBoundingClientRect();
+    const overlay = document.getElementById("overlay");
+    overlay.style.top = `${window.scrollY + rect.top - 90}px`;
+    overlay.style.left = `${rect.left}px`;
+    overlay.style.display = "block";
+
+    // 🟢 Pré-remplissage des champs pour modification
+document.getElementById("overlayTexte").value = merged.textContent;
+document.getElementById("overlayFiche").value = merged.dataset.codeFiche || "";
+document.getElementById("overlayTech").value = tech;
+document.getElementById("overlayFrequence").value = merged.dataset.frequence || "none";
+
+  });
+
+  row.insertBefore(merged, row.children[firstIndex] || null);
+  document.getElementById("overlay").style.display = "none";
+  selectedCells = [];
+}
+
+
+function resetSelection() {
+  if (selectedCells.length === 0) return;
+
+  const row = selectedCells[0].parentElement;
+  const startIndex = Array.from(row.children).indexOf(selectedCells[0]);
+  const colspan = selectedCells[0].colSpan || 1;
+  const rowIndex = selectedCells[0].dataset.row;
+
+  // Supprimer la cellule fusionnée
+  row.removeChild(selectedCells[0]);
+
+  // Créer les cellules de remplacement
+  for (let i = 0; i < colspan; i++) {
+    const newTd = document.createElement("td");
+    newTd.className = "editable";
+    newTd.dataset.row = rowIndex;
+    newTd.addEventListener("mousedown", () => toggleSelection(newTd));
+    newTd.addEventListener("mouseover", () => { if (isMouseDown) toggleSelection(newTd); });
+    row.insertBefore(newTd, row.children[startIndex + i] || null);
+  }
+
+  selectedCells = [];
+  document.getElementById("overlay").style.display = "none";
+}
+
+
+    function ajouterLigneMachine() {
+      const nom = prompt("Nom de la nouvelle ligne :");
+      if (nom) {
+        lignesMachine.push(nom);
+        rebuildPlanning();
+      }
+    }
+
+    chargerParametresJour();
+
+function exporterPlanning() {
+  enregistrerEtatCourant();
+
+  const data = {
+    parametres: parametresParJour,
+    blocs: blocsParJour,
+    machines: lignesMachine,
+        utilisateurs: utilisateurs // ✅ AJOUT
+
+  };
+
+  const date = new Date();
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const fileName = `Planning-${yyyy}-${mm}-${dd}.json`;
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  a.click();
+}
+
+
+function ouvrirGestionUtilisateurs() {
+  const modal = document.getElementById("modalUtilisateurs");
+  const ul = document.getElementById("listeUtilisateurs");
+  ul.innerHTML = "";
+
+for (const nom in utilisateurs) {
+  const li = document.createElement("li");
+  li.innerHTML = `
+    <span style="display:inline-block; width:12px; height:12px; background:${utilisateurs[nom]}; margin-right:5px;"></span>
+    <strong>${nom}</strong>
+    <button onclick="remplirEditionUtilisateur('${nom}')" title="Modifier">✏️</button>
+    <button onclick="supprimerUtilisateur('${nom}')" title="Supprimer">🗑</button>
+  `;
+  ul.appendChild(li);
+}
+
+
+  document.getElementById("utilisateurBtn").textContent = "➕ Ajouter";
+  utilisateurEnEdition = null;
+  modal.style.display = "block";
+}
+
+function remplirEditionUtilisateur(nom) {
+  document.getElementById("nouvelUtilisateur").value = nom;
+  document.getElementById("couleurUtilisateur").value = utilisateurs[nom];
+  document.getElementById("utilisateurBtn").textContent = "✅ Valider";
+  utilisateurEnEdition = nom;
+}
+
+
+function fermerModalUtilisateurs() {
+  document.getElementById("modalUtilisateurs").style.display = "none";
+
+}
+
+function ajouterUtilisateur() {
+  const nom = document.getElementById("nouvelUtilisateur").value.trim();
+  const couleur = document.getElementById("couleurUtilisateur").value;
+
+  if (!nom) {
+    alert("⚠️ Entrez un nom.");
+    return;
+  }
+
+  // Mode édition
+  if (utilisateurEnEdition) {
+    if (utilisateurEnEdition !== nom && utilisateurs[nom]) {
+      alert("⚠️ Ce nom est déjà pris.");
+      return;
+    }
+
+    delete utilisateurs[utilisateurEnEdition];
+    utilisateurs[nom] = couleur;
+    utilisateurEnEdition = null;
+    document.getElementById("utilisateurBtn").textContent = "➕ Ajouter";
+  } else {
+    // Ajout normal
+    if (utilisateurs[nom]) {
+      alert("⚠️ Utilisateur déjà existant.");
+      return;
+    }
+
+    utilisateurs[nom] = couleur;
+  }
+
+  document.getElementById("nouvelUtilisateur").value = "";
+  ouvrirGestionUtilisateurs();
+  majListeUtilisateurs();
+}
+
+function supprimerUtilisateur(nom) {
+  if (confirm(`Supprimer l'utilisateur "${nom}" ?`)) {
+    delete utilisateurs[nom];
+    ouvrirGestionUtilisateurs();
+    majListeUtilisateurs(); // ✅ Ajout ici
+
+  }
+}
+
+function majListeUtilisateurs() {
+  const select = document.getElementById("overlayTech");
+  select.innerHTML = ""; // Vider le select
+
+  for (const nom in utilisateurs) {
+    const opt = document.createElement("option");
+    opt.value = nom;
+    opt.textContent = nom;
+    select.appendChild(opt);
+  }
+}
+let nbColonnesExport = null; // nombre total de quarts à exporter
+let exportEndHourOrigine = null;
+let valeurInitialeExport = null; // ← valeur initiale de la durée d’export (en heures)
+let defautstart = null;
+
+
+function ouvrirModalExportpng() {
+  const startBase = parseFloat(document.getElementById("startHourInput").value);
+  const total = parseFloat(document.getElementById("totalHoursInput").value);
+  const endBase = startBase + total - 0.5;
+
+  document.getElementById("exportStartHour").value = startBase - 0.5;
+  document.getElementById("exportEndHour").value = endBase ;
+
+  exportEndHourOrigine = endBase;
+  valeurInitialeExport = endBase - startBase - 0.5; // ✅ Sauvegarde globale
+defautstart = startBase;
+  genererPreviewExport();
+  document.getElementById("modalExportpng").style.display = "block";
+}
+
+
+function genererPreviewExport() {
+  const start = parseFloat(document.getElementById("exportStartHour").value) - 4.75;
+  const end = parseFloat(document.getElementById("exportEndHour").value) + (start - defautstart) + .75;
+  if (isNaN(start) || isNaN(end) || start >= end) {
+    alert("Plage horaire invalide.");
+    return;
+  }
+
+  const baseStart = 0;
+  const startIndex = Math.round((start - baseStart) * 4);
+  const endIndex = Math.round((end - baseStart - start) * 4);
+
+  const preview = document.getElementById("previewExport");
+  preview.innerHTML = "";
+
+  const sourceTable = document.getElementById("planningTable");
+  const tableClone = sourceTable.cloneNode(true);
+  tableClone.id = "planningTableExport";
+  tableClone.style.marginBottom = "10px";
+
+  tableClone.querySelectorAll("button").forEach(btn => btn.remove());
+
+  const allRows = tableClone.querySelectorAll("tr");
+
+  allRows.forEach((row) => {
+    let colIndex = 0;
+    const cells = Array.from(row.querySelectorAll("td, th"));
+    cells.forEach(cell => {
+      const span = cell.colSpan || 1;
+      const isHorsPlage = colIndex + span <= startIndex || colIndex >= endIndex;
+      if (cell.cellIndex > 0 && isHorsPlage) {
+        cell.remove();
+      }
+      colIndex += span;
+    });
+  });
+
+// Supprimer colonne excédentaire si besoin
+const currentEnd = parseFloat(document.getElementById("exportEndHour").value);   // durée actuelle
+const currentStart = parseFloat(document.getElementById("exportStartHour").value); // heure de début
+const currentFinHeure = currentStart + currentEnd;
+const referenceHeureFin = defautstart + 0.5 + valeurInitialeExport;
+
+
+if (
+  valeurInitialeExport !== null &&
+  currentEnd !== referenceHeureFin &&
+  allRows.length >= 2
+) {
+  console.log("⚠️ Durée réduite → suppression d'une colonne");
+  const secondHeaderRow = allRows[1];
+  const ths = secondHeaderRow.querySelectorAll("th");
+  if (ths.length > 0) {
+    ths[ths.length - 1].remove();
+  }
+} else {
+  console.log("✅ Aucune suppression : durée exportée suffisante ou correspond à la référence exacte.");
+}
+
+
+
+
+  // ➕ Création d’un conteneur central (tableau + pied)
+  const exportWrapper = document.createElement("div");
+  exportWrapper.style.display = "flex";
+  exportWrapper.style.flexDirection = "column";
+  exportWrapper.style.alignItems = "center";
+  exportWrapper.style.width = "fit-content";
+  exportWrapper.style.margin = "0 auto";
+
+  exportWrapper.appendChild(tableClone);
+
+  // ➕ Ligne de légende alignée sous le tableau
+  const footerBar = document.createElement("div");
+  footerBar.style.display = "flex";
+  footerBar.style.justifyContent = "space-between";
+  footerBar.style.alignItems = "center";
+  footerBar.style.width = tableClone.offsetWidth + "px"; // ⚠️ à recalculer dynamiquement après insertion si besoin
+  footerBar.style.fontSize = "14px";
+  footerBar.style.gap = "10px";
+
+  // 📌 Correction dynamique si offsetWidth = 0 (table pas encore insérée dans le DOM)
+  setTimeout(() => {
+    footerBar.style.width = tableClone.offsetWidth + "px";
+  }, 0);
+
+  // ⬅️ Légende techniciens
+  const legend = document.createElement("div");
+  legend.style.display = "flex";
+  legend.style.flexWrap = "wrap";
+  legend.style.alignItems = "center";
+  legend.style.gap = "12px";
+
+const users = utilisateurs || {};
+  for (const [nom, couleur] of Object.entries(users)) {
+    if (nom.toUpperCase() === "PAUSE") continue;
+
+    const item = document.createElement("div");
+    item.style.display = "flex";
+    item.style.alignItems = "center";
+    item.style.gap = "5px";
+
+    const colorBox = document.createElement("div");
+    colorBox.style.width = "16px";
+    colorBox.style.height = "16px";
+    colorBox.style.backgroundColor = couleur;
+    colorBox.style.border = "1px solid #000";
+
+    const label = document.createElement("span");
+    label.textContent = nom;
+
+    item.appendChild(colorBox);
+    item.appendChild(label);
+    legend.appendChild(item);
+  }
+const frequences = ["HQ", "S1", "S2", "S3", "S4"];
+frequences.forEach(freq => {
+  const sample = document.createElement("div");
+  sample.style.display = "flex";
+  sample.style.alignItems = "center";
+  sample.style.gap = "5px";
+
+  const base = Object.values(utilisateurs)[0] || "#888";
+  const freqColor = ajusterCouleur(base, freq);
+
+  const colorBox = document.createElement("div");
+  colorBox.style.width = "16px";
+  colorBox.style.height = "16px";
+  colorBox.style.backgroundColor = freqColor;
+  colorBox.style.border = "1px solid #000";
+
+  const label = document.createElement("span");
+  label.textContent = freq;
+
+  sample.appendChild(colorBox);
+  sample.appendChild(label);
+  legend.appendChild(sample);
+});
+
+  // 🟨 Titre centré
+  const titre = document.createElement("div");
+  const jourNom = jours[currentJourIndex];
+  titre.textContent = `Planning préventif - ${jourNom.toUpperCase()}`;
+  titre.style.flex = "1";
+  titre.style.textAlign = "center";
+
+  // ⏱️ Date à droite
+  const date = new Date();
+  const dateStr = date.toLocaleDateString("fr-FR");
+  const dateExport = document.createElement("div");
+  dateExport.textContent = dateStr;
+  dateExport.style.whiteSpace = "nowrap";
+
+  footerBar.appendChild(legend);
+  footerBar.appendChild(titre);
+  footerBar.appendChild(dateExport);
+
+  exportWrapper.appendChild(footerBar);
+  preview.appendChild(exportWrapper);
+}
+
+async function imprimerpng() {
+  const sourceElement = document.querySelector("#previewExport > div");
+
+  if (!sourceElement) {
+    alert("Aucun contenu à exporter.");
+    return;
+  }
+
+  const jourAffichageSpan = document.getElementById("jourAffichageModal");
+  const jourNom = jourAffichageSpan ? jourAffichageSpan.textContent.toUpperCase() : "JOUR";
+  const date = new Date();
+  const jour = String(date.getDate()).padStart(2, "0");
+  const mois = String(date.getMonth() + 1).padStart(2, "0");
+  const annee = String(date.getFullYear()).slice(2);
+  const nomFichier = `Planning-Prev-${jourNom}-${jour}-${mois}-${annee}.png`;
+
+// 🎯 Scale dynamique entre 3 (large écran) et 8 (petit tableau)
+const baseWidth = sourceElement.scrollWidth;
+const minScale = 4;
+const maxScale = 8;
+
+// Seuils de largeur entre lesquels on ajuste le scale
+const minWidth = 600;  // petite div → gros zoom
+const maxWidth = 1800; // très large div → petit zoom
+
+if (baseWidth <= minWidth) {
+  scaleFactor = maxScale;
+} else if (baseWidth >= maxWidth) {
+  scaleFactor = minScale;
+} else {
+  const ratio = (baseWidth - minWidth) / (maxWidth - minWidth);
+  scaleFactor = maxScale - ratio * (maxScale - minScale);
+}
+
+  const width = sourceElement.scrollWidth;
+  const height = sourceElement.offsetHeight;
+
+  // ✅ Clone sans gonfler sa taille logique
+  const clone = sourceElement.cloneNode(true);
+  clone.style.position = "absolute";
+ clone.style.left = "-99999px";
+  clone.style.top = "0";
+  clone.style.background = "white";
+  clone.style.transform = `scale(${scaleFactor})`;
+  clone.style.transformOrigin = "top";
+  clone.style.width = width + "px";
+  clone.style.height = height + "px";
+  clone.style.overflow = "visible";
+
+  document.body.appendChild(clone);
+
+  try {
+    const blob = await domtoimage.toBlob(clone, {
+      bgcolor: "white",
+      width: width * scaleFactor,
+      height: height * scaleFactor,
+ 
+    });
+
+    const blobUrl = URL.createObjectURL(blob);
+    document.body.removeChild(clone);
+
+    // 🔍 Affichage modal
+    const container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.top = "0";
+    container.style.left = "0";
+    container.style.width = "100vw";
+    container.style.height = "100vh";
+    container.style.background = "rgba(0,0,0,0.95)";
+    container.style.zIndex = "9999";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.alignItems = "center";
+    container.style.justifyContent = "center";
+    container.style.padding = "20px";
+    container.style.boxSizing = "border-box";
+
+    const title = document.createElement("p");
+    title.textContent = `Prévisualisation : ${nomFichier}`;
+    const scaleInfo = document.createElement("p");
+scaleInfo.textContent = `Facteur de zoom : ${scaleFactor.toFixed(2)}x`;
+scaleInfo.style.color = "#ccc";
+scaleInfo.style.fontSize = "0.9em";
+scaleInfo.style.marginBottom = "15px";
+scaleInfo.style.textAlign = "center";
+
+    title.style.color = "white";
+    title.style.fontWeight = "bold";
+    title.style.marginBottom = "10px";
+    title.style.textAlign = "center";
+
+    const img = document.createElement("img");
+    img.src = blobUrl;
+    img.alt = nomFichier;
+    img.style.maxWidth = "90vw";
+    img.style.maxHeight = "70vh";
+    img.style.border = "2px solid white";
+    img.style.marginBottom = "15px";
+
+    const buttonContainer = document.createElement("div");
+    buttonContainer.style.display = "flex";
+    buttonContainer.style.gap = "10px";
+
+    const downloadBtn = document.createElement("button");
+    downloadBtn.textContent = "📥 Télécharger";
+    downloadBtn.style.padding = "10px 20px";
+    downloadBtn.onclick = () => {
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = nomFichier;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "Fermer";
+    closeBtn.style.padding = "10px 20px";
+    closeBtn.onclick = () => {
+      URL.revokeObjectURL(blobUrl);
+      document.body.removeChild(container);
+    };
+
+    buttonContainer.appendChild(downloadBtn);
+    buttonContainer.appendChild(closeBtn);
+
+    container.appendChild(title);
+    container.appendChild(scaleInfo); 
+    container.appendChild(img);
+    container.appendChild(buttonContainer);
+    document.body.appendChild(container);
+
+  } catch (err) {
+    console.error("Erreur lors de la capture :", err);
+    alert("Erreur lors de la capture de l'image.");
+    if (document.body.contains(clone)) document.body.removeChild(clone);
+  }
+}
+
+
+document.getElementById("exportStartHour").addEventListener("keydown", function(e) {
+  if (e.key === "," || e.key === "." || e.key === "e") {
+    e.preventDefault();
+  }
+});
+
+document.getElementById("exportEndHour").addEventListener("keydown", function(e) {
+  if (e.key === "," || e.key === "." || e.key === "e") {
+    e.preventDefault();
+  }
+});
+function ajusterCouleur(baseColor, frequence) {
+  const adjustColor = (hex, amt) => {
+    const num = parseInt(hex.slice(1), 16);
+    let r = (num >> 16) + amt;
+    let g = ((num >> 8) & 0x00FF) + amt;
+    let b = (num & 0x0000FF) + amt;
+
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+
+    return { r, g, b, rgb: `rgb(${r}, ${g}, ${b})` };
+  };
+
+  let amt = 0;
+  switch (frequence) {
+    case "S1": amt = 40; break;
+    case "S2": amt = -40; break;
+    case "S3": amt = -80; break;
+    case "S4": amt = -120; break;
+    case "HQ":
+    default: amt = 0;
+  }
+
+  const adjusted = adjustColor(baseColor, amt);
+
+  // Calculer la luminance (formule perceptuelle)
+  const luminance = 0.299 * adjusted.r + 0.587 * adjusted.g + 0.114 * adjusted.b;
+
+  // Si la luminance est faible, on choisit du texte blanc, sinon noir
+  const textColor = luminance < 128 ? "#fff" : "#000";
+
+  return {
+    backgroundColor: adjusted.rgb,
+    textColor
+  };
+}
+
+
+
+  </script>
+</body>
+</html>

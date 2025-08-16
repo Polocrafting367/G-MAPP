@@ -1,0 +1,369 @@
+
+  <div style="display: none; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; color: white; z-index: 2;">
+  <label for="monthSlider">Mois :</label>
+<input type="range" id="yearSlider" min="1" max="365" value="1" step="1" style="width:600px;" oninput="updateBySlider(this.value)">
+  <span id="monthDisplay">Auto</span>
+</div>
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion</title>
+  <link id="themeLink" rel="stylesheet" href="../CSS/styleLog.css">
+  <link rel="icon" type="image/png" href="../../SVG/LOGO.svg">
+  <link rel="icon" sizes="192x192" href="../../SVG/LOGO.svg">
+  <link rel="apple-touch-icon" sizes="192x192" href="../../SVG/LOGO.svg">
+
+</head>
+<body>
+
+    <iframe id="bgFrame" src="../Ressources/bgE.html"></iframe>
+
+<img src="../../SVG/LOGO.svg" alt="Image Slash" class="top-left">
+<img src="../IMG/log.png" alt="Image Slash" class="top-right">
+
+
+  <div class="window">
+
+    <div class="title-bar">
+      <div id="edtext" class="title-bar-text">Connexion à G-MAPP</div>
+    </div>
+    <div class="window-body">
+      <!-- Carousel vertical pour les utilisateurs réguliers -->
+      <div id="verticalCarousel" class="vertical-carousel">
+        <!-- Les cartes régulières seront insérées ici -->
+      </div>
+
+      <!-- Section pour le gestionnaire -->
+      <div id="managerContainer" class="manager-container">
+        <!-- La carte de gestion sera insérée ici -->
+      </div>
+    </div>
+    <div class="status-bar">
+      <div id="credits-container">
+        <p id="credits"></p>
+      </div>
+      <div style="display: flex;flex-direction: column;">
+      <button class="status-bar-button" onclick="openChangelog()">Changelog</button>
+      <button class="status-bar-button" onclick="openmodal()">Tuto</button>
+    </div>
+    </div>
+    <!-- Modal tutoriel -->
+<!-- Modal tutoriel -->
+<div id="tutorialModal" class="modal">
+  <div class="modal-content">
+    <h2>Tutoriel</h2>
+    <div id="carousel">
+      <div class="iframe-zipper" id="iframeContainer">
+        <!-- L'iframe sera insérée ici -->
+      </div>
+    </div>
+    <hr>
+    <button id="accessButton" class="button" onclick="openWebsite()">Revenir au site web</button>
+  </div>
+</div>
+
+  </div>
+
+  <script src="../JS/JSlog2.js"></script>
+</body>
+</html>
+
+<div id="changelogModal" class="modal">
+    <div class="modal-content">     
+
+        <span class="close" onclick="closeModal()">&times;</span>
+         <button class="status-bar-button" onclick="window.location.href = '../Docs/index.php'">Docs</button>
+        <pre id="changelogContent">Chargement...</pre>
+    </div>
+</div>
+<script>
+
+let sliderUsed = false;
+
+const monthThemes = [
+  {
+    name: "Janvier",
+    borderColor: "#001B3F",        // Bleu nuit intense
+    titleColor: "#66B2FF",         // Bleu glacial
+    statusColor: "#003366",        // Bleu profond
+    buttonColor: "#3399FF"         // Bleu clair dynamique
+  },
+  {
+    name: "Février",
+    borderColor: "#002B36",        // Cyan foncé, presque ardoise
+    titleColor: "#00E5D4",         // Turquoise électrique
+    statusColor: "#005F5F",        // Cyan sombre doux
+    buttonColor: "#33FFFF"         // Aqua lumineux
+  },
+
+  { name: "Mars", borderColor: "#154734", titleColor: "#50DC96", statusColor: "#103820", buttonColor: "#80FFAA" },
+  { name: "Avril", borderColor: "#3A5F0B", titleColor: "#8CFF50", statusColor: "#2F4F1C", buttonColor: "#AAFF66" },
+  { name: "Mai", borderColor: "#4E8C0F", titleColor: "#A0FF50", statusColor: "#2F4F1C", buttonColor: "#CFFF66" },
+  { name: "Juin", borderColor: "#CC9900", titleColor: "#FFD700", statusColor: "#8B6500", buttonColor: "#FFE066" },
+  { name: "Juillet", borderColor: "#CC3300", titleColor: "#FF6600", statusColor: "#992200", buttonColor: "#FF9966" },
+  { name: "Août", borderColor: "#993300", titleColor: "#FF5500", statusColor: "#662200", buttonColor: "#FF9966" },
+  { name: "Septembre", borderColor: "#663300", titleColor: "#DC7832", statusColor: "#4C1F00", buttonColor: "#FFA050" },
+  { name: "Octobre", borderColor: "#3C1400", titleColor: "#C85000", statusColor: "#3C1400", buttonColor: "#FF8000" },
+  { name: "Novembre", borderColor: "#3C1A1A", titleColor: "#B40000", statusColor: "#300010", buttonColor: "#FF6666" },
+  { name: "Décembre", borderColor: "#001F3F", titleColor: "#008CFF", statusColor: "#001A33", buttonColor: "#3399FF" }
+];
+
+const specialEvents = [
+  {
+    id: "newYear", name: "🎉 Nouvel An", date: { month: 0, day: 1 },
+    theme: {
+      borderColor: "#990000",         // Rouge vif
+      titleColor: "#FFD700",          // Or éclatant
+      statusColor: "#330000",         // Profond festif
+      buttonColor: "#FFCC00"          // Doré lumineux
+    }
+  },
+  {
+    id: "polarWinter", name: "❄️ Hiver Polaire", date: { month: 0, day: 15 },
+    theme: {
+      borderColor: "#003366",
+      titleColor: "#DDEEFF",
+      statusColor: "#225577",
+      buttonColor: "#66CCFF"
+    }
+  },
+  {
+    id: "valentines", name: "💖 Saint-Valentin", date: { month: 1, day: 14 },
+    theme: {
+      borderColor: "#880044",
+      titleColor: "#FFB6C1",
+      statusColor: "#550022",
+      buttonColor: "#FF4081"
+    }
+  },
+  {
+    id: "carnival", name: "🎭 Carnaval", date: { month: 1, day: 15 },
+    theme: {
+      borderColor: "#663300",
+      titleColor: "#FFFACD",
+      statusColor: "#995500",
+      buttonColor: "#FFCC00"
+    }
+  },
+  {
+    id: "spring", name: "🌸 Printemps", date: { month: 2, day: 20 },
+    theme: {
+      borderColor: "#228B22",
+      titleColor: "#D0FFD0",
+      statusColor: "#116622",
+      buttonColor: "#66DD88"
+    }
+  },
+  {
+    id: "labor", name: "🛠 Fête du Travail", date: { month: 4, day: 1 },
+    theme: {
+      borderColor: "#770000",
+      titleColor: "#FFCCCC",
+      statusColor: "#440000",
+      buttonColor: "#FF5555"
+    }
+  },
+  {
+    id: "music", name: "🎵 Fête de la Musique", date: { month: 5, day: 21 },
+    theme: {
+      borderColor: "#0033CC",
+      titleColor: "#DDEBFF",
+      statusColor: "#001A66",
+      buttonColor: "#3399FF"
+    }
+  },
+  {
+    id: "bastille", name: "🇫🇷 14 Juillet", date: { month: 6, day: 14 },
+    theme: {
+      borderColor: "#002266",
+      titleColor: "#FFFFFF",
+      statusColor: "#001133",
+      buttonColor: "#CC0000"
+    }
+  },
+  {
+    id: "summerHeat", name: "🔥 Été Caniculaire", date: { month: 6, day: 21 },
+    theme: {
+      borderColor: "#BB4400",
+      titleColor: "#FFDDCC",
+      statusColor: "#772200",
+      buttonColor: "#FF8000"
+    }
+  },
+  {
+    id: "backToSchool", name: "🎒 Rentrée", date: { month: 8, day: 1 },
+    theme: {
+      borderColor: "#004455",
+      titleColor: "#FFFFDD",
+      statusColor: "#002233",
+      buttonColor: "#FFAA33"
+    }
+  },
+  {
+    id: "autumn", name: "🍁 Automne Doré", date: { month: 8, day: 23 },
+    theme: {
+      borderColor: "#CC5500",
+      titleColor: "#FFEEDD",
+      statusColor: "#993300",
+      buttonColor: "#FF7733"
+    }
+  },
+  {
+    id: "halloween", name: "🎃 Halloween", date: { month: 9, day: 31 },
+    theme: {
+      borderColor: "#330000",
+      titleColor: "#FFBBBB",
+      statusColor: "#800000",
+      buttonColor: "#FF3300"
+    }
+  },
+  {
+    id: "xmas", name: "🎄 Noël", date: { month: 11, day: 25 },
+    theme: {
+      borderColor: "#990000",
+      titleColor: "#FFEEEE",
+      statusColor: "#660000",
+      buttonColor: "#FFD700"
+    }
+  }
+];
+
+
+// ----- Fonctions utilitaires -----
+function getContrastColor(hex, alpha = 1) {
+  const r = parseInt(hex.substr(1, 2), 16);
+  const g = parseInt(hex.substr(3, 2), 16);
+  const b = parseInt(hex.substr(5, 2), 16);
+  const bgR = Math.round(r * alpha + 255 * (1 - alpha));
+  const bgG = Math.round(g * alpha + 255 * (1 - alpha));
+  const bgB = Math.round(b * alpha + 255 * (1 - alpha));
+  const luminance = 0.299 * bgR + 0.587 * bgG + 0.114 * bgB;
+  return luminance > 150 ? '#000000' : '#FFFFFF';
+}
+
+function darken(hex, factor = 0.15) {
+  const rgb = hex.replace("#", "").match(/.{2}/g).map(h => Math.floor(parseInt(h, 16) * (1 - factor)));
+  return `#${rgb.map(v => v.toString(16).padStart(2, '0')).join("")}`;
+}
+
+function hexToRgba(hex, alpha = 1) {
+  const r = parseInt(hex.substr(1, 2), 16);
+  const g = parseInt(hex.substr(3, 2), 16);
+  const b = parseInt(hex.substr(5, 2), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function applyDynamicStyles(date = new Date()) {
+  const year = date.getFullYear();
+  const todayTime = date.getTime();
+  const rangeDays = 3;
+
+  let appliedTheme = null;
+  let isSpecial = false;
+
+  for (const event of specialEvents) {
+    const eventDate = new Date(year, event.date.month, event.date.day);
+    const diffInDays = Math.abs((eventDate.getTime() - todayTime) / (1000 * 60 * 60 * 24));
+    if (diffInDays <= rangeDays) {
+      appliedTheme = event.theme;
+      isSpecial = true;
+      break;
+    }
+  }
+
+  if (!appliedTheme) {
+    const month = date.getMonth();
+    const baseTheme = monthThemes[month];
+
+    appliedTheme = {
+      borderColor: baseTheme.borderColor,
+      titleColor: baseTheme.titleColor,
+      statusColor: hexToRgba(baseTheme.titleColor, 0.15),
+      buttonColor: baseTheme.buttonColor
+    };
+  }
+
+  const titleAlpha = 0.9;
+  const statusAlpha = 0.3;
+  const titleRgba = hexToRgba(appliedTheme.titleColor, titleAlpha);
+  const statusRgba = typeof appliedTheme.statusColor === "string" ? appliedTheme.statusColor : hexToRgba(appliedTheme.statusColor, statusAlpha);
+  const hoverColor = darken(appliedTheme.buttonColor, 0.2);
+
+  const style = document.createElement("style");
+  style.textContent = `
+    .manager-card { border: 2px solid ${appliedTheme.borderColor} !important; }
+    .title-bar { background-color: ${titleRgba} !important; color: ${getContrastColor(appliedTheme.titleColor, titleAlpha)} !important; }
+    .status-bar { background-color: ${statusRgba} !important; color: ${getContrastColor(statusRgba, 1)} !important; }
+    button, #eventButtons button { background-color: ${appliedTheme.buttonColor} !important; color: ${getContrastColor(appliedTheme.buttonColor)} !important; transition: background-color 0.3s ease !important; }
+    button:hover, #eventButtons button:hover { background-color: ${hoverColor} !important; color: ${getContrastColor(hoverColor)} !important; }
+  `;
+  document.head.appendChild(style);
+}
+
+
+
+function updateBySlider(value) {
+  sliderUsed = true;
+  const dayOfYear = parseInt(value);
+  const simulatedDate = dayOfYearToDate(new Date().getFullYear(), dayOfYear);
+  applyDynamicStyles(simulatedDate);
+  
+  const special = isSpecialEventDay(simulatedDate);
+  if (special) {
+    document.getElementById("monthDisplay").textContent = `${special.name} (simulation)`;
+  } else {
+    document.getElementById("monthDisplay").textContent = `${monthThemes[simulatedDate.getMonth()].name} (simulation)`;
+  }
+}
+
+function dayOfYearToDate(year, dayOfYear) {
+  const date = new Date(year, 0);
+  date.setDate(dayOfYear);
+  return date;
+}
+
+function isSpecialEventDay(testDate = new Date()) {
+  const year = testDate.getFullYear();
+  const time = testDate.getTime();
+  const rangeDays = 5;
+  for (const event of specialEvents) {
+    const eventDate = new Date(year, event.date.month, event.date.day);
+    const diffInDays = Math.abs((eventDate.getTime() - time) / (1000 * 60 * 60 * 24));
+    if (diffInDays <= rangeDays) {
+      return event;
+    }
+  }
+  return null;
+}
+
+
+applyDynamicStyles();  // chargement initial
+
+
+    function openChangelog() {
+        fetch('/G-MAPP/ChangeLog.txt')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('changelogContent').textContent = data;
+                document.getElementById('changelogModal').style.display = "block";
+            })
+            .catch(error => {
+                document.getElementById('changelogContent').textContent = 'Erreur lors du chargement du Changelog : ' + error;
+                document.getElementById('changelogModal').style.display = "block";
+            });
+    }
+
+    function closeModal() {
+        document.getElementById('changelogModal').style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        if (event.target == document.getElementById('changelogModal')) {
+            closeModal();
+        }
+    }
+
+</script>

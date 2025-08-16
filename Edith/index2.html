@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Préconfigurations</title>
+    <script src="../Work/Préconf.js"></script>
+    <script src="../Work/Rais.js"></script>
+        <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+      <div id="block">
+
+    <h1>Gestion des Préconfigurations</h1>
+    
+    <!-- Lieu -->
+    <label for="lieuName">Lieux :</label>
+    <textarea id="lieuName" placeholder="Exemple : Filmeuse PP VT, Étiqueteuse VT" rows="2"></textarea>
+    
+    <!-- Titre -->
+    <label for="preconfTitle">Titre :</label>
+    <input type="text" id="preconfTitle" placeholder="Titre de la préconfiguration (ex : Haut, Encre)">
+    </div>
+      <div id="block">
+
+    <h2>Ajouter une Entrée à la Préconfiguration</h2>
+    <div id="entryFields">
+        <label for="typePanne">Type de Panne :</label>
+        <select id="typePanne">
+            <!-- Options insérées dynamiquement -->
+        </select>
+        
+        <label for="causePanne">Cause de Panne :</label>
+        <select id="causePanne">
+            <!-- Options insérées dynamiquement -->
+        </select>
+        
+        <label for="arret">Durée d'Arrêt :</label>
+        <input type="text" id="arret" placeholder="Durée par défaut (hh:mm)">
+        
+        <label for="text1">Résumé :</label>
+        <input type="text" id="text1" placeholder="Résumé (ex : Changement rouleau)">
+    </div>
+    <button id="addEntry">Ajouter à la Préconfiguration</button>
+    </div>
+      <div id="block">
+
+    <h2>Supprimer une Préconfiguration</h2>
+    <div>
+        <label for="deletePreconf">Lieu > Nom Préconfiguration :</label>
+        <select id="deletePreconf">
+            <!-- Options générées dynamiquement -->
+        </select>
+        <button id="deleteEntry">Supprimer</button>
+    </div>
+    </div>
+      <div id="block">
+
+    <h2>Préconfigurations Actuelles</h2>
+    <pre id="currentPreconf"></pre>
+</div>
+    <script>
+    // Vérifie si les préconfigurations et données de pannes sont disponibles
+    if (typeof preConfigurations === 'undefined' || typeof lieuData === 'undefined') {
+        alert("Erreur : Les fichiers Préconf.js ou Rais.js n'ont pas été correctement chargés.");
+    }
+
+    const currentPreconf = document.getElementById("currentPreconf");
+    const lieuName = document.getElementById("lieuName");
+    const typePanne = document.getElementById("typePanne");
+    const causePanne = document.getElementById("causePanne");
+    const deletePreconf = document.getElementById("deletePreconf");
+    const arret = document.getElementById("arret");
+
+    // Initialiser la Durée d'Arrêt avec "00:00"
+    arret.value = "00:00";
+
+    // Affiche les préconfigurations actuelles
+    const afficherPreConfigurations = () => {
+        currentPreconf.textContent = JSON.stringify(preConfigurations, null, 4);
+        remplirListeSuppression();
+    };
+
+    // Remplit les listes déroulantes pour Type et Cause de Panne
+    const remplirOptions = (data, selectElement) => {
+        selectElement.innerHTML = "";
+        data.forEach(item => {
+            const option = document.createElement("option");
+            option.value = item;
+            option.textContent = item;
+            selectElement.appendChild(option);
+        });
+    };
+
+    // Remplit la liste déroulante pour la suppression
+    const remplirListeSuppression = () => {
+        deletePreconf.innerHTML = "";
+        Object.keys(preConfigurations).forEach(lieu => {
+            preConfigurations[lieu].forEach(preconf => {
+                const option = document.createElement("option");
+                option.value = `${lieu} > ${preconf.titre}`;
+                option.textContent = `${lieu} > ${preconf.titre}`;
+                deletePreconf.appendChild(option);
+            });
+        });
+    };
+
+    remplirOptions(lieuData.types, typePanne);
+    remplirOptions(lieuData.causes, causePanne);
+    afficherPreConfigurations();
+
+    // Sauvegarde les préconfigurations mises à jour sur le serveur
+const sauvegarderPreConfigurations = () => {
+    fetch('updatePreconf.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(preConfigurations),
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.text();
+        } else {
+            throw new Error("Erreur lors de la mise à jour");
+        }
+    })
+    .then(text => {
+        console.log("Sauvegarde réussie :", text);
+    })
+    .catch(error => {
+        console.error("Erreur lors de la sauvegarde :", error);
+        alert("Une erreur est survenue lors de la sauvegarde.");
+    });
+};
+
+    // Ajoute une nouvelle entrée dans les préconfigurations
+    document.getElementById("addEntry").addEventListener("click", () => {
+        const lieux = lieuName.value.split(',').map(l => l.trim()).filter(l => l);
+        const titre = document.getElementById("preconfTitle").value.trim();
+
+        if (lieux.length === 0 || !titre) {
+            alert("Veuillez entrer au moins un lieu et un titre pour la préconfiguration.");
+            return;
+        }
+
+        const liste1 = typePanne.value;
+        const liste2 = causePanne.value;
+        const dureeArret = arret.value.trim() || "00:00";
+        const text1 = document.getElementById("text1").value.trim();
+
+        if (!liste1) {
+            alert("Veuillez sélectionner un type de panne.");
+            return;
+        }
+
+        // Création de l'entrée
+        const newEntry = {
+            titre,
+            liste1,
+            liste2,
+            arret: dureeArret,
+            Text1: text1,
+            Text2: "", // Champ inutile
+            temps: "00:00" // Temps enregistré par défaut
+        };
+
+        // Ajoute l'entrée à chaque lieu spécifié
+        lieux.forEach(lieu => {
+            if (!preConfigurations[lieu]) {
+                preConfigurations[lieu] = [];
+            }
+            preConfigurations[lieu].push(newEntry);
+        });
+
+        alert("Entrée ajoutée à la/aux préconfiguration(s) !");
+        afficherPreConfigurations();
+        sauvegarderPreConfigurations(); // Sauvegarde immédiatement après l'ajout
+    });
+
+    // Supprime une préconfiguration sélectionnée
+document.getElementById("deleteEntry").addEventListener("click", () => {
+    const selected = deletePreconf.value;
+    const [lieu, titre] = selected.split(' > ');
+
+    if (!lieu || !titre) {
+        alert("Veuillez sélectionner une préconfiguration à supprimer.");
+        return;
+    }
+
+    // Filtrer les préconfigurations pour supprimer la préconfiguration sélectionnée
+    preConfigurations[lieu] = preConfigurations[lieu].filter(preconf => preconf.titre !== titre);
+
+    // Supprimer le lieu si aucune préconfiguration n'y reste
+    if (preConfigurations[lieu].length === 0) {
+        delete preConfigurations[lieu];
+    }
+
+    alert("Préconfiguration supprimée !");
+    afficherPreConfigurations(); // Met à jour l'affichage
+    sauvegarderPreConfigurations(); // Sauvegarde immédiatement les modifications
+});
+
+</script>
+
+</body>
+</html>

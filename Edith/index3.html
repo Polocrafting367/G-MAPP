@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Mise à jour de Rais.js</title>
+      <link rel="stylesheet" href="styles.css">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    label {
+      display: inline-block;
+      width: 200px;
+      font-weight: bold;
+    }
+    input[type="file"] {
+      margin-bottom: 10px;
+    }
+    button {
+      margin: 5px 0;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+    /* Modal */
+    .modal {
+      display: none; /* Masquée par défaut */
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 600px;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+    }
+    pre {
+      background-color: #eee;
+      padding: 10px;
+      max-height: 300px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>      <div id="block">
+
+  <h1>Mise à jour de Rais.js</h1>
+  <p>Sélectionnez les fichiers CSV pour mettre à jour <strong>les types</strong> et/ou <strong>les causes</strong>.</p>
+
+  <div>
+    <label for="csvFileInputTypes">Fichier CSV Types :</label>
+    <input type="file" id="csvFileInputTypes" accept=".csv">
+  </div>
+  <div>
+    <label for="csvFileInputCauses">Fichier CSV Causes :</label>
+    <input type="file" id="csvFileInputCauses" accept=".csv">
+  </div>
+  <!-- Bouton de prévisualisation -->
+  <button id="previewButton">Prévisualiser Rais.js</button>
+</div>
+  <!-- Modal de prévisualisation -->
+  <div id="previewModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Prévisualisation de Rais.js</h2>
+      <pre id="previewContent"></pre>
+      <button id="confirmButton">Confirmer la mise à jour</button>
+      <button id="exportButton">Exporter (Télécharger)</button>
+      <button id="cancelButton">Annuler</button>
+    </div>
+  </div>
+
+  <script>
+    // Fonction pour nettoyer une chaîne (supprime guillemets et espaces superflus)
+    function cleanString(str) {
+      return str ? str.trim().replace(/^"|"$/g, '').replace(/ +/g, ' ') : '';
+    }
+
+    // Fonction pour convertir un objet en une chaîne JSON formatée
+    function objectToFormattedString(obj) {
+      return JSON.stringify(obj, null, 2)
+        .replace(/"([^"]+)":/g, '"$1":')
+        .replace(/},\n\s*}/g, '}\n  }')
+        .replace(/},\n\s*{/g, '},\n\n  {');
+    }
+
+    // Fonction pour créer et télécharger un fichier
+    function downloadFile(filename, content) {
+      const blob = new Blob([content], { type: 'application/javascript' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Fonction pour lire un fichier CSV simple en ignorant l'en-tête
+    // Retourne un tableau contenant la valeur de la première colonne de chaque ligne
+    function readCSVValues(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const csvData = event.target.result;
+          const lines = csvData.split('\n').filter(line => line.trim() !== '');
+          if (lines.length <= 1) {
+            resolve([]);
+            return;
+          }
+          // On ignore la première ligne (l'en-tête)
+          const values = lines.slice(1).map(line => {
+            const cols = line.split(';');
+            return cleanString(cols[0]);
+          });
+          resolve(values);
+        };
+        reader.onerror = function(e) {
+          reject(e);
+        };
+        reader.readAsText(file, 'ISO-8859-1');
+      });
+    }
+
+    // Fonction principale pour générer le contenu mis à jour de Rais.js
+    async function generateRaisContent() {
+      const fileInputTypes = document.getElementById('csvFileInputTypes');
+      const fileInputCauses = document.getElementById('csvFileInputCauses');
+
+      const fileTypes = fileInputTypes.files.length ? fileInputTypes.files[0] : null;
+      const fileCauses = fileInputCauses.files.length ? fileInputCauses.files[0] : null;
+
+      if (!fileTypes && !fileCauses) {
+        alert('Veuillez sélectionner au moins un fichier CSV (pour les types ou pour les causes).');
+        throw new Error("Aucun fichier CSV sélectionné");
+      }
+
+      let newTypes = null;
+      let newCauses = null;
+      try {
+        if (fileTypes) {
+          newTypes = await readCSVValues(fileTypes);
+        }
+        if (fileCauses) {
+          newCauses = await readCSVValues(fileCauses);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la lecture des fichiers CSV:", error);
+        alert('Erreur lors de la lecture des fichiers CSV.');
+        throw error;
+      }
+
+      // On conserve les valeurs actuelles si une partie n'est pas fournie
+      // On suppose que la variable globale "lieuData" est déjà définie dans Work/Rais.js
+      const currentTypes = (typeof lieuData !== 'undefined' && lieuData.types) ? lieuData.types : [];
+      const currentCauses = (typeof lieuData !== 'undefined' && lieuData.causes) ? lieuData.causes : [];
+
+      const updatedTypes = newTypes !== null ? newTypes : currentTypes;
+      const updatedCauses = newCauses !== null ? newCauses : currentCauses;
+
+      const updatedLieuData = {
+        types: updatedTypes,
+        causes: updatedCauses
+      };
+
+      return `const lieuData = ${objectToFormattedString(updatedLieuData)};`;
+    }
+
+    // Événement sur le bouton de prévisualisation
+    document.getElementById('previewButton').addEventListener('click', async () => {
+      try {
+        const formattedContent = await generateRaisContent();
+        // Afficher la prévisualisation dans la modal
+        document.getElementById('previewContent').textContent = formattedContent;
+        document.getElementById('previewModal').style.display = 'block';
+
+        // Bouton de confirmation (envoi vers updateTypeCause.php)
+        document.getElementById('confirmButton').onclick = function() {
+          fetch('updateTypeCause.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/javascript' },
+            body: formattedContent
+          }).then(response => {
+            if (response.ok) {
+              response.text().then(text => alert(text));
+            } else {
+              alert('Erreur lors de la mise à jour du fichier Rais.js.');
+            }
+            document.getElementById('previewModal').style.display = 'none';
+          });
+        };
+
+        // Bouton d'exportation (téléchargement local)
+        document.getElementById('exportButton').onclick = function() {
+          downloadFile('Rais.js', formattedContent);
+        };
+
+        // Bouton d'annulation
+        document.getElementById('cancelButton').onclick = function() {
+          document.getElementById('previewModal').style.display = 'none';
+        };
+
+      } catch (error) {
+        // Erreur déjà gérée dans generateRaisContent
+      }
+    });
+
+    // Gestion de la fermeture de la modal
+    document.querySelector('.close').onclick = function() {
+      document.getElementById('previewModal').style.display = 'none';
+    };
+    window.onclick = function(event) {
+      if (event.target === document.getElementById('previewModal')) {
+        document.getElementById('previewModal').style.display = 'none';
+      }
+    };
+  </script>
+</body>
+</html>

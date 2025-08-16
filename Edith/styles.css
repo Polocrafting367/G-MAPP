@@ -1,0 +1,144 @@
+html, body {
+  height: 98%;
+  margin: 0;
+  padding: 0;
+      user-select: none;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to bottom, #D30574, #A72583);
+  min-height: 96vh;
+}
+
+h1, h2 {
+    color: #4CAF50;
+}
+#block {
+    background-color: white;
+    border-radius: 20px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+h1 {
+    font-size: 2em;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 1.5em;
+    margin-top: 30px;
+    border-bottom: 2px solid #4CAF50;
+    padding-bottom: 5px;
+}
+
+/* Labels et champs */
+label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+p {
+
+}
+input[type="text"],
+textarea,
+select {
+    width:95%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    font-size: 1em;
+
+    background-color: #fff;
+}
+
+/* Zone de texte spécifique */
+textarea {
+    resize: vertical;
+    min-height: 50px;
+}
+
+/* Boutons */
+button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-right: 10px;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Liste déroulante */
+select {
+    cursor: pointer;
+}
+
+/* Conteneur des préconfigurations */
+pre {
+    background-color: #f4f4f4;
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    font-family: monospace;
+    overflow-x: auto;
+}
+
+/* Conteneur pour suppression */
+#deletePreconf {
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+/* Espacement */
+#entryFields {
+    margin-top: 20px;
+}
+
+/* Scroll bar personnalisée */
+pre::-webkit-scrollbar,
+textarea::-webkit-scrollbar,
+select::-webkit-scrollbar {
+    width: 10px;
+}
+
+pre::-webkit-scrollbar-track,
+textarea::-webkit-scrollbar-track,
+select::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb,
+textarea::-webkit-scrollbar-thumb,
+select::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb:hover,
+textarea::-webkit-scrollbar-thumb:hover,
+select::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Mise en page des sections */
+div {
+    margin-bottom: 20px;
+}
