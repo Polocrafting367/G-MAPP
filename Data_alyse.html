@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse JSON</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input[type="file"] {
+            margin-top: 5px;
+        }
+
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .results {
+            margin-top: 20px;
+        }
+
+        .results pre {
+            background: #f4f4f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Analyse de fichier JSON</h1>
+
+        <div class="form-group">
+            <label for="jsonFile">Charger un fichier JSON :</label>
+            <input type="file" id="jsonFile" accept="application/json">
+        </div>
+
+        <div class="form-group">
+            <label for="keywords">Mots-clés (séparés par des virgules) :</label>
+            <input type="text" id="keywords" placeholder="Exemple : VBA,Minecraft,YouTube">
+        </div>
+
+        <button class="btn" id="analyzeButton">Analyser</button>
+
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        document.getElementById("analyzeButton").addEventListener("click", () => {
+            const fileInput = document.getElementById("jsonFile");
+            const keywordsInput = document.getElementById("keywords").value.split(",").map(k => k.trim());
+            const resultsDiv = document.getElementById("results");
+
+            // Clear previous results
+            resultsDiv.innerHTML = "";
+
+            if (!fileInput.files.length) {
+                resultsDiv.innerHTML = '<p class="error">Veuillez sélectionner un fichier JSON.</p>';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                try {
+                    const jsonData = JSON.parse(event.target.result);
+                    const analysis = analyzeJSON(jsonData, keywordsInput);
+                    resultsDiv.innerHTML = `<h2>Résultats :</h2><pre>${JSON.stringify(analysis, null, 2)}</pre>`;
+                } catch (error) {
+                    resultsDiv.innerHTML = '<p class="error">Erreur lors de l\'analyse du fichier JSON.</p>';
+                }
+            };
+
+            reader.readAsText(file);
+        });
+
+        function analyzeJSON(data, keywords) {
+            const dayStats = {};
+            let totalMessages = 0;
+            let totalTime = 0;
+            let maxTimePerDay = 0;
+
+            data.forEach(conversation => {
+                let previousTime = null;
+                let conversationDuration = 0; // Fixed missing declaration
+
+                Object.values(conversation.mapping).forEach(message => {
+                    if (message.message && message.message.create_time) {
+                        const createTime = new Date(message.message.create_time * 1000);
+                        totalMessages++;
+
+                        if (previousTime && createTime.toDateString() === previousTime.toDateString()) {
+                            const diffSeconds = (createTime - previousTime) / 1000;
+
+                            const day = createTime.toISOString().split("T")[0];
+                            if (!dayStats[day]) dayStats[day] = 0;
+                            dayStats[day] += diffSeconds;
+
+                            conversationDuration += diffSeconds;
+                        }
+
+                        previousTime = createTime;
+                    }
+                });
+
+                totalTime += conversationDuration;
+            });
+
+            maxTimePerDay = Math.max(...Object.values(dayStats), 0);
+
+            return {
+                totalConversations: data.length,
+                totalMessages,
+                totalDuration: formatTime(totalTime),
+                maxTimePerDay: formatTime(maxTimePerDay),
+                dailyUsage: dayStats,
+            };
+        }
+
+        function formatTime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            seconds %= 86400;
+            const hours = Math.floor(seconds / 3600);
+            seconds %= 3600;
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+
+            return `${days} jours, ${hours} heures, ${minutes} minutes, ${remainingSeconds} secondes`;
+        }
+    </script>
+</body>
+</html>

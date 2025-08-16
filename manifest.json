@@ -1,0 +1,22 @@
+{
+  "name": "G-MAPP",
+  "short_name": "G-MAPP",
+  "start_url": "/G-MAPP/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "description": "Création et modification des intervention",
+"icons": [
+    {
+      "src": "../SVG/LOGO.svg",
+      "sizes": "192x192",
+      "type": "image/x-icon"
+    },
+        {
+      "src": "../SVG/LOGO.svg",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+]
+
+}

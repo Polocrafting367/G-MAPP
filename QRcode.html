@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+    <style>
+       <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #header {
+            top: 0;
+            width: 100%;
+            background-color: #34495e;
+            color: white;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+
+        #header button {
+            margin: 10px 5px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        #header button:hover {
+            background-color: #27ae60;
+        }
+
+        .input-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            width: 60%;
+            font-size: 1.1em;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 1.1em;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #labelContainer {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            width: 90%;
+        }
+
+        .label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border: 2px solid #34495e;
+            border-radius: 10px;
+            background-color: white;
+            text-align: center;
+        }
+
+        .label h2 {
+            font-size: 1.2em;
+            color: #2c3e50;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .qr-container {
+            width: 150px;
+            height: 150px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .download-btn {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .download-btn:hover {
+            background-color: #c0392b;
+        }
+
+        label {
+            margin: 10px;
+            font-size: 1.1em;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        @media (max-width: 600px) {
+            #header {
+                padding: 10px;
+            }
+
+            #header p {
+                font-size: 0.9em;
+            }
+
+            .input-actions {
+                flex-direction: column;
+                padding: 20px;
+            }
+
+            input[type="text"] {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+
+        /* Style de fond pour la modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5); /* Fond semi-transparent */
+
+}
+
+/* Contenu de la modal */
+.modal-content {
+    background-color: #fff;
+    margin: 1% auto; /* Centrer la modal verticalement et horizontalement */
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    width: 80%;
+    max-width: 500px;
+    animation: slideDown 0.3s ease; /* Animation à l'ouverture */
+}
+.lieux-list li, #arborescenceLieux li {
+    display: block;
+    margin: 5px 0;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.lieux-list {
+    list-style: none;
+    color: black !important;
+    padding: 5px;
+    height: calc(100% - 100px);
+    overflow: auto;
+    box-shadow: 0px 0px 20px rgba(100, 100, 100, 0.8);
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 10px;
+}.place-card {
+    min-height: 27px;
+    display: flex;
+    justify-content: space-between; /* Ensures the content is spaced between */
+    align-items: center; /* Aligns the items vertically in the center */
+    width: calc(100% - 10px);
+    margin-top: 10px;
+    margin-left: 5px;
+    border-radius: 10px;
+    background-color: #f9f9f9; /* Example background color */
+    padding: 10px; /* Add some padding inside */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional shadow */
+}
+
+ #arborescenceLieux {
+    list-style: none;
+    padding: 5px;
+    height: calc(100% - 100px);
+    /* Ajustez en fonction du padding de .container et de la hauteur de la bannière */
+    overflow: auto;
+    box-shadow: 0px 0px 20px rgba(100, 100, 100, 0.8);
+    background: rgba(100, 100, 100, 0.5);
+    border-radius: 10px;
+}
+.lieux-list li ,#arborescenceLieux li  {
+    background-color: rgba(255, 255, 255, 0.4);
+    /* Fond clair pour chaque élément de lieu */
+    margin: 10px 0;
+    padding: 2.5px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+
+
+li button {display: block !important}
+
+
+.lieux-list li textarea , #arborescenceLieux li textarea {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <p>Générez rapidement vos QR codes personnalisés.</p>
+    <div class="input-actions">
+        <button onclick="ouvrirModalModifierLieu()">Afficher les lieux à ajouter</button>
+        <br>
+        <input type="text" id="inputText" placeholder="Entrez le texte à intégrer dans le QR Code..." />
+
+
+    </div>
+            <input type="text" id="secondInputText" placeholder="Entrez un suffixe d’URL personnalisé..." />
+<button onclick="generateQRCodeFromSecondInput()">Générer QR Code URL</button>
+<div id="header">
+    <button onclick="previewExcelFile()">Prévisualiser fichier Excel</button>
+    <button onclick="displayGroupURLs()">Générer QR Codes pour Regroupements</button>
+    <button onclick="downloadMQD()">Télécharger en fichier .mqd</button>
+</div>
+
+
+    <label>
+
+        <input type="checkbox" id="useFullPath"> Utiliser l'URL complète
+    </label>
+</div>
+
+    <div id="modifierLieuModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fermerModalModifierLieu()">&times;</span>
+            <h2>Choisir les lieux à ajouter</h2>
+            <ul id="arborescenceLieux"></ul>
+        </div>
+    </div>
+
+
+<div id="urlContainer">
+    <ul id="urlList"></ul> <!-- Les URLs seront affichées ici -->
+</div>
+<div id="displayContainer">
+    <h2 id="displayTitle"></h2>
+    <div id="displayContent"></div>
+</div>
+
+
+<div id="labelContainer"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.2/xlsx.full.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+<script src="Ressources/JS/Lieu.js"></script>
+<script src="Work/regroup.js"></script> <!-- Assurez-vous que ce fichier est bien chargé -->
+
+<script>
+   let lieuxData = [];
+    let urlData = [];
+
+function generateQRCodeFromSecondInput() {
+    const input = document.getElementById('secondInputText').value.trim();
+
+    if (!input) {
+        alert("Veuillez saisir une URL ou un texte.");
+        return;
+    }
+
+    const cleanedUrl = encodeURI(input); // Encode tout pour une URL valide
+
+    // Créer un conteneur pour afficher le QR Code
+    const containerId = 'qrCodeFromSecondInput';
+    let container = document.getElementById(containerId);
+    if (!container) {
+        container = document.createElement('div');
+        container.id = containerId;
+        container.className = 'qr-container';
+        document.body.appendChild(container);
+    }
+
+    container.innerHTML = ''; // Réinitialise le conteneur
+    container.style.display = 'block';
+
+    new QRCode(container, {
+        text: cleanedUrl,
+        width: 150,
+        height: 150,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+    });
+}
+
+
+
+const labelContainer = document.getElementById('labelContainer');
+
+function downloadMQD() {
+    // Générer le contenu du fichier .mqd avec CRLF pour chaque ligne et un '|' final
+    let content = '';
+    const baseUrl = window.location.hostname;  // Utiliser seulement le nom d'hôte
+
+    for (let i = 0; i < lieuxData.length; i++) {
+        const normalizedLieu = normalizeString(lieuxData[i][0]); // Normaliser uniquement le texte des lieux
+        content += `1|${normalizedLieu}|${baseUrl}${urlData[i][0]}|\r\n`; // Utilisation de \r\n pour CRLF (Windows)
+    }
+
+    // Créer un fichier .mqd et lancer le téléchargement
+    const blob = new Blob([content], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'export.mqd';
+    link.click();
+}
+
+function displayGroupURLs() {
+    const useFullPath = document.getElementById('useFullPath').checked;
+    const baseUrl = window.location.hostname; // Utiliser seulement le nom d'hôte sans https://
+    const interventionPath = useFullPath ? '/G-MAPP/' : '/';
+
+    lieuxData = [];
+    urlData = [];
+
+    for (const group in Regroups) {
+        const groupURL = `${baseUrl}${interventionPath}?p=${encodeURIComponent(group)}`;
+        lieuxData.push([group]);
+        urlData.push([groupURL]);
+    }
+
+    createTable("QR Codes pour Regroupements", lieuxData, urlData);
+}
+
+function previewExcelFile() {
+    const inputText = document.getElementById('inputText').value;
+    const lieux = inputText.split(',').map(lieu => lieu.trim());
+    const useFullPath = document.getElementById('useFullPath').checked;
+
+    if (lieux.length === 0 || lieux[0] === '') {
+        alert('Veuillez entrer au moins un lieu.');
+        return;
+    }
+
+    const baseUrl = window.location.hostname; // Utiliser seulement le nom d'hôte sans https://
+    const interventionPath = useFullPath ? '/G-MAPP/' : '/';
+
+    lieuxData = [];
+    urlData = [];
+
+    lieux.forEach(lieu => {
+        const url = `${baseUrl}${interventionPath}?i=${encodeURIComponent(lieu)}`;
+        lieuxData.push([normalizeString(lieu)]);
+        urlData.push([url]);
+    });
+
+    createTable("Prévisualisation du fichier Excel", lieuxData, urlData);
+}
+
+
+function createTable(title, lieuxData, urlData) {
+    const displayTitle = document.getElementById('displayTitle');
+    const displayContent = document.getElementById('displayContent');
+    displayTitle.textContent = title;
+
+    let table = `<table border="1"><tr><th>Lieu</th><th>URL</th><th>Action</th></tr>`;
+    for (let i = 0; i < lieuxData.length; i++) {
+        table += `
+            <tr>
+                <td>${lieuxData[i][0]}</td>
+                <td>${urlData[i][0]}</td>
+                <td><button onclick="generateQRCode('${urlData[i][0]}', 'qrCodeContainer${i}')">Créer QR Code</button></td>
+            </tr>
+            <tr><td colspan="3"><div id="qrCodeContainer${i}" class="qr-container"></div></td></tr>`;
+    }
+    table += '</table>';
+
+    displayContent.innerHTML = table;
+}
+
+function generateQRCode(url, containerId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = ''; // Vider le conteneur pour éviter les doublons
+
+    // Rendre le conteneur visible
+    container.style.display = 'block';
+
+    new QRCode(container, {
+        text: url,
+        width: 150,
+        height: 150,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+    });
+}
+
+
+
+    let qrCodes = [];
+
+
+
+
+
+
+function toggleNiveau(element, niveau) {
+    const ulElement = element.nextElementSibling;
+    if (ulElement) {
+        ulElement.style.display = (ulElement.style.display === 'none' || ulElement.style.display === '') ? 'block' : 'none';
+        const iconElement = element.querySelector('.pastille');
+        const texteElement = iconElement.getAttribute('data-texte');
+        iconElement.innerHTML = (ulElement.style.display === 'none') ? '▶ ' + texteElement : '▼ ' + texteElement;
+
+        const boutonLancerChrono = document.getElementById(`lancer-chrono-btn-${texteElement}`);
+        if (boutonLancerChrono && element.classList.contains('non-cliquable')) {
+            boutonLancerChrono.disabled = true;
+        }
+
+        if (ulElement.style.display === 'block') {
+            const sousNiveaux = ulElement.querySelectorAll('.pastille');
+            sousNiveaux.forEach(sousNiveau => {
+                sousNiveau.style.display = 'block';
+                const ulSousNiveau = sousNiveau.nextElementSibling;
+                if (ulSousNiveau) {
+                    ulSousNiveau.style.display = 'none';
+                }
+            });
+        }
+    }
+}
+
+let nombreChronosActifs = 0;
+function ouvrirModalModifierLieu(nomLieuActuel) {
+    const modal = document.getElementById('modifierLieuModal');
+    modal.style.display = 'block';
+    const listeEnregistree ='';
+    // Charger l'arborescence des lieux ici
+    const arborescenceLieux = document.getElementById('arborescenceLieux');
+    arborescenceLieux.innerHTML = ''; // Vider la liste
+
+parcourirArborescenceSansPreconfiguration(arborescence, arborescenceLieux, '', 0, nomLieuActuel, listeEnregistree);
+
+}
+
+function fermerModalModifierLieu() {
+    const modal = document.getElementById('modifierLieuModal');
+    modal.style.display = 'none';
+}
+
+
+function parcourirArborescenceSansPreconfiguration(arbre, parent, cheminParent = '', niveau = 0, nomLieuActuel, listeEnregistree = []) {
+    for (const lieu in arbre) {
+        const cheminComplet = cheminParent + (cheminParent ? ' > ' : '') + lieu;
+        const nomLieuBrut = lieu.trim();
+        const nomLieuPourJS = lieu.trim().replace(/'/g, "\\'");
+
+        const lieuItem = document.createElement('li');
+        const icon = (Object.keys(arbre[lieu]).length > 0) ? '▶' : ' ';
+        const displayStyle = (niveau === 0) ? 'block' : 'none';
+
+        let buttonHTML = '';
+        if (nomLieuBrut === nomLieuActuel || listeEnregistree.includes(nomLieuBrut)) {
+            // Si c'est le lieu actuel ou s'il est dans la liste enregistrée, désactiver le bouton
+            const message = nomLieuBrut === nomLieuActuel ? 'Lieu actuel' : 'Lieu bloqué';
+            buttonHTML = `<button disabled style="margin-left: 10px;">⛔ ${message}</button>`;
+        } else {
+            // Pass `this` as the second argument to refer to the button element itself
+            buttonHTML = `<button onclick="choisirLieu('${nomLieuBrut}', this)" style="margin-left: 10px;">👆 Sélectionner</button>`;
+        }
+
+        lieuItem.innerHTML = `
+            <div class="place-card level-${niveau}" onclick="toggleNiveau(this, ${niveau})">
+                <span class="pastille" data-texte="${nomLieuBrut}" style="display:${displayStyle}">${icon} ${nomLieuBrut}</span>
+                ${buttonHTML}
+            </div>`;
+        parent.appendChild(lieuItem);
+
+        // Recursive call for nested places
+        if (Object.keys(arbre[lieu]).length > 0) {
+            const sousLieuxList = document.createElement('ul');
+            sousLieuxList.style.display = 'none';
+            lieuItem.appendChild(sousLieuxList);
+            parcourirArborescenceSansPreconfiguration(arbre[lieu], sousLieuxList, cheminComplet, niveau + 1, nomLieuActuel, listeEnregistree);
+        }
+    }
+}
+
+
+function choisirLieu(nomLieu, buttonElement) {
+    console.log('Lieu sélectionné:', nomLieu); // Log the selected location to ensure it's passed correctly
+    
+    const input = document.getElementById('inputText');
+    
+    // If input already has content, append the new location with a comma
+    if (input.value) {
+        input.value += ', ' + nomLieu;
+    } else {
+        input.value = nomLieu; // If it's empty, add the first location
+    }
+
+    // Disable the button and change its text to show that it's selected
+    if (buttonElement) {
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = '⛔'; // Update the button appearance
+    } else {
+        console.error("buttonElement is not defined");
+    }
+}
+
+
+
+
+function convertToIdFormat(str) {
+    // Check if the input is a string and not null/undefined
+    if (typeof str !== 'string') {
+        console.error("Invalid string passed to convertToIdFormat", str);
+        return '';  // Return an empty string if invalid input
+    }
+
+    return str.trim().replace(/\s+/g, '_'); // Convert spaces to underscores
+}
+
+
+function searchLieu2(arbre) {
+    const clearButton2 = document.getElementById('clearButton2');  // Bouton de nettoyage de la seconde barre de recherche
+    const searchInput2 = document.getElementById('searchInput2');  // Champ de texte de la seconde barre de recherche
+    const searchTerm2 = normalizeString(searchInput2.value.toLowerCase());
+
+    const arborescenceLieux = document.getElementById('arborescenceLieux');  // L'élément contenant la liste des lieux dans la modal
+    const lieuxItems2 = arborescenceLieux.querySelectorAll('li');  // Tous les éléments `li` de la liste des lieux
+
+    // Afficher ou masquer le bouton de nettoyage en fonction de la valeur de la recherche
+    clearButton2.style.display = searchInput2.value.trim() !== '' ? 'block' : 'block';
+
+    // Parcourir la liste des lieux
+    for (let i = 0; i < lieuxItems2.length; i++) {
+        const lieuItem2 = lieuxItems2[i];
+        const placeCard2 = lieuItem2.querySelector('.place-card');
+
+        if (placeCard2) {
+            const placeCardText2 = normalizeString(placeCard2.innerText.toLowerCase());
+            const matchesSearch2 = placeCardText2.includes(searchTerm2);
+
+            // Masquer ou afficher la place-card en fonction de la correspondance
+            placeCard2.style.display = matchesSearch2 ? 'block' : 'none';
+        }
+
+        const lieuName2 = normalizeString(lieuItem2.innerText.toLowerCase());
+        const searchTerms2 = searchTerm2.split(/\s+/);
+        const matchesSearch2 = searchTerms2.every(term => lieuName2.includes(term));
+
+        if (matchesSearch2) {
+            // Afficher l'élément trouvé
+            lieuItem2.style.display = 'block';
+            lieuItem2.classList.add('active');
+
+            // Ouvrir les branches jusqu'à cet élément
+            let parent2 = lieuItem2.parentElement;
+            while (parent2 && parent2 !== arborescenceLieux) {
+                if (parent2.tagName === 'UL') {
+                    parent2.style.display = 'block';
+                }
+                parent2 = parent2.parentElement;
+            }
+        } else {
+            // Cacher les éléments qui ne correspondent pas
+            lieuItem2.style.display = 'none';
+            lieuItem2.classList.remove('active');
+        }
+    }
+
+    // Refermer toutes les branches si la zone de recherche est vide
+    if (searchTerm2 === '') {
+        const allBranches2 = arborescenceLieux.querySelectorAll('ul');
+        allBranches2.forEach(branch => {
+            branch.style.display = 'none';
+        });
+    }
+}
+
+function clearSearchInput2() {
+    const searchInput2 = document.getElementById('searchInput2');
+    searchInput2.value = '';
+
+    // Cacher le bouton après avoir effacé la zone de texte
+    const clearButton2 = document.getElementById('clearButton2');
+
+    searchLieu2();  // Relancer la recherche avec une zone de texte vide
+}
+
+
+function normalizeString(str) {
+    return str
+        .replace(/[éèêë]/gi, 'e')
+        .replace(/[àâä]/gi, 'a')
+        .replace(/[ùûü]/gi, 'u')
+        .replace(/[îï]/gi, 'i')
+        .replace(/[ôö]/gi, 'o')
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Supprime les accents restants
+}
+
+
+
+function convertToIdFormat(str) {
+
+    // Si vos IDs sont sensibles à la casse, supprimez la conversion en minuscules
+    return str.trim().replace(/\s+/g, '_');
+
+}
+
+</script>
+
+</body>
+</html>
