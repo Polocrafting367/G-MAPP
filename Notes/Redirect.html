@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Page de Connexion</title>
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%; /* Assure que le body et html prennent toute la hauteur de la fenêtre */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-image: url('Taches.png'); /* Définit l'image de fond */
+  background-size: cover; /* Couvre toute la zone disponible sans déformer l'image */
+  background-position: center top; /* Centre l'image horizontalement et aligne le haut avec le haut du viewport */
+  background-repeat: no-repeat; /* Empêche l'image de se répéter */
+}
+ html {
+  margin: 0;
+  padding: 0;
+  height: 100%; /* Assure que le body et html prennent toute la hauteur de la fenêtre */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+}
+
+
+
+  .container { 
+    width: 350px; 
+    padding: 20px; 
+    background: white; 
+    box-shadow: 0 50px 100px rgba(0,0,0,2); 
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  .container:hover {
+    box-shadow: 0 25x 50px rgba(0,0,0,1);
+  }
+  input[type="text"], input[type="button"], button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+  }
+  input[type="text"]:focus, input[type="button"]:hover, button:hover {
+    border-color: #0056b3;
+  }
+  iframe { 
+    height: 99%; 
+    width: 99%; 
+    position: absolute; 
+    top: 0.5%; 
+    left: 0.5%; 
+    display: none; 
+    border: none; 
+    border-radius: 8px;
+  }
+  #disconnectButton { 
+    position: fixed; 
+    bottom: 10px; 
+    left: 10px; 
+    display: none; 
+    padding: 10px 20px; 
+    background: #ff4444; 
+    color: white; 
+    border: none; 
+    border-radius: 4px; 
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  #disconnectButton:hover {
+    background-color: #cc0000;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Connexion</h2>
+  <div>
+    <label for="username">Nom d'utilisateur:</label>
+    <input type="text" id="username" placeholder="Entrez votre nom d'utilisateur">
+  </div>
+  <div>
+    <label for="key">Clé personnelle:</label>
+    <input type="text" id="key" placeholder="Entrez votre clé">
+    <button onclick="generateRandomKey()">Aléatoire</button>
+  </div>
+  <div>
+    <button onclick="connect()">Connexion</button>
+  </div>
+  <div id="previousEntries"></div>
+</div>
+<button id="disconnectButton" onclick="disconnect()">Déconnexion</button>
+<iframe id="contentFrame"></iframe>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    trackRefresh();
+    displayPreviousEntries();
+  });
+
+  function generateRandomKey() {
+    document.getElementById('key').value = Math.random().toString(36).substring(2, 15);
+  }
+
+function connect() {
+    const username = document.getElementById('username').value;
+    const key = document.getElementById('key').value;
+
+    if (!entryExists(username, key)) {
+        saveEntry(username, key);
+        displayPreviousEntries(); // Met à jour l'affichage des entrées précédentes
+    }
+
+    // Connecte automatiquement ou après confirmation de l'utilisateur
+}
+
+
+  function entryExists(username, key) {
+    const entries = JSON.parse(localStorage.getItem('entries')) || [];
+    return entries.some(entry => entry.username === username && entry.key === key);
+  }
+
+  function saveEntry(username, key) {
+    const entries = JSON.parse(localStorage.getItem('entries')) || [];
+    entries.unshift({ username, key });
+    entries.splice(5); // Keep only the last 5 entries
+    localStorage.setItem('entries', JSON.stringify(entries));
+  }
+
+  function displayPreviousEntries() {
+    const entries = JSON.parse(localStorage.getItem('entries')) || [];
+    const entriesDiv = document.getElementById('previousEntries');
+    entriesDiv.innerHTML = entries.map((entry, index) => 
+      `<div>${entry.username} - ${entry.key} 
+       <button onclick="restoreAndConnect(${index})">Restaurer et connecter</button>
+      </div>`
+    ).join('');
+  }
+
+  function restoreAndConnect(index) {
+    const entries = JSON.parse(localStorage.getItem('entries')) || [];
+    const entry = entries[index];
+    document.getElementById('username').value = entry.username;
+    document.getElementById('key').value = entry.key;
+    displayContent(entry.username, entry.key);
+  }
+
+function displayContent(username, key) {
+    window.location.href = `index.html?user=${encodeURIComponent(username)}&folders=${encodeURIComponent(key)}`;
+}
+
+
+  function disconnect() {
+    localStorage.removeItem('entries');
+    const iframe = document.getElementById('contentFrame');
+    iframe.style.display = 'none';
+    document.getElementById('disconnectButton').style.display = 'none';
+  }
+
+
+
+  function trackRefresh() {
+    const now = new Date().getTime();
+    const lastRefresh = localStorage.getItem('lastRefresh');
+    localStorage.setItem('lastRefresh', now);
+
+ 
+  }
+</script>
+</body>
+</html>

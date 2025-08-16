@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Tâches</title>
+    <link rel="stylesheet" href="CSS/style.css">
+</head>
+<body>
+    <div id="taskContainer">
+        <table id="taskTable">
+            <thead>
+ <tr>
+    <th class="small-col"> ↕</th>
+    <th class="icon-col"> i</th>
+    <th class="checkbox-col"> </th>
+    <th class="note-col">Note</th>
+    <th class="intervenant-col">Qui</th>
+        <th class="date-Fin">Quand</th>
+
+    <th class="realise-col">Par</th>
+    <th class="date-col">Date fini</th>
+    <th class="date-col-max">Date save</th>
+    <th class="action-col"> ⚙️</th>
+</tr>
+
+            </thead>
+<tr id="addTaskRow">
+    <td class="small-col">></td>
+    <td class="icon-col"> </td>
+    <td class="checkbox-col"><input type="checkbox" disabled></td>
+    <td class="note-col editable" contenteditable="true" data-placeholder="Ajouter une note"></td>
+    <td class="intervenant-col editable" contenteditable="true" data-placeholder="Qui"></td>
+    <td class="date-Fin editable" contenteditable="true" data-placeholder="Quand"></td>
+    <td class="realise-col">-</td>
+    <td class="date-col">-</td>
+    <td class="date-col-max">-</td>
+    <td class="action-col"><button onclick="addTask()">+</button></td>
+</tr>
+
+
+            <tbody id="taskList">
+
+                <!-- Les tâches dynamiques seront insérées ici -->
+            </tbody>
+        </table>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
