@@ -18,8 +18,16 @@ if (!is_dir($baseDir)) {
 $deleted = 0;
 $failures = [];
 
+// Determine if the str_ends_with function is available (PHP >= 8).
+$hasStrEndsWith = function_exists('str_ends_with');
+
 foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($baseDir)) as $file) {
-    if ($file->isFile() && str_ends_with($file->getFilename(), "_CRH.json")) {
+    $filename = $file->getFilename();
+    $endsWithCrh = $hasStrEndsWith
+        ? str_ends_with($filename, '_CRH.json')
+        : substr($filename, -9) === '_CRH.json';
+
+    if ($file->isFile() && $endsWithCrh) {
         $full = $file->getPathname();
         if (unlink($full)) {
             echo "✔️ Supprimé : $full\n";
