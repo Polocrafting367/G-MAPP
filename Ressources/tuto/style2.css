@@ -1,0 +1,127 @@
+/* Style global pour améliorer l'apparence générale */
+body, html {
+
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(to bottom, #D30574, #A72583);
+    display: flex;
+    flex-direction: column;
+    overflow: auto; /* Permet le défilement si nécessaire */
+}
+
+
+h2 {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+/* Sections avec fond blanc, texte noir pour lisibilité */
+.user-section, .user-management, .intervention-management {
+    margin: 20px;
+    padding: 20px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    color: black;
+}
+
+/* Flexbox avec défilement horizontal si nécessaire */
+.user-section {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: auto; /* Permet le défilement vertical */
+    white-space: nowrap;
+    padding-bottom: 10px;
+    justify-content: flex-start;
+    resize: vertical;
+    min-height: 100px; /* Hauteur minimale pour le redimensionnement */
+    flex-grow: 1; /* Permet à la div de s'étendre en fonction de l'espace disponible */
+}
+
+
+.user-window {
+    margin: 10px;
+    padding: 15px;
+    border: 1px solid #ccc;
+    /* border-radius: 10px; */
+    background-color: #f9f9f9;
+    /* min-width: 200px; */ /* Assure une taille minimum pour chaque fenêtre utilisateur */
+    box-sizing: border-box;
+    color: black;
+    flex: 0 0 auto; /* Empêche les éléments de se redimensionner pour remplir l'espace disponible */
+}
+
+button {
+    padding: 12px 20px;
+    /* margin-top: 10px; */
+    border: none;
+    border-radius: 5px;
+    background-color: #A72583;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #D30574;
+}
+
+input, select {
+    padding: 10px;
+    margin: 10px 0;
+    width: calc(100% - 20px);
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    color: black;
+}
+
+#feedback {
+    color: red;
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* Style pour la gestion des interventions */
+.intervention-management {
+    text-align: center;
+}
+
+.intervention-management button {
+    margin: 0 auto;
+}
+
+table.intervention-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 16px;
+    text-align: left;
+}
+
+table.intervention-table thead tr {
+    background-color: #ffffff;
+    color: black;
+    text-align: left;
+    font-weight: bold;
+}
+
+table.intervention-table th, 
+table.intervention-table td {
+    border: 1px solid #000000;
+    padding: 12px 15px;
+}
+
+table.intervention-table tbody tr {
+    border-bottom: 1px solid #000000;
+}
+
+table.intervention-table tbody tr:nth-of-type(even) {
+    background-color: #e4e4e4;
+}
+
+table.intervention-table tbody tr:last-of-type {
+    border-bottom: 2px solid #000000;
+}

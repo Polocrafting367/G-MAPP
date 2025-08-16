@@ -1,0 +1,70 @@
+body {
+  font-size: 18px;
+  font-weight: bold;
+  color: #000000;
+}
+
+h1, h2, h3, h4, h5, h6, p, label, li, span, div, td {
+  font-size: 20px;
+  font-weight: bold;
+  color: #000000;
+}
+
+/* Champs texte */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+select,
+textarea {
+  font-size: 18px;
+  font-weight: bold;
+  color: #000000;
+}
+
+/* Boutons */
+
+
+
+/* Boutons */
+button, .tab-button, .tab-button_z, .tab-button_u, .note-tab-button, #clearButton {
+  font-size: 18px;
+  font-weight: bold;
+  color: #FFFFFF;
+}
+
+/* Listes */
+ul li, .lieux-list li {
+  font-size: 18px;
+  font-weight: bold;
+  color: #000000;
+}
+
+/* Pastilles */
+.place-card .pastille {
+  font-size: 18px;
+  font-weight: bold;
+  color: #000000;
+}
+
+button {
+  position: relative;
+  overflow: hidden;
+  color: white;
+      height: 35px;
+}
+
+button span {
+  position: relative;
+  z-index: 1;
+  color: inherit;
+}
+
+button:not(.no-contrast-overlay)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 0;
+}

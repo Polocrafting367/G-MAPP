@@ -1,0 +1,40 @@
+</head>
+
+<html>
+<body>
+  <body class="invisible-theme">
+
+  <div id="circle1" class="circle1"></div>
+  <div id="circle2" class="circle2"></div>
+  <div id="circle3" class="circle3"></div>
+  <div id="body" class="body"></div>
+  
+  <div style="display: none; position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); text-align: center; color: white; z-index: 2;">
+  <label for="monthSlider">Mois :</label>
+<input type="range" id="yearSlider" min="1" max="365" value="1" step="1" style="width:600px;" oninput="updateBySlider(this.value)">
+  <span id="monthDisplay">Auto</span>
+</div>
+
+
+
+<div id="eventButtons" style="display: none; margin-top: 8px;  flex-wrap: wrap; gap: 8px;">
+  <button onclick="forceXmas()" style="padding: 6px 12px; background: #c00; color: white; border: none; border-radius: 5px; cursor: pointer;">🎄 Tester Noël</button>
+  <button onclick="forceNewYear()" style="padding: 6px 12px; background: #444; color: white; border: none; border-radius: 5px; cursor: pointer;">🎉 Tester Nouvel An</button>
+  <button onclick="forceFeteMusique()" style="padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer;">🎵 Tester Fête de la Musique</button> 
+  <button onclick="forceSpring()" style="padding: 6px 12px; background: #2E7D32; color: white; border: none; border-radius: 5px; cursor: pointer;">🌸 Tester Printemps</button>
+  <button onclick="resetTheme()" style="padding: 6px 12px; background: #777; color: white; border: none; border-radius: 5px; cursor: pointer;">🔁 Revenir à automatique</button>
+</div>
+
+
+  
+
+<div id="perso">
+
+</div>
+
+
+
+
+
+<link rel="stylesheet" href="bgstyle.css">
+<script src="bgscript.js"></script>

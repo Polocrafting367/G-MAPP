@@ -1,0 +1,2943 @@
+.note-tab-button span {
+    cursor: pointer;
+    margin-left: 10px;
+    color: grey;
+}
+#user-info3,
+#user-info4,#user-info5,#user-info6  {
+  justify-content: center !important;  /* centre horizontalement */
+}
+.modal-visible {
+  display: block !important;
+}
+
+.modal-hidden {
+  display: none !important;
+}
+
+
+.scrollable-tabs.no-scroll {
+    pointer-events: none;
+}
+
+.note-tab-button span:hover {
+    color: black;
+}
+#modalBody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    /* Espace entre chaque bouton */
+}
+.button-group {
+    display: flex; /* Utilise Flexbox pour disposer les boutons */
+    justify-content: space-between; /* Espacement entre les boutons */
+}
+
+.button-group button {
+    flex: 1; /* Chaque bouton prend un espace égal dans le conteneur */
+    margin-left: 5px;
+        margin-right: 5px; /* Marge autour des boutons pour les espacer légèrement */
+ /* Marge autour des boutons pour les espacer légèrement */
+}
+#btnScannerBoite{height: 40px; border-radius: 5px;}
+#enregistrerModifications{height: 40px; border-radius: 5px; background-color: green !important;}
+
+
+.barcode {
+    display: flex;
+    justify-content: center; /* Centre horizontalement les éléments à l'intérieur de .barcode */
+    align-items: center; /* Centre verticalement les éléments à l'intérieur de .barcode */
+    height: 50px;
+    margin-top: 20px;
+    position: relative; /* Pour positionner correctement la ligne de scan */
+}
+#rememberChoiceCheckbox {width:15px; }
+
+.bar, .bar1 {
+    height: 100%;
+    background-color: black;
+    margin: 2px;
+    position: relative;
+}
+
+.bar {
+    width: 8px;
+}
+
+.bar1 {
+    width: 2px;
+}
+
+.scan-line {
+    width: 150px;
+    height: 2px;
+    background-color: red;
+    position: absolute;
+    top: 50%; /* Centrer verticalement la ligne de scan */
+    left: 50%; /* Positionner le point de départ de la ligne au centre du conteneur */
+    transform: translateX(-50%); /* Décaler la ligne à gauche de la moitié de sa propre largeur pour la centrer parfaitement */
+}
+
+
+
+#modalBody button {
+    width: 100%;
+    /* Prend toute la largeur de la modal */
+    height: 35px;
+    /* Hauteur fixe */
+    font-size: 1em;
+    border-radius: 5px;
+    background-color: #2ecc71;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#modalBody button:hover {
+    background-color: #27ae60;
+}
+#user-info2 {
+      text-align: center;
+
+    display: flex; /* Définit un conteneur flex */
+    justify-content: center; /* Centre le contenu horizontalement */
+    align-items: center; /* Centre le contenu verticalement */
+transform: translateY(3px);
+}
+
+.debug-overlay {
+    position: fixed; /* S'assure que l'onglet reste toujours visible au même endroit */
+    bottom: 0;
+    left: 0;
+    width: calc(100% - 23px); /* Occupe toute la largeur de l'écran */
+    height: 5vh; /* Occupe toute la hauteur de l'écran */
+    background-color: white; /* Fond blanc */
+    border-top-right-radius: 10px; /* Coins arrondis en haut à droite */
+    border-top-left-radius: 10px; /* Coins arrondis en haut à gauche */
+    border: 7px solid grey; /* Bordure grise de 2px */
+    color: black; /* Texte noir pour une meilleure lisibilité */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Passe au-dessus des autres éléments de la page */
+    padding: 5px;
+    visibility: hidden; /* Masqué par défaut */
+}
+
+.close-button2 {
+    position: absolute; /* Positionne le bouton par rapport au parent */
+    top: 10px; /* Espace depuis le haut de l'onglet */
+    right: 10px; /* Espace depuis le côté droit */
+    background: none !important; /* Pas de fond pour le bouton */
+    border: 0px; /* Pas de bordure */
+    color: black !important; /* Couleur blanche pour contraster avec l'arrière-plan */
+    font-size: 20px; /* Taille de la croix */
+    cursor: pointer; /* Change le curseur en pointeur */
+    z-index: 1001; /* Passe au-dessus du reste de l'overlay */
+}
+
+.close-button2:hover {
+    color: red; /* Change la couleur au survol */
+}
+
+
+.debug-overlay.show {
+    visibility: visible; /* Rend l'onglet visible */
+    opacity: 1; /* Affiche pleinement */
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+input[type="text"],
+textarea {
+    font-size: 16px;
+    min-width:125px;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.closeed {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.closeed:hover,
+.closeed:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+
+#dataModal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+    /* Arrière-plan semi-transparent */
+}
+
+
+/* Styles pour le conteneur de table */
+.table-container, #previewExport {
+  overflow-x: auto;
+    /* Ajustez la hauteur maximale de la table */
+    overflow: auto;
+    /* Permet le défilement si le contenu dépasse */
+}
+
+#planningTable, #planningTableExport {
+  min-width: max-content; /* garantit que le tableau peut dépasser */
+  border-collapse: collapse;
+}
+
+/* Styles pour le tableau */
+.table-container table {
+    width: 100%;
+    /* S'assure que la table prend toute la largeur disponible */
+    border-collapse: collapse;
+    background-color: white;
+
+}
+
+th,
+td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: left;
+    background-color: white;
+}
+
+th {
+    background-color: #f2f2f2;
+    background-color: white;
+
+}
+
+#ajouterTechnicienButton {
+    height: 40px
+}
+
+#toggle_flash {
+    position: fixed;
+    /* Le bouton reste fixe même lors du scroll */
+    bottom: 5%;
+    /* Positionné à 5% à partir du bas de la fenêtre */
+    left: 5%;
+    /* Centré horizontalement */
+    background-color: orange !important;
+    color: black !important;
+    border: 0px;
+    border-radius: 5px;
+    font-size: 20px;
+    cursor: pointer;
+    width: 20%;
+    padding-top: 20px;
+    padding-bottom: 40px;
+}
+
+#start_cam {
+    position: fixed;
+    /* Le bouton reste fixe même lors du scroll */
+    bottom: 5%;
+    /* Positionné à 5% à partir du bas de la fenêtre */
+    left: 50%;
+    /* Centré horizontalement */
+    transform: translateX(-50%);
+    /* Correction pour un centrage parfait */
+    background-color: green;
+    color: white;
+    border: 0px;
+    border-radius: 5px;
+    font-size: 20px;
+    cursor: pointer;
+    width: 80%;
+    padding-top: 20px;
+    padding-bottom: 40px;
+}
+
+#cancel_cam {
+    position: fixed;
+    /* Le bouton reste fixe même lors du scroll */
+    bottom: 5%;
+    /* Positionné à 5% à partir du bas de la fenêtre */
+    left: 50%;
+    /* Centré horizontalement */
+    transform: translateX(-50%);
+    /* Correction pour un centrage parfait */
+    background-color: #ff4d4d !important;
+    color: white;
+    border: 0px;
+    border-radius: 5px;
+    font-size: 20px;
+    cursor: pointer;
+    width: 80%;
+    padding-top: 20px;
+    padding-bottom: 40px;
+}
+
+#cameraSelection {
+    position: fixed;
+    /* L'élément reste fixe même lors du scroll */
+    bottom: 15%;
+    /* Positionné à 10% à partir du bas de la fenêtre */
+    left: 50%;
+    /* Centré horizontalement */
+    transform: translateX(-50%);
+    /* Correction pour un centrage parfait */
+    padding: 10px;
+    /* Style du sélecteur */
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.tab {
+                max-width: 900px;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    /* Aligner verticalement au centre */
+    /* Prend 100% de la largeur disponible */
+    color: #fff;
+    border-radius: 10px;
+}
+
+/* Le groupe de boutons sous l'élément tab_under */
+.tab_under {
+
+    display: flex;
+    /* Flexbox pour aligner les sous-boutons sur une ligne */
+    flex: 1;
+    /* Prennent le reste de la place disponible */
+    align-items: center;
+    /* Alignement vertical des sous-boutons */
+}
+
+/* Add this style to your stylesheet */
+.disabled-button {
+    background-color: lightgrey !important;
+    color: grey;
+    cursor: not-allowed;
+}
+
+.green-button {
+    background-color: green !important;
+    color: white;
+}
+
+#reader {
+    width: 300px;
+    height: 300px;
+
+    margin: 0 auto;
+}
+
+#result {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.button-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 15px;
+}
+
+.button-container button {
+    height: 35px;
+    padding: 10px 15px;
+    border-radius: 8px;
+    background-color: rgb(64, 191, 121);
+    text-align: center;
+    white-space: nowrap;
+    /* Maintient le texte sur une seule ligne si possible */
+    min-width: 75px;
+    /* Largeur minimale pour une bonne lisibilité */
+}
+
+.btn-stop {
+    padding: 10px 20px;
+    background-color: red;
+    color: white;
+    border: 0px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-stop:hover {
+    background-color: darkred;
+}
+
+
+/* Styles pour le fond gris semi-transparent */
+#overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Fond gris semi-transparent */
+    z-index: 1;
+}
+
+.iframe-zipper {
+    height: 100%
+}
+
+
+/* Styles de l'iframe */
+#TUTORIEL {
+    width: 100%;
+    /* L'iframe prend toute la largeur du conteneur */
+    height: 100%;
+    /* L'iframe prend toute la hauteur du conteneur */
+    border: 0px;
+    /* Supprimer la bordure par défaut de l'iframe */
+
+}
+
+#carousel {
+    height: 93%;
+    /* L'iframe prend toute la hauteur du conteneur */
+
+    transform: translateY(-30px);
+}
+
+
+
+#themeButtons {
+    text-align: center;
+    /* Aligner les boutons au centre de la div */
+}
+
+#themeButtons button {
+    display: inline-block;
+    /* Afficher les boutons en ligne */
+    margin-right: 10px;
+    /* Espacement entre les boutons */
+}
+
+.tab-button {
+    cursor: pointer;
+    padding-top: 10px;
+    flex: 1;
+    height: 40px;
+    box-sizing: border-box;
+    text-align: center;
+    background-color: #002b56;
+    color: #fff;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    /* Ajoutez cette ligne pour afficher "..." si le texte dépasse la taille du bouton */
+}
+
+.tab-button_z {
+    cursor: pointer;
+    padding-top: 10px;
+    flex: 1;
+    height: 40px;
+    box-sizing: border-box;
+    text-align: center;
+    background-color: #002b56;
+    color: #fff;
+    border-radius: 10px;
+    margin: 5px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    /* Ajoutez cette ligne pour afficher "..." si le texte dépasse la taille du bouton */
+}
+
+.tab-button_u {
+    cursor: pointer;
+    padding: 10px;
+    width: 60px;
+    height: 40px;
+    box-sizing: border-box;
+    text-align: center;
+    background-color: #002b56;
+    color: #fff;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    /* Ajoutez cette ligne pour afficher "..." si le texte dépasse la taille du bouton */
+}
+
+/* Style pour le bouton actif */
+.tab-button.active,
+.tab-button_u.active,
+.tab-button_z.active {
+
+    background-color: #0056b3;
+}
+
+
+
+/* Neutralise le décalage inline qui crée du débordement mesuré */
+[id^="lancer-chrono-btn-"]{
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 8px !important;
+
+  /* Recrée la position visuelle sans impacter scrollHeight */
+  will-change: transform;
+  z-index: 256;
+      transform: translateX(4px);
+}
+
+/* Neutralise le décalage inline qui crée du débordement mesuré */
+[id^="iframe2-btn-"]{
+  position: absolute !important;
+  top: 0px !important;
+  right: 45px !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 8px !important;
+
+  /* Recrée la position visuelle sans impacter scrollHeight */
+  will-change: transform;
+  z-index: 256;
+      transform: translateX(4px);
+}
+
+/* Laisse le débordement visuel, mais évite que la carte soit mesurée plus grande */
+.place-card{
+  position: relative;          /* tu dois le garder */
+  overflow: visible;           /* visuel OK */
+  contain: paint;              /* isole la peinture => l’abspos n’agrandit plus la zone mesurée */
+    padding: 10px;
+}
+
+
+/* Cibler tous les SVG à l'intérieur d'un bouton dont l'id commence par "lancer-chrono-btn-" */
+button[id^="lancer-chrono-btn-"] > svg {
+        padding-top: 65px;
+    transform: scale(0.06) !important;
+    transform-origin: left top;
+    pointer-events: none;
+}
+
+
+button[id^="iframe2-btn-"] > svg {
+        padding-top: 65px;
+    transform: scale(0.06) !important;
+    transform-origin: left top;
+    pointer-events: none;
+}
+/* Si certains navigateurs ignorent `contain: paint`, alternative stricte : */
+/* .place-card{ overflow: clip; }  // coupe net ce qui dépasse (si ça te convient) */
+
+
+
+
+/* si tu as un conteneur de préconfig (flex-wrap qui prend de la hauteur) */
+.button-container{
+    top: 36px;            /* ajuste selon ton rendu */
+    right: 0;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;      /* si tu veux ; sinon retire */
+    z-index: 2;
+}
+
+
+.chrono-status {
+    font-size: 20px;
+    display: inline-block;
+    text-align: center;
+    margin: 0;
+    width: 100%;
+}
+
+.tabcontent {
+    display: none;
+}
+
+
+body {
+    font-family: 'Arial', sans-serif;
+    margin-top: 4px !important;
+    margin-right: 4px !important;
+    margin-left: 4px !important;
+    margin-bottom: 0px !important;
+    user-select: none;
+    background-color: white;
+    /* Fond sombre pour le corps de la page */
+    /* Texte en noir */
+}
+
+.container {
+    height: calc(100vh - 48px);
+    overflow: hidden;
+    background-color: #d3d3d3;
+    /* Couleur de fond */
+    padding: 5px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    box-sizing: border-box;
+        max-width: 900px;
+    margin: auto;
+    width: 100%;
+}
+
+h1 {
+    font-size: 23px;
+    margin-block-start: 0em;
+    margin-block-end: 0.6em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+}
+
+.lieux-list {
+    list-style: none;
+    color: black !important;
+    padding: 5px;
+    height: calc(100% - 105px);
+    transform: translateY(-10px);
+    /* Ajustez en fonction du padding de .container et de la hauteur de la bannière */
+    overflow-y: auto;
+    overflow-x: hidden;
+        background: rgba(255, 255, 255, 0.5);
+    border-radius: 15px;
+}
+
+#arborescenceLieux {
+    list-style: none;
+    padding: 5px;
+    height: calc(100% - 100px);
+    /* Ajustez en fonction du padding de .container et de la hauteur de la bannière */
+    overflow: auto;
+    background: rgba(100, 100, 100, 0.5);
+    border-radius: 10px;
+}
+
+#modifierPieceModal {
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Assurez-vous que la hauteur de la modal est définie à 100% */
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Fond semi-transparent */
+    z-index: 1000;
+}
+
+#arborescenceContainer {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    /* Prend l'espace restant */
+    padding: 10px;
+    overflow: auto;
+    height: 50%;
+    /* Permet à la section de grandir avec flex-grow */
+}
+
+#arborescenceContainer3 {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    /* Prend l'espace restant */
+    overflow: auto;
+    background-color: rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+}
+
+#arborescencePieces {
+    list-style: none;
+    flex-grow: 1;
+    height: calc(100vh - 300px);
+    /* 50% de la hauteur de l'écran moins un petit espace */
+    max-height: 600px;
+    /* Limite maximale de hauteur */
+}
+
+
+/* Conteneur principal pour les pièces sélectionnées */
+#selectedPiecesContainer {
+    width: 98%;
+    height: 63px;
+    padding: 3px;
+    margin: 3px auto;
+    border: 2px solid #e1e1e1;
+    border-radius: 12px;
+    background-color: #f9f9f9;
+    overflow: hidden;
+}
+
+/* Titre de la section */
+#selectedPiecesContainer h3 {
+    margin: 0 0 0px;
+    font-size: 15px;
+    color: #333;
+    text-align: center;
+}
+
+h3 {
+  margin-block-start: 0.0em !important;
+  margin-block-end: 0.0em !important;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
+  font-size: 17px;
+  
+  /* Ajout des propriétés pour le troncage */
+  white-space: nowrap;      /* Le texte ne passe pas à la ligne */
+  overflow: hidden;         /* Cache le texte qui déborde */
+  text-overflow: ellipsis;  /* Affiche "…" à la fin du texte tronqué */
+}
+
+/* Liste des pièces sélectionnées (conteneur horizontal) */
+#selectedPiecesList {
+    display: flex;
+    /* Utiliser Flexbox pour l'alignement horizontal */
+    gap: 20px;
+    /* Espacement entre les éléments */
+    overflow-x: auto;
+    /* Permettre le défilement horizontal */
+    white-space: nowrap;
+    /* Empêcher un retour à la ligne */
+    padding: 2px 0;
+    transition: transform 0.3s ease-in-out;
+}
+
+/* Chaque bulle de pièce */
+.piece-bubble {
+    padding: 5px 10px;
+    background-color: rgb(0, 123, 255);
+    color: white;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    color: white;
+}
+
+/* Le texte à l'intérieur de chaque bulle */
+.piece-bubble span {
+    font-size: 14px;
+    font-weight: 500;
+    flex: 1;
+    padding-right: 10px;
+    /* Espacement entre le texte et le bouton */
+}
+
+/* Le sélecteur de quantité */
+.piece-bubble input {
+    width: 60px;
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #a3b3cc;
+    font-size: 14px;
+    margin-right: 10px;
+    background-color: #f9f9f9;
+    transition: border-color 0.3s ease-in-out;
+}
+
+.piece-bubble input:focus {
+    outline: none;
+    border-color: #66aaff;
+    /* Changer la couleur de la bordure au focus */
+}
+
+/* Le bouton de suppression */
+.piece-bubble button {
+    background-color: #ff6f61;
+    color: white;
+    border: 0px;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.piece-bubble button:hover {
+    background-color: #e55d4b;
+}
+
+/* Ajouter des effets de transition pour la suppression */
+.piece-bubble button:active {
+    background-color: #cc4a3f;
+}
+
+/* Effet pour rendre la div déplaçable */
+.draggable-container {
+    position: relative;
+    cursor: grab;
+}
+
+.draggable-container:active {
+    cursor: grabbing;
+}
+
+/* Contenu glissable */
+.draggable-content {
+    overflow-x: auto;
+    white-space: nowrap;
+    display: flex;
+    gap: 20px;
+    /* Augmenter l'espacement pour plus de clarté */
+}
+
+
+
+.lieux-list li,
+#arborescenceLieux li,
+#arborescencePieces li {
+    background-color: rgba(255, 255, 255, 0.4);
+    /* Fond clair pour chaque élément de lieu */
+      border: 1px solid rgba(0, 0, 0, 0.3);
+
+    margin: 10px 0;
+    padding: 2.5px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.lieux-list li button {
+
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+#arborescenceLieux li button,
+#arborescencePieces li button {
+    width: 40px;
+    height: 40px;
+    position: absolute;
+    bottom: -2px;
+    right: -5px;
+    border-radius: 10px;
+}
+
+.titre-lieu button,
+.titre-lieu button-pre {
+    width: 60px;
+    height: 30px;
+    border-radius: 10px;
+    position: absolute;
+    top: 6px;
+    transform: translate(64px, -50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    line-height: 1;
+}
+
+.titre-lieu button {
+    right: 0px;
+}
+
+.titre-lieu button-pre {
+    right: 65px;
+}
+
+#optionsButton {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.hamburger-line {
+    width: 20px;
+    /* Longueur des lignes */
+    height: 2px;
+    /* Épaisseur des lignes */
+    background-color: white;
+    /* Couleur des lignes */
+    border-radius: 0px;
+    /* Arrondi des lignes */
+    transition: transform 0.4s ease, opacity 0.3s ease;
+    /* Transition fluide */
+
+}
+
+/* Première ligne (haut) */
+.hamburger-line:nth-child(1) {
+    top: 10px;
+}
+
+/* Deuxième ligne (milieu) */
+.hamburger-line:nth-child(2) {
+    top: 18px;
+}
+
+/* Troisième ligne (bas) */
+.hamburger-line:nth-child(3) {
+    top: 26px;
+}
+
+/* État actif : transformer les lignes en croix */
+#optionsButton.active .hamburger-line:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+}
+
+#optionsButton.active .hamburger-line:nth-child(2) {
+    opacity: 0;
+    /* Cache la ligne du milieu */
+}
+
+#optionsButton.active .hamburger-line:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+}
+
+.options-menu {
+  position: absolute;
+  top: 43px;
+  width: 150px;
+  background-color: #3498db;
+  padding: 5px;
+  z-index: 1000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-bottom-left-radius: 10px;
+}
+
+/* Mode par défaut pour écrans ≤ 900px */
+@media (min-width: 901px) {
+  .options-menu {
+    left: calc(50% + 450px - 150px - 10px); /* conteneur centré */
+    right: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .options-menu {
+    right: 4px;
+    left: auto;
+  }
+}
+
+
+.option-item {
+    padding: 10px;
+    cursor: pointer;
+    color: black;
+    font-size: 14px;
+    text-align: left;
+}
+
+.option-item:hover {
+    background-color: #f0f0f0;
+}
+
+/* Style pour le bouton de notification */
+#NotifButton {
+    position: relative;
+    /* Nécessaire pour positionner .notif-count de manière absolue par rapport à cette div */
+    background-color: limegreen !important;
+    display: inline-block;
+    /* Assure que le contenu reste compact */
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    font-size: 20px;
+    /* Ajuste la taille de l'icône 🔔 */
+    cursor: pointer;
+    /* Ajoute un curseur interactif */
+}
+
+/* Style pour la notification */
+.notif-count {
+    position: absolute;
+    /* Positionnement absolu pour fixer l'élément à l'intérieur de la div parent */
+    top: 5px;
+    /* Ajuste la position verticale */
+    right: 5px;
+    /* Ajuste la position horizontale */
+    background-color: #ff3b3b;
+    /* Couleur de fond de la notification */
+    color: white;
+    /* Couleur du texte */
+    font-size: 12px;
+    /* Taille de la police */
+    font-weight: bold;
+    /* Texte en gras */
+    padding: 2px 6px;
+    /* Espacement interne pour la lisibilité */
+    border-radius: 50%;
+    /* Cercle parfait pour l'arrière-plan */
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    /* Ombre pour un effet esthétique */
+    z-index: 10;
+    /* Assure que la notification reste au-dessus de tout autre contenu */
+}
+
+.lieux-list li textarea,
+#arborescenceLieux li textarea,
+#arborescencePieces li textarea {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+#chrono {
+    font-size: 30px;
+    display: inline-block;
+    /* Assurez-vous que le bloc ne prend que la largeur nécessaire */
+    text-align: center;
+    /* Centrer horizontalement le texte à l'intérieur du bloc */
+    margin: 0;
+    /* Supprimer les marges par défaut qui pourraient affecter le centrage */
+}
+
+@media screen and (max-width: 600px) {
+
+    /* Styles spécifiques aux petits écrans */
+    .container {
+        max-width: 100%;
+        /* ... autres styles ... */
+    }
+}
+
+#interventionsHeader {
+    font-size: min(5vw, 20px);
+    margin-block-start: 0em;
+    margin-block-end: 0em;
+}
+
+#enregistrements {
+    color: black !important;
+    margin-top: -5px;
+    height: calc(100% - 150px);
+    overflow: auto;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 15px;
+    padding: 10px;
+    line-height: 2;
+    /* Espace entre les lignes */
+}
+
+#credits-container p {
+    font-size: 20px;
+}
+
+
+#enregistrements p {
+    font-size: 18px;
+    /* Modifiez la taille du texte selon vos besoins */
+}
+
+#rech,
+#rech3 {
+    display: flex;
+    align-items: center;
+    /* Aligner les éléments verticalement au centre */
+}
+
+#toggleButton {
+    background-color: #007bff;
+    color: #fff;
+    border: 0px;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 5px;
+    height: 30px;
+}
+
+#searchInput,
+#searchInput2,
+#searchInput3 {
+    flex: 1;
+    /* Utiliser l'espace disponible restant */
+    background-color: #f0f0f0;
+    border-radius: 10px 0 0 10px;
+    color: #333;
+    height: 38px;
+    border: 0px;
+    padding-left: 10px;
+    /* Déplacer le texte vers la droite de 10px */
+}
+
+
+
+#arborescenceLieux button,
+#arborescencePieces button {
+    display: block !important;
+}
+
+
+#arborescenceLieux,
+#arborescencePieces {
+    color: black;
+}
+
+#clearButton,
+#clearButton2 {
+    height: 40px;
+    width: 40px;
+    border-radius: 0 10px 10px 0;
+    /* Syntaxe correcte pour spécifier le coin droit supérieur et le coin droit inférieur */
+    display: block !important;
+}
+
+.place-details {
+    display: flex;
+    flex-direction: column;
+    /* Afficher les éléments en colonne */
+}
+
+/* Ajouter cette règle pour chaque bouton dans placeDetails */
+.place-details button {
+    margin-top: 10px;
+    /* Ajouter un espace entre les boutons */
+}
+
+.buttons-container {
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+
+
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 0;
+}
+
+.button-wrapper {
+    /* display: inline-block; */
+    /* width: 30%; */
+    box-sizing: border-box;
+}
+
+.buttons-container button {
+    width: 100%;
+    /* La largeur est de 100% */
+    box-sizing: border-box;
+    padding: 5px;
+
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 6px 0;
+    /* Ajoute de l'espace entre les boutons (facultatif) */
+}
+
+
+
+.groupe-enregistrements button {
+    border-radius: 3px;
+}
+
+
+.search-container {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.search-container input {
+    padding: 8px;
+}
+
+.search-container button {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.lieux-list li,
+#arborescenceLieux li,
+#arborescencePieces li {
+    display: block;
+    /* Assurez-vous que tous les éléments sont visibles par défaut */
+
+    margin: 5px 0;
+
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+
+
+
+/* Styles spécifiques à la section Paramètres */
+.Paramètres {
+    height: 100%;
+    /* Set the desired height for the container */
+    overflow-y: auto;
+    /* Enable vertical scrolling */
+    /* Add any other styles as needed */
+}
+
+
+
+#parametresTab input,
+
+#parametresTab button,
+#parametresTab select {
+    margin-top: 5px;
+    padding: 5px;
+    border-radius: 5px;
+
+}
+
+#dell {
+    background-color: red !important;
+
+    font-weight: bold;
+    color: white !important;
+}
+
+#dellHARD {
+    background-color: black !important;
+
+    font-weight: bold;
+    color: white !important;
+}
+
+#parametresTab #nouveauLieu {
+
+
+    width: calc(100% - 20px)
+}
+
+#parametresTab button {
+
+    color: #fff;
+    cursor: pointer;
+    width: 100%;
+}
+
+#parametresTab button:hover {}
+
+
+
+#parametresTab ul li {
+    background-color: #555;
+    margin: 10px 0;
+    padding: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#parametresTab ul li button {
+    background-color: #3498db;
+    color: #fff;
+    border: 0px;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+#parametresTab ul li button:hover {
+    background-color: #2980b9;
+}
+
+#parametresTab select {
+    max-width: 100%;
+    width: calc(100%);
+}
+
+h2 {
+    font-size: 15px;
+}
+
+
+
+/* Ajoutez ces styles à votre fichier CSS ou dans votre balise style */
+.container hr {
+    border: 0px;
+    /* Supprimer la bordure par défaut */
+    height: 1px;
+    /* Définir la hauteur de la ligne */
+    background-color: #777;
+    /* Couleur de la ligne */
+    margin: 5px 0;
+    /* Marge autour de la ligne */
+}
+
+iframe {
+
+    width: 100%;
+    border: 0px;
+    height: 310px;
+
+}
+
+
+.pastille {
+    display: block !important;
+    width: calc(100% - 40px);
+}
+
+
+
+
+
+/* Ajoutez des règles pour d'autres niveaux si nécessaire */
+ul {
+    padding-left: 20px;
+}
+
+
+.titre-lieu {
+    font-weight: bold;
+    position: relative;
+    transform: translateY(5px);
+
+     white-space: nowrap;      /* Le texte ne passe pas à la ligne */
+  text-overflow: ellipsis; 
+  width: calc(100% - 60px);
+}
+
+
+
+#ChronoTab {
+    overflow: auto;
+    /* Ajoute une barre de défilement si nécessaire */
+    max-height: 100%;
+    /* Ajustez la hauteur maximale selon vos besoins */
+}
+
+#chronosContainer {
+    overflow: auto;
+    /* Ajoute une barre de défilement si nécessaire */
+    max-height: 100%;
+    /* Ajustez la hauteur maximale selon vos besoins */
+    display: black !important;
+}
+
+#chronosContainerGlob {
+    overflow: auto;
+    /* Ajoute une barre de défilement si nécessaire */
+    max-height: 100%;
+    /* Ajustez la hauteur maximale selon vos besoins */
+}
+
+
+/* Ajoutez une règle pour masquer les sous-listes */
+.place-card ul {
+    display: none;
+}
+
+.lieux-list button {
+    display: block !important;
+}
+
+button.non-cliquable {
+    background-color: #6C3 !important;
+    /* Autres styles pour un niveau non cliquable */
+}
+
+button {
+
+    background-color: #3498db;
+    color: #fff;
+    border: 0px;
+
+    cursor: pointer;
+    height: 30px;
+}
+
+.modal button:not(#modifierLieuModal button):not(#modifierPieceModal button),
+.modal input:not(#modifierLieuModal input):not(#modifierPieceModal input) {
+    width: 100% !important;
+    height: 30px !important;
+}
+
+
+
+#ChronoButton {
+    background: #111;
+}
+
+@keyframes backgroundMove {
+
+    0%,
+    100% {
+        background-position: 100% 0;
+    }
+
+    50% {
+        background-position: 0 0;
+    }
+}
+
+#ChronoButton[annim="true"] {
+    animation: none !important;
+    background-color: #002b56;
+    /* Annuler les animations */
+}
+
+#ChronoButton {
+    background: linear-gradient(to right, #882200, #FFAA00);
+    background-size: 200% 100%;
+    /* Réglez la taille du dégradé */
+    animation: backgroundMove 3s infinite;
+}
+
+#ChronoButton.active[annim="false"] {
+    background: #0056b3;
+    animation: none;
+    /* Annuler les animations */
+}
+
+
+#developpeur {
+
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    color: white !important;
+    border: 3px solid black;
+
+}
+
+#developpeur button {
+
+    background-color: rgba(75, 75, 75, 1) !important;
+    color: white !important;
+
+
+
+}
+
+#developpeur #dell {
+
+    background-color: rgba(255, 0, 0, 1) !important;
+    color: black !important;
+
+
+}
+
+.groupe-container, #chronosContainerGlob {
+    color: black !important;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    background-color: rgba(255, 255, 255, 0.6);
+    margin: 10px 0;
+    padding: 5px;
+    border-radius: 8px;
+    cursor: pointer;  
+    transition: opacity 0.3s ease;
+
+
+}
+
+/* Styles pour le slider */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 20px;
+
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 8px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 8px;
+}
+
+input:checked+.slider {
+    background-color: #2196F3;
+}
+
+input:focus+.slider {}
+
+input:checked+.slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}
+
+.AFregis {
+    background-color: rgba(150, 150, 150, 0.2);
+    border-radius: 8px;
+    padding: 10px;
+
+    margin-bottom: 10px;
+    /* Add margin-bottom for spacing */
+}
+
+.AFregis button {
+    width: 100%;
+}
+
+
+/* Additional class for margin between each div */
+.divSpacing {
+    margin-bottom: 10px;
+}
+
+
+
+#searchInput,
+#searchInput2,
+#searchInput3,
+#nouveauLieu,
+#lieuxDropdown,
+#themeSelector {
+    width: 100%;
+}
+
+
+
+/* Ajoutez cette classe pour définir la couleur active */
+.active {
+    background-color: #6C3;
+}
+
+
+input[type="range"] {
+    -webkit-appearance: none;
+    width: calc(100% - 15px);
+
+    height: 10px;
+    background: linear-gradient(to right, red, yellow, green, cyan, blue, violet, red);
+    border-radius: 10px;
+    outline: none;
+    margin: 10px 0;
+}
+
+/* Style de la poignée du slider */
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+input[type="range"].luminosite {
+    -webkit-appearance: none;
+    width: calc(100% - 15px);
+    height: 10px;
+    background: linear-gradient(to right, black, white);
+    border-radius: 10px;
+    outline: none;
+    margin: 10px 0;
+}
+
+/* Style de la poignée du slider */
+input[type="range"].luminosite::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+
+/* Style spécifique pour la barre de progression (bleue) */
+input[type="range"].progress-bar {
+    background: linear-gradient(to right, #007bff, #007bff);
+    /* Barre de progression en bleu */
+}
+
+/* Masquer la poignée pour que ce soit une barre de progression */
+input[type="range"].progress-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 0;
+    /* Pas de largeur pour cacher le thumb */
+    height: 0;
+    /* Pas de hauteur pour cacher le thumb */
+    border: 0px;
+}
+
+/* Style pour Firefox */
+input[type="range"].progress-bar::-moz-range-thumb {
+    appearance: none;
+    width: 0;
+    height: 0;
+    border: 0px;
+}
+
+#refresh-warning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#addNoteModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.refresh-warning-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: white;
+    text-align: center;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+}
+#refresh-warning-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: white;
+    text-align: center;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+}
+#refresh-warning button {
+    margin: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: 0px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#cancel-refresh {
+    background: red;
+    color: white;
+        height: 40px;
+
+}
+
+#confirm-refresh {
+    background: green !important;
+    color: white;
+    cursor: not-allowed;
+    height: 40px;
+}
+
+
+
+/* Style de fond pour la modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Fond semi-transparent */
+
+}
+
+/* Contenu de la modal */
+.modal-content {
+    width: 100%;
+    /* Le conteneur occupe toute la largeur de l'écran */
+    position: relative;
+    /* S'assure que l'iframe soit positionné par rapport à ce conteneur */
+    background-color: #dadada;
+    margin: 1% auto;
+    /* Centrer la modal verticalement et horizontalement */
+    padding: 10px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 90%;
+    /* Limite la largeur maximale */
+    max-height: 100vh;
+    /* Limite la hauteur maximale pour éviter qu'elle dépasse l'écran */
+    animation: slideDown 0.3s ease;
+    /* Animation à l'ouverture */
+    overflow: auto;
+    /* Ajoute une barre de défilement si le contenu dépasse */
+
+}
+
+.modal-content-tuto {
+    width: 100%;
+    /* Le conteneur occupe toute la largeur de l'écran */
+    position: relative;
+    /* S'assure que l'iframe soit positionné par rapport à ce conteneur */
+    background-color: #fff;
+    margin: 1% auto;
+    /* Centrer la modal verticalement et horizontalement */
+    padding: 10px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 90%;
+    /* Limite la largeur maximale */
+    max-height: 100vh;
+    /* Limite la hauteur maximale pour éviter qu'elle dépasse l'écran */
+    animation: slideDown 0.3s ease;
+    /* Animation à l'ouverture */
+    overflow: auto;
+    /* Ajoute une barre de défilement si le contenu dépasse */
+}
+
+.modal-content-tuto {
+    height: 94vh;
+    /* ou une hauteur personnalisée */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    /* Aligner tous les éléments vers le bas */
+}
+
+/* Style pour le carousel */
+#carousel-tuto {
+    flex-grow: 1;
+    /* Permet au carousel de prendre tout l'espace restant */
+    display: flex;
+    justify-content: top;
+    align-items: top;
+
+}
+
+#accessButton {
+    transform: translateY(-0px);
+
+}
+
+/* Style pour l'iframe-zipper-tuto */
+#iframeContainertuto {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Style pour l'iframe elle-même */
+#iframeContainertuto iframe {
+    width: 100%;
+    height: 100%;
+    border: 0px;
+}
+
+/* Réduction de la taille du titre */
+h2 {
+    font-size: 25px;
+}
+
+
+/* Animation pour l'apparition de la modal */
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Bouton de fermeture (croix) */
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.button-supprimer {
+    background-color: red !important;
+}
+
+.button-tech {
+    background-color: green !important;
+}
+
+/* Style du titre de la modal */
+.modal-content h2 {
+    margin-top: 0;
+    font-size: 15px;
+    color: #333;
+    border-bottom: 2px solid #f1f1f1;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+}
+
+/* Style du label */
+.modal-content label {
+    font-size: 16px;
+    color: #555;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* Style de la liste déroulante */
+.modal-content select {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+/* Style du bouton "Ajouter" */
+#ajouterTechnicienButton {
+    background-color: #28a745;
+    color: white;
+    padding: 12px 20px;
+    border: 0px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+    transition: background-color 0.3s ease;
+}
+
+#ajouterTechnicienButton:hover {
+    background-color: #218838;
+}
+
+.groupe-enregistrements {
+     margin-top: 3px; 
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    /* height: calc(100% - 200px); */
+    overflow: auto;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
+    padding: 10px;
+    }
+
+.temps-selection {
+    align-items: center;
+
+}
+
+.temps-selection label {
+    margin-right: 0px;
+    /* Espace entre le label et le sélecteur */
+}
+
+
+.button-edith,
+.button-supprimer {
+    display: absolute;
+    width: 50px !important;
+}
+.filtres-personnel {
+  margin-top: 8px; /* optionnel pour un petit espace */
+}
+
+.button-edith {
+    background-color: limeblue;
+}
+
+.AFregis:empty {
+    display: none;
+}
+
+.modal button,
+input {
+    font-size: 15px;
+}
+
+.tab-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    padding-right: 40px;
+    /* Espace pour le bouton "+" */
+    background-color: RGBA(150, 150, 150, 0.3);
+    /* Exemple de couleur gris-vert */
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+/* Conteneur de la barre d'onglets défilable */
+.scrollable-tabs {
+    overflow-x: auto;
+    /* Activer le défilement horizontal */
+    white-space: nowrap;
+    /* Empêcher les éléments de se mettre à la ligne */
+    width: 100%;
+    /* S'assurer qu'il prend toute la largeur */
+    -ms-overflow-style: none;
+    /* Masquer la barre de défilement pour IE et Edge */
+    scrollbar-width: none;
+    /* Masquer la barre de défilement pour Firefox */
+}
+
+.scrollable-tabs::-webkit-scrollbar {
+    display: none;
+    /* Masque la barre de défilement pour Chrome, Safari, Edge */
+}
+
+/* Styles pour le défilement par glissement */
+.scrollable-tabs.dragging {
+    cursor: grabbing;
+}
+
+#tab-buttons {
+    gap: 1px;
+    white-space: nowrap;
+}
+
+/* Bouton des onglets */
+.note-tab-button {
+    padding: 5px 10px;
+    cursor: pointer;
+    border: 0px;
+    background-color: #002b56;
+    font-size: 15px;
+    color: white !important;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    height: 40px;
+    white-space: nowrap;
+    /* Empêcher le texte de se mettre à la ligne */
+    display: inline-block;
+}
+
+/* Onglet actif */
+.note-tab-button.active {
+    background-color: #0056b3;
+    color: white;
+}
+
+
+
+textarea {
+    width: 100%;
+    height: 200px;
+}
+
+
+.note-container {
+    display: none;
+    padding: 20px;
+    height: calc(100vh - 80px);
+}
+
+.note-container.active {
+    display: block;
+}
+
+.note-textarea {
+    width: 100%;
+    height: 100%;
+    resize: none;
+    font-size: 16px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.add-tab-button {
+    position: absolute;
+    right: 0;
+    top: 0;
+    background-color: #4CAF50;
+    color: white;
+    height: 40px;
+    width: 40px;
+    border: 0px;
+    font-size: 25px;
+    cursor: pointer;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 10px;
+    margin-left: auto;
+}
+
+
+#NoteTab {
+    display: flex;
+    flex-direction: column;
+}
+
+#note-display {
+    flex-grow: 1;
+    /* Permet à cette section de grandir pour occuper l'espace disponible */
+    display: flex;
+    height: calc(100% - 90px);
+
+}
+
+#note-content {
+    width: 100%;
+    height: 100%;
+    /* Occupe 100% de la hauteur de #note-display */
+    resize: none;
+    /* Empêche le redimensionnement manuel si nécessaire */
+    box-sizing: border-box;
+    /* Inclut le padding dans la hauteur */
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+@media screen and (min-width: 1000px) {
+  #visuButton {
+
+    display: block !important;
+
+    filter: invert(1);
+  }
+}
+
+
+
+#visuTab.active .trible {
+  display: flex !important;
+  justify-content: space-around;
+    gap: 5px; /* Ajustez la valeur selon vos besoins */
+
+}
+
+#visuTab.active .tabcontent {
+  width: 100%;
+}
+#visuTab.active {
+    background-color: transparent !important;
+
+}
+
+/* === STRUCTURE GÉNÉRALE === */
+table {
+        margin-top: 5px;
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: auto;
+}
+
+th, td {
+  border: 1px solid #AAA;
+  padding: 2px;
+  position: relative;
+  min-width: 30px;
+}
+
+th {
+  background-color: #f0f0f0;
+}
+
+thead tr:nth-child(2) th {
+  font-size: 10px;
+  padding: 2px;
+  background-color: #C0D008;
+}
+
+tbody tr {
+  border-bottom: 2px solid #666; /* Gris foncé entre lignes */
+}
+
+td:not(:first-child), th:not(:first-child) {
+  border-right: 1px solid #AAA; /* Gris clair entre colonnes */
+}
+
+/* === STYLES SPÉCIFIQUES === */
+.A { background-color: #a8e6a2; }
+.B { background-color: #ffcba4; }
+
+.pause {
+  background-color: #b3d9ff;
+  pointer-events: none;
+  color: #555;
+  font-style: italic;
+}
+
+.hors-duree {
+  background-color: #3f3f3f;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.editable { cursor: pointer; }
+
+.merged {
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.selected {
+  outline: 2px solid black;
+}
+
+/* === FIXATION COLONNE/LIGNE === */
+thead tr:first-child th {
+  position: sticky;
+  top: 0;
+  background-color: #f0f0f0;
+  z-index: 2;
+}
+
+thead tr:first-child th:first-child {
+  top: 0;
+  left: 0;
+  z-index: 5;
+  background-color: #f0f0f0;
+}
+
+/* En-tête inchangé */
+thead tr:not(:nth-child(2)) th:first-child {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  background: linear-gradient(to right, #fff 95%, #444 95%, #444 100%);
+}
+
+/* Lignes paires (2, 4, 6...) → fond blanc */
+tbody tr:nth-child(even) td:first-child {
+  position: sticky;
+  left: 0;
+  background: linear-gradient(to right, #ffffff 95%, #444 95%, #444 100%);
+  z-index: 3;
+  width: 130px;
+  min-width: 130px;
+  max-width: 130px;
+  box-sizing: border-box;
+}
+
+/* Lignes impaires (1, 3, 5...) → fond gris clair */
+tbody tr:nth-child(odd) td:first-child {
+  position: sticky;
+  left: 0;
+  background: linear-gradient(to right, #d7d7d7 95%, #444 95%, #444 100%);
+  z-index: 3;
+  width: 130px;
+  min-width: 130px;
+  max-width: 130px;
+  box-sizing: border-box;
+}
+
+
+/* === OVERLAY === */
+.selection-overlay {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #aaa;
+  z-index: 9999;
+  padding: 10px;
+  display: none;
+  transition: top 0.1s ease, left 0.1s ease;
+}
+
+/* === PANNEAUX === */
+.controls {
+  margin-bottom: 20px;
+}
+
+.controls fieldset {
+  border: 2px solid white;
+  border-radius: 8px;
+  padding: 10px 20px;
+  background-color: #f9fcff5c;
+}
+
+.controls legend {
+  font-weight: bold;
+  color: white;
+  padding: 0 8px;
+}
+
+.controls .line {
+  margin: 10px 0;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.controls .buttons button {
+  margin-right: 10px;
+}
+
+.controls input[type="file"] {
+  margin-left: 10px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
+  max-height: 90%;
+}
+
+.planning-responsive {
+  max-height: 30%;
+  overflow: auto;
+}
+
+.jour-selector {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: bold;
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.jour-selector span {
+  display: inline-block;
+  min-width: 100px;
+  text-align: center;
+}
+
+/* === CARTES INTERVENTION === */
+.carte-intervention {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+
+.carte-intervention.fini {
+  background-color: #ccc;
+  position: relative;
+}
+
+.carte-intervention.fini::after {
+  content: "FINI";
+  color: red;
+  font-size: 48px;
+  font-weight: bold;
+  position: absolute;
+  top: 15%;
+  left: 60%;
+  transform: rotate(-25deg);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.carte-intervention button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 6px;
+  font-weight: bold;
+}
+
+#retardContainer {
+  max-height: 600px; /* Hauteur fixe que tu peux ajuster */
+  overflow-y: auto;
+  padding-right: 8px; /* Pour éviter que la scrollbar masque le contenu */
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fdfdfd;
+}
+
+/* Conteneur principal scrollable */
+#cartesContainer {
+      position: relative;
+  overflow: hidden;
+
+  max-height: 90%;  /* Limite la hauteur visible */
+  overflow-y: auto;  /* Scroll vertical */
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Colonnes flexibles */
+  gap: 6px;
+}
+
+/* Section pour chaque catégorie */
+#cartesContainer > div {
+  margin-bottom: 20px;
+  padding: 10px;
+  background: #f9f9f9;
+  border-radius: 8px;
+    max-height: 600px;
+  overflow-y: auto;
+  margin-bottom: 0px;
+}
+
+/* Cartes */
+.carte-intervention {
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-left: 5px solid #333;
+  border-radius: 4px;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Carte terminée */
+.carte-intervention.fini {
+  opacity: 0.7;
+  background-color: #e2e2e2;
+}
+
+/* Bouton "Voir tout" */
+.carte-intervention + button,
+button.voir-tout {
+  margin-top: 10px;
+  display: block;
+  padding: 6px 12px;
+  border: 0px;
+  background: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button.voir-tout:hover {
+  background: #0056b3;
+}
+
+/* Style pour le titre des sections */
+#cartesContainer h3 {
+  margin-top: 0;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Icône repliable */
+#toggle-icon {
+  margin-left: 8px;
+  font-size: 14px;
+}
+
+.boutons-container {
+  display: flex;
+  gap: 0.5em;
+  margin-top: 0.5em;
+}
+
+.boutons-container button {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.resume-ligne {
+  display: block;
+  white-space: nowrap;          /* Empêche les retours à la ligne */
+  overflow: hidden;             /* Cache le dépassement */
+  text-overflow: ellipsis;      /* Ajoute les "..." à la fin */
+  max-width: 100%;              /* S'assure que ça reste dans la carte */
+}
+
+#technicienSelect {
+    padding: 3px;
+    padding-right: 25px;
+    border: 1px solid #cccccc;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #333333;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    appearance: none; /* Masque l'apparence native */
+    background-image: linear-gradient(45deg, transparent 50%, #666666 50%),
+                      linear-gradient(135deg, #666666 50%, transparent 50%);
+    background-position: calc(100% - 15px) calc(50% + 3px), calc(100% - 10px) calc(50% + 3px);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+}
+
+#technicienSelect:hover {
+    border-color: #999999;
+}
+
+#technicienSelect:focus {
+    border-color: #5a9bf3;
+    box-shadow: 0 0 0 3px rgba(90, 155, 243, 0.3);
+}
+
+#technicienSelect option {
+    padding: 8px;
+    background-color: #ffffff;
+    color: #333333;
+}
+.tab-button.priv, 
+.tab-button_u.priv, 
+.container.priv,
+.options-menu.priv
+ {
+  border-radius: 15px !important;
+}
+
+.cards-container {
+  position: relative;
+  width: 300px;
+  height: 200px; /* Hauteur limitée pour forcer un overflow si besoin */
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: #fff;
+}
+
+/* Zone où se trouvent les vraies cartes */
+.cards-content {
+  height: 100%;
+  overflow-y: auto; /* Permet de scroller si le contenu excède la hauteur du conteneur */
+  padding-bottom: 20px; /* Laisser de la place pour la fake card en bas (ou en haut) */
+}
+
+/* Style d’une carte réelle */
+.card {
+  padding: 10px;
+  margin: 10px;
+  background: #f8f8f8;
+  border: 1px solid #ddd;
+}
+
+
+
+.section-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.section-wrapper.fermee::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
+    background: linear-gradient(to bottom, rgb(255 255 255 / 0%) 30%, #f9f9f9 70%);  pointer-events: none;
+  z-index: 1;
+}
+
+/* S'assurer que le contenu est en dessous du fondu */
+.section-wrapper > * {
+  position: relative;
+  z-index: 0;
+}
+
+.carte-vide {
+  background-color: rgb(255, 214, 214);
+
+  border-bottom-right-radius: 0px;
+  border-bottom-left-radius: 0px;
+    height: 30px;
+
+}
+
+#modalExportpng {
+display: none;
+    position: fixed;
+    top: 10%;
+    left: 3%;
+    width: 94%;
+    height: 87%;
+    background: rgb(255, 255, 255);
+    border: 2px solid rgb(0, 0, 0);
+    z-index: 800;
+    overflow: auto;
+}
+
+
+#modalPlanning {
+    display: none;
+    position: fixed;
+    top: 6%;
+    left: 2%;
+    width: 96%;
+    height: 92%;
+    background: rgb(255, 255, 255);
+    border: 2px solid rgb(0, 0, 0);
+    z-index: 800;
+    overflow: auto;
+}
+
+/* === ZÉBRAGE === */
+ tbody tr:nth-child(odd) td:not(.A):not(.B):not(.merged):not(.pause):not(.hors-duree) {
+  background-color: #d7d7d7;
+}
+
+
+tbody tr:nth-child(odd) td {
+  background-color: #3f3f3f;
+}
+
+
+.popup-aide {
+    margin-top: 5px;
+        margin-bottom: 5px;
+
+  background: #fff7d1;
+  border: 1px solid #caaa00;
+  border-radius: 8px;
+  padding: 10px 15px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: opacity 0.5s ease;
+  font-size: 1em;
+  color: #333;
+  z-index: 9999;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  align-items: center; /* ICI le changement clé */
+}
+
+
+.popup-aide-close {
+  cursor: pointer;
+  font-weight: bold;
+  color: #c00;
+  font-size: 1.2em;
+}
+
+.popup-aide-body {
+  word-break: break-word;
+  white-space: break-spaces;
+}
+
+
+* {
+  transition:
+    all 250ms ease;
+}
+.virtual-scroll-container,
+.virtual-scroll-container *,
+.intervention-table,
+.intervention-table *,
+.intervention-table thead th {
+  transition: none !important;
+  animation: none !important;
+}
+
+
+.popup-aide {
+  transition: height 500ms ease, opacity 500ms ease;
+}
+
+#visibilityConfig label {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* espace entre la case et le texte */
+}
+
+#visibilityCheckbox {
+  width: 16px;
+  height: 16px;
+}
+
+
+
+
+input[type="text"], input[type="number"], input[type="date"], input[type="time"],#typePanneSelect,#sizeSelect,#causePanneSelect,#buttonSelect,#placementSelect, textarea {
+    border: 1px solid #cccccc;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #333333;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    appearance: none;
+    background-position: calc(100% - 15px) calc(50% + 3px), calc(100% - 10px) calc(50% + 3px);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+}
+
+
+input[type="text"]:hover, 
+input[type="number"]:hover, 
+input[type="date"]:hover, 
+input[type="time"]:hover, 
+#typePanneSelect:hover,
+#causePanneSelect:hover,
+#buttonSelect:hover,
+#placementSelect:hover,
+#sizeSelect:hover,
+textarea:hover {
+    border-color: #5a9bf3;
+    box-shadow: 0 0 0 3px rgba(90, 155, 243, 0.3);
+}
+
+input[type="text"]:focus, 
+input[type="number"]:focus, 
+input[type="date"]:focus, 
+input[type="time"]:focus, 
+#typePanneSelect:focus,
+#causePanneSelect:focus,
+#buttonSelect:focus,
+#placementSelect:focus,
+#sizeSelect:focus,
+textarea:focus {
+    border-color: #5a9bf3;
+    box-shadow: 0 0 0 3px rgba(90, 155, 243, 0.3);
+}
+
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 20px;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #ccc; border-radius: 8px;
+}
+.slider:before {
+    position: absolute; content: "";
+    height: 12px; width: 26px;
+    left: 4px; bottom: 4px;
+    background-color: white; border-radius: 8px;
+    transition: .4s;
+}
+input:checked + .slider { background-color: #2196F3; }
+input:checked + .slider:before { transform: translateX(26px); }
+
+#themeSelectorContainer button {
+    flex: 0 1 auto; /* s'adapte à la taille du contenu */
+    min-width: 100px;
+
+}
+.hidden {
+  display: none !important;
+}
+
+#filtresChrono {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 2px;
+  background-color: #f5f5f5;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-family: Arial, sans-serif;
+}
+
+.filtres-dates {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.filtres-dates label {
+  white-space: nowrap;
+}
+
+.filtres-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Labels */
+#filtresChrono label {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* Inputs, selects */
+#filtresChrono input[type="text"],
+#filtresChrono input[type="date"],
+#filtresChrono select {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Buttons */
+#filtresChrono button {
+  padding: 6px 14px;
+  border: 0px;
+  border-radius: 6px;
+  background-color: #b93e3e;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#filtresChrono button:hover {
+  background-color: #992d2d;
+}
+
+.virtual-scroll-container {
+  transition: none !important;
+  max-height: 400px;
+  overflow-y: auto;
+  position: relative;
+}
+
+.intervention-table {
+  transition: none !important;
+
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.intervention-table thead th {
+  transition: none !important;
+
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 2;
+}
+
+
+.intervention-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+
+
+
+/* Fixer les colonnes par index */
+.intervention-table th:nth-child(1),
+.intervention-table td:nth-child(1) {
+  width: 130px; /* Lieu */
+}
+.intervention-table th:nth-child(1),
+.intervention-table td:nth-child(1) {
+  width: 130px; /* Lieu */
+}
+
+.intervention-table th:nth-child(2),
+.intervention-table td:nth-child(2) {
+  width: 75px; /* Date */
+}
+
+.intervention-table th:nth-child(4),
+.intervention-table td:nth-child(4) {
+  width: 30px; /* Durée */
+}
+
+.intervention-table th:nth-child(5),
+.intervention-table td:nth-child(5) {
+  width: 30px; /* Heures */
+}
+
+.intervention-table th:nth-child(6),
+.intervention-table td:nth-child(6) {
+  width: 100px; /* Personnel */
+}
+
+
+
+
+
+tr.ligne-cachee {
+  position: absolute !important;
+  left: -9999px;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+
+
+.virtual-scroll-container tbody {
+  will-change: padding-top;
+}
+
+
+
+/* === RESPONSIVE === */
+@media (max-width: 600px) {
+  th, td {
+    font-size: 13px;
+    padding: 1px;
+  }
+
+  td {
+    height: 20px !important;
+  }
+
+  table {
+    font-size: 13px;
+  }
+
+  .planning-responsive {
+    margin-bottom: 20px;
+  }
+
+  thead tr:not(:nth-child(2)) th:first-child,
+  tbody td:first-child {
+    width: 100px !important;
+    min-width: 100px !important;
+    max-width: 100px !important;
+  }
+
+
+
+
+.intervention-table th:nth-child(1),
+.intervention-table td:nth-child(1) {
+  width: 70px; /* Lieu */
+}
+
+.intervention-table th:nth-child(2),
+.intervention-table td:nth-child(2) {
+  width: 60px; /* Date */
+}
+
+.intervention-table th:nth-child(4),
+.intervention-table td:nth-child(4) {
+  width: 25px; /* Durée */
+}
+
+.intervention-table th:nth-child(5),
+.intervention-table td:nth-child(5) {
+  width: 25px; /* Heures */
+}
+
+.intervention-table th:nth-child(6),
+.intervention-table td:nth-child(6) {
+  width: 80px; /* Personnel */
+}
+
+#tabl {
+    width: 500px;
+}
+
+}
+
+.ghost-row {
+  opacity: 0.2;
+  font-style: italic;
+  pointer-events: none;
+}
+.virtual-scroll-tbody tr {
+  will-change: transform;
+}
+.virtual-scroll-container {
+  height: 400px;
+  overflow-y: auto;
+  position: relative;
+  border: 1px solid #ccc;
+}
+
+.tableau-virtuel-container {
+  margin: 0;
+  padding: 0;
+}
+
+
+#searchResume {
+    height: 40px;
+    width: calc(100% - 100px);
+    font-size: 15px;
+}
+
+#personnelFilter {
+       height: 40px;
+    width: calc(100% - 115px);
+    font-size: 15px; 
+}
+
+#startDate {
+    height: 40px;
+    width: calc(50% - 80px);
+}
+
+#endDate {
+        height: 40px;
+    width: calc(50% - 60px);
+}
+
+@media (max-width: 350px) {
+    .filtres-dates{
+      display: flex;
+    gap: 10px;
+    flex-wrap: wrap;  
+    }
+#startDate {
+    height: 40px;
+    width: calc(100% - 90px);
+}
+
+#endDate {
+        height: 40px;
+    width: calc(100% - 50px);
+}
+}
+
+.filtres-actions button {
+        margin-top: 10px;
+                margin-left: 10px;
+
+  height: 30px;
+}

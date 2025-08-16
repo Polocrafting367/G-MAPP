@@ -1,0 +1,208 @@
+/* === STYLE WINDOWS 98 RETRO - BORDURES ÉPAISSES === */
+
+/* Fond bleu rétro */
+body {
+  background-color: #037D7C; /* bleu Windows 98 */
+  font-family: "MS Sans Serif", Tahoma, Geneva, sans-serif;
+  color: black;
+  margin: 0;
+}
+
+/* Bordures épaisses 3px, effet 3D kitch */
+.lieux-list,  .carte-intervention, .container, .modal-content, .note-tab-button, 
+ .popup-aide, .groupe-container, .debug-overlay {
+      transform: translate(0px, 0px);
+  background-color: #c0c0c0;
+  border-top: 3px solid #f0f0f0; /* clair */
+  border-left: 3px solid #f0f0f0;
+  border-bottom: 3px solid #303030; /* foncé */
+  border-right: 3px solid #303030;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+select,
+textarea {
+  background-color: white;
+  border-top: 3px solid #f0f0f0;
+  border-left: 3px solid #f0f0f0;
+  border-bottom: 3px solid #303030;
+  border-right: 3px solid #303030;
+
+  font-family: "MS Sans Serif", Tahoma, Geneva, sans-serif;
+
+}
+
+/* Li dans arbre avec bordure épaisse */
+.lieux-list li {
+    border-top: 3px solid#303030;
+  border-left: 3px solid #303030;
+  border-bottom: 3px solid  #f0f0f0;
+  border-right: 3px solid #f0f0f0;
+  background-color: #a0a0a0;
+  box-sizing: border-box;
+}
+
+/* Boutons */
+button, .tab-button, .tab-button_z, .tab-button_u, .note-tab-button {
+  border-top: 3px solid #f0f0f0 !important;
+  border-left: 3px solid #f0f0f0 !important;
+  border-bottom: 3px solid #303030 !important;
+  border-right: 3px solid #303030 !important;
+  box-shadow: none;
+  border-radius: 0;
+  cursor: pointer;
+  font-family: "MS Sans Serif", Tahoma, Geneva, sans-serif;
+  line-height: 1;
+    min-height: 30px;
+}
+
+/* Bouton pressé inverse bordures */
+button:active, .tab-button:active {
+  border-top: 3px solid #303030  !important;
+  border-left: 3px solid #303030  !important;
+  border-bottom: 3px solid #f0f0f0  !important;
+  border-right: 3px solid #f0f0f0  !important;
+
+}
+
+
+/* Container optionsMenu avec bordures épaisses */
+.options-menu {
+  border-top: 3px solid #f0f0f0;
+  border-left: 3px solid #f0f0f0;
+  border-bottom: 3px solid #303030;
+  border-right: 3px solid #303030;
+  background-color: #c0c0c0;
+  box-sizing: border-box;
+  border-radius: 0;
+  padding: 3px;
+}
+
+/* Slider rétro */
+input[type="range"], #typeDropdown,#causeDropdown, #tempsArretsInput, #zone-texte  {
+
+  background-color: #c0c0c0;
+  border-top: 3px solid #f0f0f0;
+  border-left: 3px solid #f0f0f0;
+  border-bottom: 3px solid #303030;
+  border-right: 3px solid #303030;
+  border-radius: 0;
+  max-height: 30px;
+  box-shadow: none;
+}
+
+.active-chrono .modal-content {background-color: RGBA(0,0,0,0.3)}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #000080;
+  cursor: pointer;
+  border-top: 3px solid #f0f0f0;
+  border-left: 3px solid #f0f0f0;
+  border-bottom: 3px solid #303030;
+  border-right: 3px solid #303030;
+  border-radius: 0;
+  margin-top: -2px;
+}
+/* Scrollbar rétro Windows 98 */
+::-webkit-scrollbar {
+  width: 16px;
+  background-color: #c0c0c0;
+  border-left: 3px solid #303030;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #000080;
+  border: 3px solid #303030;
+  border-radius: 0;
+}
+
+/* Scrollbar Firefox */
+* {
+  scrollbar-width: auto;
+  scrollbar-color: #000080 #c0c0c0;
+}
+ul {
+  display: block;
+  margin: 0;
+  padding-left: 20px; /* indentation classique */
+  list-style-type: disc;
+  background-color: transparent;
+}
+
+ul li {
+  position: relative; /* pour positionner bouton absolu à l'intérieur */
+  margin: 3px 0;
+  padding: 8px 12px;
+  background-color: #c0c0c0; /* gris clair */
+  border-top: 3px solid #f0f0f0;
+  border-left: 3px solid #f0f0f0;
+  border-bottom: 3px solid #303030;
+  border-right: 3px solid #303030;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* Style pour la div.place-card à l'intérieur du li */
+.place-card {
+  font-family: "MS Sans Serif", Tahoma, Geneva, sans-serif;
+  font-weight: normal;
+  color: black;
+  position: relative; /* pour bouton positionné */
+}
+
+/* Style boutons dont l'id commence par lancer-chrono-btn */
+button[id^="lancer-chrono-btn"] {
+  width: 33px;
+  height: 33px;
+  position: absolute;
+  top: -10px;
+  right: -13px;
+  border-top: 3px solid #f0f0f0;
+  border-left: 3px solid #f0f0f0;
+  border-bottom: 3px solid #303030;
+  border-right: 3px solid #303030;
+  box-shadow: none;
+  border-radius: 0; /* retire ton 8px pour plus retro */
+  cursor: pointer;
+  font-family: "MS Sans Serif", Tahoma, Geneva, sans-serif;
+  display: none; /* tu contrôles via JS quand afficher */
+  padding: 5 !important;
+  line-height: 33px;
+  text-align: center;
+}
+
+/* Pastille texte */
+.place-card .pastille {
+  display: block;
+  user-select: none;
+}
+
+
+/* Style pour le bouton actif */
+.tab-button.active,
+.tab-button_u.active,
+.tab-button_z.active {
+  border-top: 3px solid #303030;
+  border-left: 3px solid #303030;
+  border-bottom: 3px solid #f0f0f0;
+  border-right: 3px solid #f0f0f0;
+}
+
+
+#updateTimeButton {
+  top: 20px !important;
+}
+
+iframe {
+      transform: translate(0px, 10px);
+}

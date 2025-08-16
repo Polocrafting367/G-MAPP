@@ -1,0 +1,342 @@
+body {
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    font-weight: bold;
+    font-size: 16px;
+    /* Remplacez la valeur par celle que vous souhaitez */
+    margin-left: 0px;
+    margin-right: 0px;
+    background: transparent !important;
+}
+
+#updateTimeButton {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    top: 40px;
+    right: 5px;
+    border: 0px;
+}
+
+#chrono {
+    font-size: 30px;
+    display: inline-block;
+    text-align: center;
+    margin: 0px;
+}
+
+.chrono-status {
+    font-size: 25px;
+    display: inline-block;
+    text-align: center;
+    margin: 0px;
+}
+
+@media screen and (max-width: 600px) {
+
+    /* Styles spécifiques aux petits écrans */
+    .container {
+        max-width: 100%;
+        /* ... autres styles ... */
+
+
+    }
+}
+
+#info-section {
+    scrollbar-width: thin; /* Barre de défilement fine (Firefox) */
+    scrollbar-color: rgba(150, 150, 150, 0.8) transparent; /* Couleur de la barre et du fond */
+}
+
+#info-section::-webkit-scrollbar {
+    width: 8px; /* Largeur de la barre (Chrome, Safari) */
+}
+
+#info-section::-webkit-scrollbar-thumb {
+    background: rgba(150, 150, 150, 0.8); /* Couleur de la barre */
+    border-radius: 4px; /* Arrondi des angles */
+}
+
+#info-section::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 100, 100, 0.8); /* Couleur de la barre au survol */
+}
+
+#info-section::-webkit-scrollbar-track {
+    background: transparent; /* Couleur de la piste */
+}
+
+
+.modal-button {
+    background-color: #3498db;
+    color: #fff;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 5px;
+    height: 30px;
+    border: 0px;
+}
+
+
+
+
+.place-details {
+    display: flex;
+    flex-direction: column;
+    /* Afficher les éléments en colonne */
+}
+
+
+
+@keyframes gradientMove {
+    0% {
+        background-position: 100% 0%;
+    }
+
+    50% {
+        background-position: 0% 100%;
+    }
+
+    100% {
+        background-position: 100% 0%;
+    }
+}
+
+li.active-chrono {
+    list-style: none;
+    background: linear-gradient(90deg, rgba(150, 80, 5, 1) 0%, rgba(200, 150, 0, 1) 50%, rgba(150, 80, 5, 1) 100%);
+    background-size: 200% 200%;
+    animation: gradientMove 3s infinite;
+    border: 3px solid rgba(255, 200, 0, 1);
+    border-radius: 8px;
+
+    padding: 5px;
+    /* Remplacez la valeur par celle que vous souhaitez */
+}
+
+
+li.active-chrono.paused {
+    background: linear-gradient(90deg, rgba(130, 170, 255, 1) 0%, rgba(0, 210, 255, 1) 50%, rgba(130, 170, 255, 1) 100%);
+    border: 3px solid rgba(150, 200, 255, 1);
+
+}
+
+li.active-chrono.STOP {
+    background: linear-gradient(90deg, rgba(255, 10, 10, 1) 0%, rgba(150, 25, 25, 1) 50%, rgba(255, 10, 10, 1) 100%);
+    border: 3px solid rgba(255, 25, 0, 1);
+}
+
+textarea {
+    resize: none;
+}
+
+/* Ajoutez ces styles dans votre fichier CSS ou directement dans votre script JS */
+.modal-button {
+    cursor: pointer;
+
+    flex: 1;
+border: 0px;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#buttons {
+    display: flex;
+border: 0px;
+}
+
+
+#zone-texte,
+#zone-pieces {
+
+    border-radius: 8px;
+}
+
+.row-container {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.row-container>div:last-child {
+    margin-right: 0;
+}
+
+.dropdowns-container,
+.input-container {
+    flex: 1;
+    /* Chaque conteneur prend une part égale de l'espace disponible */
+    margin-right: 10px;
+    /* Espacement entre les éléments */
+}
+
+/* Style pour les étiquettes */
+label {
+    display: block;
+    margin-bottom: 5px;
+    /* Espacement entre l'étiquette et l'input */
+    font-weight: bold;
+}
+
+
+/* Style pour les listes déroulantes */
+select {
+    width: 100%;
+    /* Occupera toute la largeur du conteneur */
+    padding: 8px;
+    /* Ajoute un peu d'espace intérieur pour le confort */
+    font-size: 16px;
+    /* Taille de la police */
+    border: 1px solid #ccc;
+    /* Bordure */
+    border-radius: 5px;
+    /* Coins arrondis */
+    background-color: #FFFFFF;
+    /* Couleur de fond */
+    border-radius: 8px;
+}
+
+/* Style pour les options des listes déroulantes */
+select option {
+    padding: 8px;
+    /* Ajoute un peu d'espace intérieur pour le confort */
+    font-size: 16px;
+    /* Taille de la police */
+}
+
+
+#causeDropdown {
+    width: 100%;
+    /* Occupera toute la largeur du conteneur */
+    padding: 8px;
+    /* Ajoute un peu d'espace intérieur pour le confort */
+    font-size: 16px;
+    /* Taille de la police */
+    border: 1px solid #ccc;
+    /* Bordure */
+    border-radius: 5px;
+    /* Coins arrondis */
+    background-color: #FFFFFF;
+    /* Couleur de fond */
+    border-radius: 8px;
+}
+
+#typeDropdown {
+
+    width: 100%;
+    /* Occupera toute la largeur du conteneur */
+    padding: 8px;
+    /* Ajoute un peu d'espace intérieur pour le confort */
+    font-size: 16px;
+    /* Taille de la police */
+    border: 1px solid #ccc;
+    /* Bordure */
+    border-radius: 5px;
+    /* Coins arrondis */
+    background-color: #FFFFFF;
+    /* Couleur de fond */
+    border-radius: 8px;
+}
+
+#tempsArretsInput {
+    width: 100%;
+    /* Occupera toute la largeur du conteneur */
+    padding: 8px;
+    /* Ajoute un peu d'espace intérieur pour le confort */
+    font-size: 16px;
+    /* Taille de la police */
+    border: 1px solid #ccc;
+    /* Bordure */
+    border-radius: 5px;
+    /* Coins arrondis */
+    background-color: #FFFFFF;
+    /* Couleur de fond */
+    border-radius: 8px;
+}
+
+input,
+select {
+    width: 100%;
+    /* S'assure que l'input prend toute la largeur du conteneur */
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #FFFFFF;
+    box-sizing: border-box;
+    /* Inclut padding et bordure dans la largeur */
+}
+
+  .custom-checkbox {
+        padding: 0px !important;
+     display: none;
+  }
+
+  .custom-checkbox-label {
+    position: relative;
+    padding-left: 30px; /* espace pour la case personnalisée */
+    cursor: pointer;
+    user-select: none;
+    line-height: 20px;
+  margin-top: -16px;
+
+  }
+ /* La case personnalisée avec le symbole ✓ */
+  .custom-checkbox-label::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 20px;
+    height: 20px;
+    background-color: #e0e0e0;  /* fond gris par défaut */
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+    line-height: 20px;
+    color: grey;             /* symbole gris par défaut */
+    transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+  }
+
+  /* Lorsqu'elle est cochée, le fond passe au bleu et le symbole devient blanc en pleine opacité */
+  .custom-checkbox:checked + .custom-checkbox-label::before {
+    background-color: #3498db; /* fond bleu */
+    border-color: #3498db;
+    color: white;              /* symbole blanc */
+  }
+
+/* Une seule définition de la liste */
+.floating-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 28px;           /* ou width:100% si tu préfères */
+  max-height: 160px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ccc;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  z-index: 9999;
+  display: none;
+}
+
+.floating-list li {
+  padding: 6px 10px;
+  cursor: pointer;
+  background: transparent; /* base */
+}
+
+/* Zébrage… mais seulement quand l’item n’est NI hover NI actif clavier */
+.floating-list li:nth-child(even):not(.active):not(:hover) {
+  background: #f0f0f0;
+}
+
+/* Même rendu pour le hover souris et l’actif clavier */
+.floating-list li.active,
+.floating-list li:hover {
+  background: #cce4ff;   /* même couleur pour les deux */
+}
