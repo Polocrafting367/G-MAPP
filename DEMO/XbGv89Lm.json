@@ -1,0 +1,34 @@
+{
+    "DUBOIS Antoine": {
+        "pass": "1234",
+        "end": false
+    },
+    "GARCIA Lucas": {
+        "pass": "GARCIA2026",
+        "end": false
+    },
+    "ROUSSEAU Chloé": {
+        "pass": "CHLOE!99",
+        "end": false
+    },
+    "MOREAU Nicolas": {
+        "pass": "NICO_MOREAU",
+        "end": false
+    },
+    "SIMON Emma": {
+        "pass": "EMMA_S",
+        "end": false
+    },
+    "FOURNIER Camille": {
+        "pass": "CAM_F4",
+        "end": false
+    },
+    "GIRARD Hugo": {
+        "pass": "HUGO_G",
+        "end": false
+    },
+    "Gestion": {
+        "BASIC": "Polocrafting@367",
+        "AVANCE": "Polocrafting@367"
+    }
+}

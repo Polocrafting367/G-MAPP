@@ -1,0 +1,18 @@
+{
+    "title": "Demo G-MAPP:",
+    "accessInfo": "Cette note est accessible dans \"Paramètres ⚙️\" → \"Informations\".",
+    "intro": "Bienvenue sur <strong>G-MAPP</strong> ! <br>Trouvez si dessous un petit <strong>tutoriel</strong> ! <br>Fermer fermer cette fenêtre pour continuer<br><strong>Comment utiliser G-MAPP :</strong><br><br><br><br><br><br>",
+    "sections": [
+        {
+            "title": "En cas de problème, n'hésitez pas à actualiser la page",
+            "content": [
+                {
+                    "heading": "Si le problème persiste, actualisez la page via le bouton \"🔄 ACT DATA\" dans le menu à droite.",
+                    "description": "",
+                    "image": ""
+                }
+            ]
+        }
+    ],
+    "closing": "Merci de votre compréhension."
+}

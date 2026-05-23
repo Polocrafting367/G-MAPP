@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Metrics Analyzer Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .loader {
+            border: 4px solid #1e293b;
+            border-top: 4px solid #8b5cf6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Styles pour les lignes filtrées/doublons */
+        .row-excluded { opacity: 0.4; text-decoration: line-through; }
+        .row-duplicate { opacity: 0.6; background-color: #2e106520; } /* Violet très sombre */
+        
+        /* Checkbox custom */
+        .filter-checkbox:checked + div { background-color: #ef4444; border-color: #ef4444; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans h-screen flex flex-col overflow-hidden relative">
+
+    <div id="loadingOverlay" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+        <div class="loader mb-4"></div>
+        <div id="loadingText" class="text-xl font-bold text-white">Analyse en cours...</div>
+        <div class="text-sm text-slate-400 mt-2">Calcul des empreintes (Hash) et dédoublonnage</div>
+    </div>
+
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur p-4 flex flex-wrap gap-4 justify-between items-center shrink-0">
+        <div class="flex items-center gap-4">
+            <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-violet-500">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+                </svg>
+                Metrics Pro
+            </h1>
+            
+            <!-- Zone Filtres Actifs -->
+            <div id="filterZone" class="hidden flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full border border-slate-700">
+                <span class="text-xs text-slate-400">Filtres actifs :</span>
+                <span id="filterCount" class="text-xs font-bold text-red-400">0</span>
+                <button onclick="clearFilters()" class="ml-2 text-xs text-slate-500 hover:text-white underline">Reset</button>
+            </div>
+        </div>
+        
+        <div class="flex gap-2">
+            <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden" onchange="handleFiles(this.files)">
+            <button onclick="document.getElementById('folderInput').click()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors shadow-lg shadow-blue-900/20">
+                Dossier
+            </button>
+
+            <input type="file" id="zipInput" accept=".zip" class="hidden" onchange="handleZip(this.files[0])">
+            <button onclick="document.getElementById('zipInput').click()" class="bg-violet-700 hover:bg-violet-600 text-white px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors shadow-lg shadow-violet-900/20">
+                ZIP
+            </button>
+
+            <button onclick="resetAll()" class="text-slate-400 hover:text-red-400 px-3 py-2 text-sm transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-auto p-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
+        
+        <!-- KPIs -->
+        <div class="lg:col-span-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg">
+                <div class="text-[10px] text-slate-500 uppercase font-bold">Fichiers Uniques</div>
+                <div class="text-xl font-bold text-white mt-1"><span id="uniqueFiles">0</span> <span class="text-xs text-slate-600 font-normal">/ <span id="totalFilesFound">0</span></span></div>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg">
+                <div class="text-[10px] text-slate-500 uppercase font-bold">Total Lignes</div>
+                <div id="totalLines" class="text-xl font-bold text-blue-400 mt-1">0</div>
+            </div>
+             <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg">
+                <div class="text-[10px] text-slate-500 uppercase font-bold">Fonctions</div>
+                <div id="totalFunctions" class="text-xl font-bold text-emerald-400 mt-1">0</div>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg">
+                <div class="text-[10px] text-slate-500 uppercase font-bold">Moyenne Lignes</div>
+                <div id="avgLines" class="text-xl font-bold text-slate-300 mt-1">0</div>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg col-span-2 md:col-span-4 lg:col-span-2">
+                <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Période</div>
+                <div class="flex justify-between items-center text-xs font-mono text-slate-300">
+                    <span id="dateMin">-</span>
+                    <span class="text-slate-600">➜</span>
+                    <span id="dateMax">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- File List (Interactive) -->
+        <div class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col h-[600px] lg:h-auto shadow-sm">
+            <div class="p-3 border-b border-slate-800 bg-slate-900/50 sticky top-0 flex justify-between items-center z-10">
+                <span class="font-bold text-slate-200 text-sm">Détails (Cliquez pour exclure)</span>
+                <div class="text-[10px] text-slate-500 flex gap-3">
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-slate-400 opacity-40"></span> Exclus</span>
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-violet-900"></span> Doublon</span>
+                </div>
+            </div>
+            <div class="overflow-auto flex-1 bg-slate-950/30">
+                <table class="w-full text-xs text-left border-collapse">
+                    <thead class="text-[10px] text-slate-500 uppercase bg-slate-900 sticky top-0 shadow-sm">
+                        <tr>
+                            <th class="px-4 py-2 w-8 text-center">État</th>
+                            <th class="px-2 py-2">Fichier</th>
+                            <th class="px-2 py-2 text-right">Lignes</th>
+                            <th class="px-2 py-2 text-right hidden md:table-cell">Caractères</th>
+                            <th class="px-2 py-2 text-right">Fonctions</th>
+                            <th class="px-2 py-2 text-right">Ext</th>
+                        </tr>
+                    </thead>
+                    <tbody id="filesTableBody" class="divide-y divide-slate-800/50 text-slate-300">
+                        <tr class="text-slate-500 italic"><td colspan="6" class="px-4 py-8 text-center">Aucun fichier</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Right Panel (Functions & Distribution) -->
+        <div class="flex flex-col gap-4 h-[600px] lg:h-auto">
+            <!-- Distribution -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shrink-0">
+                <div class="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-3">Répartition (Uniques)</div>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-orange-500"></span>HTML</span>
+                        <span id="countHtml" class="font-mono text-white">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span>CSS</span>
+                        <span id="countCss" class="font-mono text-white">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-yellow-500"></span>JS</span>
+                        <span id="countJs" class="font-mono text-white">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-indigo-500"></span>PHP</span>
+                        <span id="countPhp" class="font-mono text-white">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Function List -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col flex-1">
+                <div class="p-3 border-b border-slate-800 bg-slate-900/50 sticky top-0 font-bold text-slate-200 text-xs flex justify-between items-center">
+                    <span>Fonctions</span>
+                    <span id="funcCountBadge" class="bg-slate-800 text-[10px] px-2 py-0.5 rounded-full text-slate-400">0</span>
+                </div>
+                <div id="functionList" class="overflow-auto flex-1 p-2 space-y-1 bg-slate-950/30">
+                    <div class="text-slate-500 italic text-center text-xs mt-4">...</div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- CONFIGURATION ---
+        const allowedExtensions = ['html', 'css', 'js', 'php'];
+        const regexPatterns = {
+            php: /function\s+([a-zA-Z0-9_]+)\s*\(/g,
+            js: /(?:function\s+([a-zA-Z0-9_]+)\s*\(|(?:const|let|var)\s+([a-zA-Z0-9_]+)\s*=\s*(?:async\s*)?(?:\(.*\)|[^=]+)\s*=>)/g
+        };
+        const STORAGE_KEY = 'codeAnalyzer_excludes_v1';
+
+        // --- STATE ---
+        let allFilesData = []; // Stocke toutes les données brutes
+        let excludedPaths = new Set(); // Chemins exclus par l'utilisateur
+        
+        // --- INIT ---
+        function loadFilters() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    excludedPaths = new Set(JSON.parse(saved));
+                    updateFilterBadge();
+                }
+            } catch(e) { console.error("Err storage", e); }
+        }
+        loadFilters();
+
+        // --- HANDLERS ---
+        async function handleFiles(fileList) {
+            startProcess();
+            const files = Array.from(fileList);
+            // Process asynchrone
+            setTimeout(async () => {
+                await processBatch(files, async (f) => ({
+                    name: f.webkitRelativePath || f.name,
+                    content: await readFile(f),
+                    date: f.lastModified
+                }));
+                finishProcess();
+            }, 100);
+        }
+
+        async function handleZip(zipFile) {
+            if (!zipFile) return;
+            startProcess();
+            setTimeout(async () => {
+                try {
+                    const zip = await JSZip.loadAsync(zipFile);
+                    const entries = [];
+                    zip.forEach((path, entry) => {
+                        if(!entry.dir && allowedExtensions.includes(getExtension(entry.name))) {
+                            entries.push(entry);
+                        }
+                    });
+
+                    // Conversion des entrées zip en objets standardisés
+                    const processed = await Promise.all(entries.map(async entry => ({
+                        name: entry.name,
+                        content: await entry.async("string"),
+                        date: entry.date ? entry.date.getTime() : Date.now()
+                    })));
+
+                    processRawData(processed);
+                } catch(e) { alert("Erreur ZIP: " + e.message); }
+                finishProcess();
+            }, 100);
+        }
+
+        // --- CORE LOGIC ---
+
+        async function processBatch(files, transformFn) {
+            const rawData = [];
+            for (const f of files) {
+                const ext = getExtension(f.name);
+                if (allowedExtensions.includes(ext)) {
+                    try {
+                        rawData.push(await transformFn(f));
+                    } catch(e) { console.error("Skip", f.name); }
+                }
+            }
+            processRawData(rawData);
+        }
+
+        async function processRawData(items) {
+            allFilesData = []; // Reset current session data
+            
+            for (const item of items) {
+                const ext = getExtension(item.name);
+                // 1. Calcul Hash pour dédoublonnage (SHA-256)
+                const hash = await computeHash(item.content);
+                
+                // 2. Analyse Contenu
+                const analysis = analyzeContent(item.content, ext);
+
+                allFilesData.push({
+                    id: crypto.randomUUID(), // ID unique pour DOM
+                    name: item.name,
+                    ext: ext,
+                    lines: analysis.lines,
+                    chars: analysis.chars,
+                    funcs: analysis.funcs,
+                    funcNames: analysis.funcNames,
+                    date: item.date,
+                    hash: hash,
+                    content: item.content // Gardé pour debug ou export futur
+                });
+            }
+            recalculateStats();
+        }
+
+        function analyzeContent(content, ext) {
+            const lines = content.split(/\r\n|\r|\n/).length;
+            const chars = content.length;
+            const funcNames = [];
+            
+            let textToAnalyze = content;
+            let matcher = null;
+
+            if (ext === 'php') matcher = regexPatterns.php;
+            else if (ext === 'js') matcher = regexPatterns.js;
+            else if (ext === 'html') {
+                textToAnalyze = extractScripts(content);
+                matcher = regexPatterns.js;
+            }
+
+            if (matcher && textToAnalyze.trim().length > 0) {
+                matcher.lastIndex = 0;
+                let match;
+                while ((match = matcher.exec(textToAnalyze)) !== null) {
+                    const fn = match[1] || match[2];
+                    if (fn) funcNames.push(fn);
+                }
+            }
+            
+            return { lines, chars, funcs: funcNames.length, funcNames };
+        }
+
+        // --- STATS ENGINE ---
+        function recalculateStats() {
+            const stats = {
+                filesFound: allFilesData.length,
+                filesUnique: 0,
+                lines: 0, chars: 0, funcs: 0,
+                minDate: Infinity, maxDate: -Infinity,
+                types: { html: 0, css: 0, js: 0, php: 0 },
+                allFuncNames: new Set()
+            };
+
+            const seenHashes = new Set();
+
+            // Rendu Tableau
+            const tbody = document.getElementById('filesTableBody');
+            tbody.innerHTML = '';
+
+            allFilesData.sort((a,b) => a.name.localeCompare(b.name)); // Tri alphabétique
+
+            allFilesData.forEach(file => {
+                const isExcluded = excludedPaths.has(file.name);
+                // Si le hash existe déjà ET que ce n'est pas ce fichier précis -> Doublon
+                // (On suppose que le premier arrivé est l'original)
+                const isDuplicate = seenHashes.has(file.hash);
+                
+                if (!isDuplicate) seenHashes.add(file.hash);
+
+                // Calculs uniquement si Actif et Unique
+                if (!isExcluded && !isDuplicate) {
+                    stats.filesUnique++;
+                    stats.lines += file.lines;
+                    stats.chars += file.chars;
+                    stats.funcs += file.funcs;
+                    file.funcNames.forEach(n => stats.allFuncNames.add(n));
+                    if(stats.types[file.ext] !== undefined) stats.types[file.ext]++;
+                    
+                    if (file.date < stats.minDate) stats.minDate = file.date;
+                    if (file.date > stats.maxDate) stats.maxDate = file.date;
+                }
+
+                // Génération Ligne Tableau
+                const tr = document.createElement('tr');
+                let rowClass = "hover:bg-slate-800 transition-colors cursor-pointer border-b border-slate-800/50";
+                let statusIcon = `<div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]"></div>`;
+                
+                if (isDuplicate) {
+                    rowClass += " row-duplicate";
+                    statusIcon = `<div class="text-[10px] text-violet-400 font-bold">DBL</div>`;
+                } else if (isExcluded) {
+                    rowClass += " row-excluded";
+                    statusIcon = `<div class="w-2 h-2 rounded-full bg-slate-600"></div>`;
+                }
+
+                tr.className = rowClass;
+                tr.onclick = () => toggleFilter(file.name);
+                
+                // Color badges
+                const colors = { js: 'text-yellow-400', php: 'text-indigo-400', html: 'text-orange-400', css: 'text-blue-400' };
+                const extColor = colors[file.ext] || 'text-slate-400';
+
+                tr.innerHTML = `
+                    <td class="px-4 py-2 text-center">${statusIcon}</td>
+                    <td class="px-2 py-2 font-mono truncate max-w-[250px]" title="${file.name} (Clic pour exclure)">${file.name}</td>
+                    <td class="px-2 py-2 text-right font-mono text-slate-300">${formatNum(file.lines)}</td>
+                    <td class="px-2 py-2 text-right font-mono text-slate-500 hidden md:table-cell">${formatNum(file.chars)}</td>
+                    <td class="px-2 py-2 text-right font-bold ${file.funcs > 0 ? 'text-emerald-400' : 'text-slate-600'}">${file.funcs}</td>
+                    <td class="px-2 py-2 text-right text-[10px] font-bold ${extColor}">${file.ext.toUpperCase()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateUI(stats);
+        }
+
+        // --- UI UPDATES ---
+        function updateUI(s) {
+            // KPIs
+            document.getElementById('totalFilesFound').innerText = formatNum(s.filesFound);
+            document.getElementById('uniqueFiles').innerText = formatNum(s.filesUnique);
+            document.getElementById('totalLines').innerText = formatNum(s.lines);
+            document.getElementById('totalFunctions').innerText = formatNum(s.funcs);
+            
+            const avg = s.filesUnique > 0 ? Math.round(s.lines / s.filesUnique) : 0;
+            document.getElementById('avgLines').innerText = avg;
+
+            document.getElementById('dateMin').innerText = formatDate(s.minDate);
+            document.getElementById('dateMax').innerText = formatDate(s.maxDate);
+
+            // Chart
+            document.getElementById('countHtml').innerText = s.types.html;
+            document.getElementById('countCss').innerText = s.types.css;
+            document.getElementById('countJs').innerText = s.types.js;
+            document.getElementById('countPhp').innerText = s.types.php;
+
+            // Func List
+            const funcList = document.getElementById('functionList');
+            document.getElementById('funcCountBadge').innerText = s.allFuncNames.size;
+            
+            if (s.allFuncNames.size === 0) {
+                funcList.innerHTML = '<div class="text-slate-500 italic text-center text-xs mt-4">Aucune fonction active</div>';
+            } else {
+                const sorted = Array.from(s.allFuncNames).sort();
+                funcList.innerHTML = sorted.map(n => 
+                    `<div class="bg-slate-950/50 border border-slate-800/50 px-2 py-1 rounded text-[10px] font-mono text-violet-300 truncate" title="${n}">${n}()</div>`
+                ).join('');
+            }
+        }
+
+        // --- FILTERS & STORAGE ---
+        function toggleFilter(filename) {
+            if (excludedPaths.has(filename)) {
+                excludedPaths.delete(filename);
+            } else {
+                excludedPaths.add(filename);
+            }
+            saveFilters();
+            recalculateStats();
+        }
+
+        function saveFilters() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(excludedPaths)));
+            updateFilterBadge();
+        }
+
+        function clearFilters() {
+            excludedPaths.clear();
+            saveFilters();
+            recalculateStats();
+        }
+
+        function updateFilterBadge() {
+            const count = excludedPaths.size;
+            const zone = document.getElementById('filterZone');
+            document.getElementById('filterCount').innerText = count;
+            if (count > 0) zone.classList.remove('hidden');
+            else zone.classList.add('hidden');
+        }
+
+        // --- UTILS ---
+        function startProcess() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+        function finishProcess() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+        
+        function resetAll() {
+            allFilesData = [];
+            document.getElementById('filesTableBody').innerHTML = '<tr class="text-slate-500 italic"><td colspan="6" class="px-4 py-8 text-center">Prêt</td></tr>';
+            ['uniqueFiles', 'totalFilesFound', 'totalLines', 'totalFunctions', 'avgLines', 'countHtml', 'countCss', 'countJs', 'countPhp'].forEach(id => document.getElementById(id).innerText = '0');
+             document.getElementById('funcCountBadge').innerText = '0';
+             document.getElementById('functionList').innerHTML = '';
+             document.getElementById('folderInput').value = '';
+             document.getElementById('zipInput').value = '';
+        }
+
+        async function computeHash(message) {
+            // SHA-256 pour unicité du contenu
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function extractScripts(html) {
+            const scriptRegex = /<script(?:(?!\bsrc\b)[^>])*?>([\s\S]*?)<\/script>/gim;
+            let scripts = [];
+            let match;
+            while ((match = scriptRegex.exec(html)) !== null) scripts.push(match[1]);
+            return scripts.join('\n');
+        }
+
+        function readFile(file) {
+            return new Promise((res, rej) => {
+                const r = new FileReader();
+                r.onload = e => res(e.target.result);
+                r.onerror = rej;
+                r.readAsText(file);
+            });
+        }
+
+        const getExtension = name => name.split('.').pop().toLowerCase();
+        const formatNum = n => new Intl.NumberFormat('fr-FR').format(n);
+        const formatDate = ts => (ts === Infinity || ts === -Infinity || !ts) ? '-' : new Date(ts).toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'2-digit'});
+
+
+            trackVisit('LINE COMPT')
+
+function trackVisit(pageName = "Accueil") {
+    // 1. Générer ou récupérer un ID Appareil unique
+    let deviceId = localStorage.getItem('app_device_id');
+    if (!deviceId) {
+        deviceId = 'dev-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
+        localStorage.setItem('app_device_id', deviceId);
+    }
+
+    // 2. Envoyer les données
+    fetch('/track.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            deviceId: deviceId,
+            page: pageName
+        })
+    }).catch(e => console.log("Tracking error", e));
+}
+
+    </script>
+</body>
+</html>

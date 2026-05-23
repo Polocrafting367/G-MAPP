@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - G-MAPP</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Dégradé de fond animé */
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --accent-color: #6a11cb;
+            --text-color: #333;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Inter, system-ui, sans-serif;
+            background: var(--primary-gradient);
+            background-size: 200% 200%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .login-card {
+            background: var(--glass-bg);
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .logo-icon {
+            font-size: 3.5rem;
+            background: -webkit-linear-gradient(#667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        h2 {
+            margin: 0 0 0.5rem 0;
+            color: var(--text-color);
+            font-weight: 700;
+        }
+
+        .description {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #444;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-left: 4px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 14px 14px 45px; /* Espace pour l'icône */
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.3s ease;
+            background: #f9f9f9;
+        }
+
+        .input-group input:focus {
+            border-color: var(--accent-color);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(106, 17, 203, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="logo-icon">
+        <i class="fa-solid fa-list-check"></i>
+    </div>
+    <h2>G-MAPP</h2>
+    <p class="description">
+        Gérez vos tâches collaboratives. Ajoutez des notes, assignez des intervenants et suivez l'avancement en temps réel.
+    </p>
+    
+    <div class="input-group">
+        <label for="field-project">Identifiant Projet (Dossier)</label>
+        <div class="input-wrapper">
+            <i class="fa-solid fa-folder-open"></i>
+            <input type="text" id="field-project" placeholder="Ex: Projet maison">
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="field-name">Votre Nom (User)</label>
+        <div class="input-wrapper">
+            <i class="fa-solid fa-user"></i>
+            <input type="text" id="field-name" placeholder="Ex: Crafting">
+        </div>
+    </div>
+
+    <button onclick="connect()">Accéder au tableau</button>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // On récupère les valeurs pour le confort utilisateur
+        const savedProject = localStorage.getItem('taskApp_inputProject');
+        const savedName = localStorage.getItem('taskApp_inputName');
+
+        if (savedProject) document.getElementById('field-project').value = savedProject;
+        if (savedName) document.getElementById('field-name').value = savedName;
+    });
+
+    function connect() {
+        // 1. Récupération des saisies
+        // field-project = ce que l'utilisateur tape comme "root"
+        // field-name    = ce que l'utilisateur tape comme "paul"
+        const inputProject = document.getElementById('field-project').value.trim();
+        const inputName = document.getElementById('field-name').value.trim();
+
+        if (!inputProject || !inputName) {
+            alert("Veuillez remplir l'identifiant du projet et votre nom.");
+            return;
+        }
+
+        // Sauvegarde locale (liée aux champs, pas à la logique tordue)
+        localStorage.setItem('taskApp_inputProject', inputProject);
+        localStorage.setItem('taskApp_inputName', inputName);
+
+        // 2. CONSTRUCTION DE L'URL (LOGIQUE INVERSÉE)
+        
+        // Consigne : "paul doit aller dans folder" -> Donc inputName va dans 'folders'
+        // Consigne : "root doit aller dans user" -> Donc inputProject va dans 'user'
+
+        const mainPage = 'index.html';
+        const targetUrl = `${mainPage}?folders=${encodeURIComponent(inputName)}&user=${encodeURIComponent(inputProject)}`;
+        
+        window.location.href = targetUrl;
+    }
+
+    document.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') connect();
+    });
+</script>
+
+</body>
+</html>

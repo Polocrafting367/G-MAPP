@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Motif Corporate 4K</title>
+    <style>
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; gap: 20px; padding: 20px; background: #2c2c2c; color: #eee; height: 100vh; box-sizing: border-box; margin: 0; }
+        .controls { display: flex; flex-direction: column; gap: 15px; width: 320px; min-width: 320px; background: #3a3a3a; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); overflow-y: auto; }
+        h3 { margin-top: 0; margin-bottom: 15px; color: #fff; border-bottom: 1px solid #555; padding-bottom: 10px;}
+        label { display: flex; flex-direction: column; font-size: 13px; color: #ccc; font-weight: 500; }
+        input, select { margin-top: 8px; padding: 8px 10px; background: #555; border: 1px solid #444; color: white; border-radius: 6px; outline: none; transition: border-color 0.2s;}
+        input:focus, select:focus { border-color: #0078D7; }
+        input[type="file"] { padding: 5px; background: #444; cursor: pointer; }
+        input[type="color"] { padding: 2px; height: 35px; cursor: pointer; }
+        
+        .preview-container { flex-grow: 1; background: #1a1a1a; border-radius: 12px; padding: 20px; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);}
+        /* Le canvas est réduit visuellement pour tenir dans l'écran, mais conserve sa résolution interne */
+        canvas { max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-radius: 4px; }
+        .instructions { font-size: 12px; color: #aaa; margin-top: auto; padding-top: 15px; border-top: 1px solid #555; text-align: center;}
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h3>Paramètres</h3>
+        
+        <label>Logo 1 (Image) : <input type="file" id="img1Input" accept="image/*"></label>
+        <label>Logo 2 (Image) : <input type="file" id="img2Input" accept="image/*"></label>
+        
+        <label>Alignement :
+            <select id="alignment">
+                <option value="staggered" selected>En quinconce (Décalé type LV)</option>
+                <option value="grid">En grille droite (Aligné)</option>
+            </select>
+        </label>
+
+        <label>Couleur de fond : <input type="color" id="bgColor" value="#EFEBE4"></label>
+        
+        <div style="display: flex; gap: 10px;">
+             <label style="flex:1;">Largeur (px) : <input type="number" id="width" value="3840"></label>
+             <label style="flex:1;">Hauteur (px) : <input type="number" id="height" value="2160"></label>
+        </div>
+
+        <label>Taille des logos (px) : <input type="number" id="size" value="200"></label>
+        <label>Espacement entre logos (px) : <input type="number" id="spacing" value="80"></label>
+        
+        <p class="instructions">Clic droit sur l'image centrale > "Enregistrer l'image sous..." pour télécharger votre fond 4K.</p>
+    </div>
+
+    <div class="preview-container">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script>
+        // Variables globales pour stocker les images chargées et éviter de recharger à chaque input
+        let cachedImg1 = null;
+        let cachedImg2 = null;
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Fonction utilitaire pour charger une image
+        function loadImageFile(file) {
+            return new Promise((resolve) => {
+                if (!file) return resolve(null);
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Fonction principale de génération
+        function generate() {
+            const width = parseInt(document.getElementById('width').value) || 100;
+            const height = parseInt(document.getElementById('height').value) || 100;
+            const size = parseInt(document.getElementById('size').value) || 50;
+            const spacing = parseInt(document.getElementById('spacing').value) || 10;
+            const bgColor = document.getElementById('bgColor').value;
+            const alignment = document.getElementById('alignment').value;
+
+            // Définir la résolution réelle du canvas
+            canvas.width = width;
+            canvas.height = height;
+
+            // Remplir le fond
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, width, height);
+
+            if (!cachedImg1 && !cachedImg2) {
+                // Si aucune image n'est chargée, on s'arrête là après avoir mis le fond
+                return;
+            }
+
+            // Calcul des pas de la grille
+            const stepX = size + spacing;
+            // Si quinconce, on resserre un peu verticalement pour un meilleur look, sinon espacement normal
+            const stepY = alignment === 'staggered' ? (size + spacing) * 0.85 : (size + spacing);
+            
+            let row = 0;
+
+            // Boucle de dessin avec marge de sécurité (pour dessiner les logos partiellement hors cadre)
+            const margin = size * 2;
+
+            for (let y = -margin; y < height + margin; y += stepY) {
+                let col = 0;
+                
+                // Détermination du décalage X selon le mode choisi
+                let offsetX = 0;
+                if (alignment === 'staggered') {
+                     // Une ligne sur deux est décalée de la moitié d'un pas horizontal
+                    offsetX = (row % 2 !== 0) ? stepX / 2 : 0;
+                }
+                
+                for (let x = -margin; x < width + margin; x += stepX) {
+                    let currentImg = null;
+                    
+                    // Alternance des logos
+                    if (cachedImg1 && cachedImg2) {
+                        // Logique d'alternance en damier (A B / B A)
+                        currentImg = ((row + col) % 2 === 0) ? cachedImg1 : cachedImg2;
+                    } else {
+                        // Si un seul logo est fourni
+                        currentImg = cachedImg1 || cachedImg2;
+                    }
+
+                    if (currentImg) {
+                        // Calcul pour redimensionner l'image en gardant les proportions pour qu'elle rentre dans le carré "size"
+                        const ratio = Math.min(size / currentImg.width, size / currentImg.height);
+                        const drawW = currentImg.width * ratio;
+                        const drawH = currentImg.height * ratio;
+                        
+                        // Centrer l'image dans sa cellule virtuelle
+                        const drawX = x + offsetX + (size - drawW) / 2;
+                        const drawY = y + (size - drawH) / 2;
+                        
+                        // Dessiner l'image avec une haute qualité
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(currentImg, drawX, drawY, drawW, drawH);
+                    }
+                    col++;
+                }
+                row++;
+            }
+        }
+
+        // --- Gestionnaires d'événements pour l'actualisation automatique ---
+
+        // 1. Gestionnaires spécifiques pour les fichiers images (chargement asynchrone)
+        document.getElementById('img1Input').addEventListener('change', async (e) => {
+            cachedImg1 = await loadImageFile(e.target.files[0]);
+            generate();
+        });
+        document.getElementById('img2Input').addEventListener('change', async (e) => {
+            cachedImg2 = await loadImageFile(e.target.files[0]);
+            generate();
+        });
+
+        // 2. Gestionnaires pour tous les autres inputs (actualisation immédiate)
+        const inputs = document.querySelectorAll('input[type="number"], input[type="color"], select');
+        inputs.forEach(input => {
+            // On utilise 'input' pour voir les changements en temps réel (ex: sliders si on en avait), 
+            // et 'change' pour valider les champs numériques
+            input.addEventListener('input', generate); 
+        });
+
+        // Génération initiale au chargement de la page
+        window.onload = generate;
+
+
+                    trackVisit('BG LV')
+
+function trackVisit(pageName = "Accueil") {
+    // 1. Générer ou récupérer un ID Appareil unique
+    let deviceId = localStorage.getItem('app_device_id');
+    if (!deviceId) {
+        deviceId = 'dev-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
+        localStorage.setItem('app_device_id', deviceId);
+    }
+
+    // 2. Envoyer les données
+    fetch('/track.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            deviceId: deviceId,
+            page: pageName
+        })
+    }).catch(e => console.log("Tracking error", e));
+}
+
+    </script>
+</body>
+</html>

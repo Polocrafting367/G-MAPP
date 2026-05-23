@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse Maintenance - Expert V3</title>
+    
+    <!-- Libs -->
+    <script src="../JS/tailwindcss.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        /* Custom Scrollbar for Sidebar */
+        .scroller::-webkit-scrollbar { width: 5px; }
+        .scroller::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        .scroller::-webkit-scrollbar-track { background-color: transparent; }
+
+        /* Layout Transitions */
+        .sidebar { transition: transform 0.3s ease-in-out; }
+        .main-content { transition: margin-left 0.3s ease-in-out; }
+        
+        /* Chart Containers */
+        .chart-mini { height: 180px; position: relative; }
+        .chart-main { height: 500px; position: relative; }
+
+        /* Checkbox styling */
+        .checkbox-custom:checked { background-color: #2563eb; border-color: #2563eb; }
+        
+        /* Mobile Overlay */
+        #mobileOverlay.open { display: block; }
+    </style>
+</head>
+<body class="text-slate-800 h-screen overflow-hidden flex bg-slate-50">
+
+    <!-- OVERLAY MOBILE -->
+    <div id="mobileOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden md:hidden backdrop-blur-sm"></div>
+
+    <!-- SIDEBAR (FILTRES & CONFIG) -->
+    <!-- Fixed width 72 (18rem) -->
+    <aside id="sidebar" class="sidebar fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 transform -translate-x-full md:translate-x-0 flex flex-col h-full shadow-2xl md:shadow-none">
+        
+        <!-- Sidebar Header -->
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+            <h2 class="font-bold text-slate-800 flex items-center gap-2 text-lg">
+                <i data-lucide="settings-2" class="w-5 h-5 text-blue-600"></i> Paramètres
+            </h2>
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-slate-700 p-1">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- Sidebar Content (Scrollable) -->
+        <div class="flex-1 overflow-y-auto scroller p-4 space-y-8">
+            
+            <!-- 1. Période -->
+            <div class="space-y-3">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-3 h-3"></i> Période
+                </h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-slate-500 font-medium">Début</label>
+                        <input type="date" id="dateStart" onchange="processAndRender()" class="w-full text-xs border border-slate-200 rounded-md bg-slate-50 px-2 py-1.5 focus:ring-2 focus:ring-blue-500 outline-none text-slate-600">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-slate-500 font-medium">Fin</label>
+                        <input type="date" id="dateEnd" onchange="processAndRender()" class="w-full text-xs border border-slate-200 rounded-md bg-slate-50 px-2 py-1.5 focus:ring-2 focus:ring-blue-500 outline-none text-slate-600">
+                    </div>
+                </div>
+            </div>
+<div class="grid grid-cols-2 gap-2 my-2">
+    <button onclick="removeConsumables()" class="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[10px] font-bold text-orange-700 bg-orange-50/80 border border-orange-200 rounded-md hover:bg-orange-100 hover:border-orange-300 transition-all shadow-sm group" title="Masquer encre, film, etc.">
+        <i data-lucide="ban" class="w-3 h-3 text-orange-500 group-hover:scale-110 transition-transform"></i> 
+        <span>Sans Conso.</span>
+    </button>
+    
+    <button onclick="removeAutre()" class="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[10px] font-bold text-orange-700 bg-orange-50/80 border border-orange-200 rounded-md hover:bg-orange-100 hover:border-orange-300 transition-all shadow-sm group" title="Masquer la catégorie Autre">
+        <i data-lucide="filter-x" class="w-3 h-3 text-orange-500 group-hover:scale-110 transition-transform"></i> 
+        <span>Sans "Autre"</span>
+    </button>
+</div>
+            <!-- 2. Types de Panne -->
+            <div class="space-y-2">
+                <div class="flex justify-between items-end">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="wrench" class="w-3 h-3"></i> Types
+                    </h3>
+                    <div class="flex gap-2">
+                        <button onclick="toggleAll('typeFilterContainer', true)" class="text-[10px] text-blue-600 font-bold hover:underline">Tout</button>
+                    </div>
+                </div>
+                <div id="typeFilterContainer" class="max-h-40 overflow-y-auto scroller space-y-0.5 border border-slate-100 rounded-md p-1"></div>
+            </div>
+
+            <!-- 3. Causes -->
+            <div class="space-y-2">
+                <div class="flex justify-between items-end">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="help-circle" class="w-3 h-3"></i> Causes
+                    </h3>
+                    <div class="flex gap-2">
+                        <button onclick="toggleAll('causeFilterContainer', true)" class="text-[10px] text-blue-600 font-bold hover:underline">Tout</button>
+                    </div>
+                </div>
+                <div id="causeFilterContainer" class="max-h-40 overflow-y-auto scroller space-y-0.5 border border-slate-100 rounded-md p-1"></div>
+            </div>
+
+            <!-- 4. Mots Clés -->
+            <div class="space-y-2 bg-indigo-50/50 p-3 rounded-lg border border-indigo-100/50">
+                <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="search" class="w-3 h-3"></i> Mots Clés (Analyse)
+                </h3>
+                <input type="text" id="keywordSearchInput" placeholder="Filtrer la liste..." onkeyup="filterKeywordList()" class="w-full text-xs px-2 py-1.5 rounded border border-indigo-100 bg-white focus:outline-none focus:border-indigo-300 mb-2">
+                <div id="keywordFilterContainer" class="max-h-32 overflow-y-auto scroller space-y-0.5"></div>
+                <button onclick="clearKeywordFilter()" class="w-full text-[10px] text-red-400 hover:text-red-600 text-center mt-1">Effacer sélection</button>
+            </div>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="p-4 border-t border-slate-200 bg-slate-50 space-y-2 shrink-0">
+             <button onclick="processAndRender()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow-sm flex justify-center gap-2 transition items-center text-sm">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Appliquer Filtres
+            </button>
+            <button onclick="resetFilters()" class="w-full text-slate-500 hover:text-red-600 text-xs font-medium py-1 text-center transition">
+                Réinitialiser tout
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <!-- AJOUT de md:ml-72 pour pousser le contenu sur PC -->
+    <main class="main-content flex-1 flex flex-col h-full overflow-hidden relative w-full md:ml-72 transition-all duration-300">
+        
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center shrink-0 z-30 shadow-sm">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+                <div>
+                    <h1 class="font-bold text-lg md:text-xl text-slate-800 leading-tight">Tableau de Bord</h1>
+                    <div id="statusIndicator" class="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-slate-300 animate-pulse"></span> Initialisation...
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 scroller bg-slate-50/50">
+            
+            <!-- KPI Grid -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+                <!-- KPI Items (Same as before but cleaner) -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] relative overflow-hidden group hover:border-blue-300 transition-colors">
+                    <div class="absolute -right-4 -top-4 bg-blue-50 w-16 h-16 rounded-full group-hover:scale-110 transition-transform"></div>
+                    <i data-lucide="activity" class="absolute right-3 top-3 w-5 h-5 text-blue-400"></i>
+                    <p class="text-xs font-bold text-slate-400 uppercase relative z-10">Total Interventions</p>
+                    <p class="text-2xl md:text-3xl font-bold text-slate-800 mt-1 relative z-10" id="kpiCount">-</p>
+                </div>
+                
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-[0_2px_10px_-3px_rgba(220,38,38,0.1)] relative overflow-hidden group hover:border-red-300 transition-colors">
+                     <div class="absolute -right-4 -top-4 bg-red-50 w-16 h-16 rounded-full group-hover:scale-110 transition-transform"></div>
+                     <i data-lucide="clock" class="absolute right-3 top-3 w-5 h-5 text-red-400"></i>
+                    <p class="text-xs font-bold text-slate-400 uppercase relative z-10">Temps d'arrêt</p>
+                    <p class="text-2xl md:text-3xl font-bold text-slate-800 mt-1 relative z-10" id="kpiDowntime">-</p>
+                    <span class="text-[10px] text-slate-400 relative z-10">Heures cumulées</span>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-[0_2px_10px_-3px_rgba(22,163,74,0.1)] relative overflow-hidden group hover:border-green-300 transition-colors">
+                     <div class="absolute -right-4 -top-4 bg-green-50 w-16 h-16 rounded-full group-hover:scale-110 transition-transform"></div>
+                     <i data-lucide="users" class="absolute right-3 top-3 w-5 h-5 text-green-400"></i>
+                    <p class="text-xs font-bold text-slate-400 uppercase relative z-10">Main d'œuvre</p>
+                    <p class="text-2xl md:text-3xl font-bold text-slate-800 mt-1 relative z-10" id="kpiLabor">-</p>
+                    <span class="text-[10px] text-slate-400 relative z-10">Heures cumulées</span>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-[0_2px_10px_-3px_rgba(147,51,234,0.1)] relative overflow-hidden group hover:border-purple-300 transition-colors">
+                     <div class="absolute -right-4 -top-4 bg-purple-50 w-16 h-16 rounded-full group-hover:scale-110 transition-transform"></div>
+                     <i data-lucide="cpu" class="absolute right-3 top-3 w-5 h-5 text-purple-400"></i>
+                    <p class="text-xs font-bold text-slate-400 uppercase relative z-10">Top Machine</p>
+                    <p class="text-lg font-bold text-slate-800 mt-1 truncate relative z-10" id="kpiTopMachine">-</p>
+                </div>
+            </div>
+
+            <!-- VUE D'ENSEMBLE (FIXED CHARTS) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <!-- Chronologie Fixe -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-xs font-bold text-slate-700 uppercase">Chronologie Globale</h4>
+                        <button onclick="exportSpecificChart('miniChartTime', 'Chronologie_Interventions')" class="text-slate-400 hover:text-blue-600 transition" title="Exporter en JPEG">
+                            <i data-lucide="camera" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <div class="chart-mini flex-1">
+                        <canvas id="miniChartTime"></canvas>
+                    </div>
+                </div>
+                 <!-- Causes Fixe -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-xs font-bold text-slate-700 uppercase">Top 5 Causes</h4>
+                        <button onclick="exportSpecificChart('miniChartCause', 'Top_Causes')" class="text-slate-400 hover:text-blue-600 transition" title="Exporter en JPEG">
+                            <i data-lucide="camera" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <div class="chart-mini flex-1">
+                        <canvas id="miniChartCause"></canvas>
+                    </div>
+                </div>
+                 <!-- Types Fixe -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-xs font-bold text-slate-700 uppercase">Top 5 Pannes</h4>
+                        <button onclick="exportSpecificChart('miniChartType', 'Top_Types_Panne')" class="text-slate-400 hover:text-blue-600 transition" title="Exporter en JPEG">
+                            <i data-lucide="camera" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <div class="chart-mini flex-1">
+                        <canvas id="miniChartType"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN CHART INTERACTIF -->
+            <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-md">
+                <div class="flex flex-col gap-4 mb-4">
+                    
+                    <div class="flex justify-between items-start md:items-center">
+                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                             <div class="bg-blue-100 p-1.5 rounded-lg"><i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-600"></i></div>
+                             Analyse Dynamique
+                        </h3>
+                         <!-- Export Main Chart -->
+                         <button onclick="exportSpecificChart('mainChart', 'Analyse_Détailée')" class="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-lg transition shadow-lg shadow-slate-300/50">
+                            <i data-lucide="camera" class="w-4 h-4"></i> <span class="hidden md:inline">Capture</span>
+                        </button>
+                    </div>
+
+                    <!-- Chart Controls Row -->
+<!-- Chart Controls Row (Nettoyé) -->
+<div class="flex flex-col xl:flex-row gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+    
+    <!-- 1. Les 3 Sélecteurs (Flexibles) -->
+    <div class="flex flex-wrap md:flex-nowrap gap-2 w-full xl:w-auto">
+        <select id="groupBySelect" onchange="handleGroupByChange()" class="flex-1 xl:flex-none min-w-[130px] bg-white border border-slate-200 text-xs rounded-md px-3 py-2 font-semibold text-slate-700 focus:border-blue-500 outline-none shadow-sm">
+            <option value="machine" selected>Par Machine</option>
+            <option value="type_panne">Par Type</option>
+            <option value="cause">Par Cause</option>
+            <option value="personnel">Par Personnel</option>
+            <option value="date">Par Date</option>
+        </select>
+        
+        <select id="metricSelect" onchange="updateChart()" class="flex-1 xl:flex-none min-w-[130px] bg-white border border-slate-200 text-xs rounded-md px-3 py-2 font-semibold text-slate-700 focus:border-blue-500 outline-none shadow-sm">
+            <option value="count">Nombre Interventions</option>
+            <option value="downtime">Temps Arrêt (h)</option>
+            <option value="labor">Temps M.O. (h)</option>
+        </select>
+
+        <select id="limitSelect" onchange="updateChart()" class="w-24 bg-white border border-slate-200 text-xs rounded-md px-3 py-2 font-semibold text-slate-700 focus:border-blue-500 outline-none shadow-sm">
+            <option value="20">Top 20</option>
+            <option value="50" selected>Top 50</option>
+            <option value="100">Top 100</option>
+            <option value="all">Tout</option>
+        </select>
+    </div>
+    
+    <!-- 2. Recherche & Granularité (S'adapte à la largeur restante) -->
+    <div class="flex gap-2 items-center flex-1 w-full">
+        <div class="relative flex-1 min-w-[100px]">
+            <i data-lucide="search" class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400"></i>
+            <input type="text" id="searchInput" list="xAxisOptions" onchange="updateChart()" placeholder="Focus..." class="w-full pl-8 pr-8 py-2 text-xs border border-slate-200 rounded-md shadow-sm focus:border-blue-500 outline-none bg-white">
+            <button onclick="document.getElementById('searchInput').value=''; updateChart()" class="absolute right-2 top-2 text-slate-300 hover:text-red-500 p-0.5">
+                <i data-lucide="x" class="w-3 h-3"></i>
+            </button>
+            <datalist id="xAxisOptions"></datalist>
+        </div>
+        
+        <div id="granularityContainer" class="hidden flex bg-white border border-slate-200 rounded-md p-1 shadow-sm shrink-0">
+            <label class="px-2 py-1 text-[10px] cursor-pointer rounded hover:bg-slate-50 text-slate-500"><input type="radio" name="granularity" value="week" onchange="updateChart()" class="hidden">Sem.</label>
+            <label class="px-2 py-1 text-[10px] cursor-pointer rounded bg-blue-50 text-blue-700 font-bold border border-blue-100"><input type="radio" name="granularity" value="month" onchange="updateChart()" class="hidden" checked>Mois</label>
+            <label class="px-2 py-1 text-[10px] cursor-pointer rounded hover:bg-slate-50 text-slate-500"><input type="radio" name="granularity" value="year" onchange="updateChart()" class="hidden">An</label>
+        </div>
+    </div>
+</div>
+                </div>
+
+                <div class="chart-main w-full overflow-x-auto border border-slate-50 rounded-lg">
+                    <div class="min-w-[600px] h-full">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="h-10"></div> <!-- Spacer -->
+        </div>
+    </main>
+
+    <!-- MODALE DETAIL -->
+    <div id="detailModal" class="fixed inset-0 bg-slate-900/60 z-[60] hidden flex items-end md:items-center justify-center backdrop-blur-sm transition-opacity opacity-0 pointer-events-none">
+        <div class="bg-white w-full md:max-w-4xl md:rounded-2xl rounded-t-2xl shadow-2xl max-h-[90vh] flex flex-col transform transition-transform translate-y-full md:translate-y-0 border border-slate-200">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 md:rounded-t-2xl">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <span class="bg-blue-600 text-white text-[10px] uppercase font-bold px-2 py-1 rounded">Détail</span>
+                    <span id="modalTitle" class="truncate max-w-[200px] md:max-w-md text-sm md:text-base">...</span>
+                </h3>
+                <button onclick="closeModal()" class="p-2 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="modalContent" class="p-6 overflow-y-auto flex-1 bg-white"></div>
+        </div>
+    </div>
+
+    <!-- LOGIC -->
+    <script>
+        // --- UI UTILS ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        // --- EXPORT FUNCTION WITH ANNOTATIONS ---
+// --- EXPORT FUNCTION WITH DYNAMIC LEGEND ---
+function exportSpecificChart(canvasId, title) {
+    const originalCanvas = document.getElementById(canvasId);
+    if (!originalCanvas) {
+        console.error("Canvas introuvable :", canvasId);
+        return;
+    }
+
+    // 1. Déterminer la légende dynamique (Sous-titre)
+    let subtitle = "";
+    
+    if (canvasId === 'mainChart') {
+        const mSel = document.getElementById('metricSelect');
+        const gSel = document.getElementById('groupBySelect');
+        const metricText = mSel ? mSel.options[mSel.selectedIndex].text : "";
+        const groupText = gSel ? gSel.options[gSel.selectedIndex].text : "";
+        subtitle = `${metricText} • ${groupText}`;
+    } 
+    else if (canvasId === 'miniChartTime') {
+        subtitle = "Évolution temporelle (Interventions)";
+    } 
+    else if (canvasId === 'miniChartCause') {
+        subtitle = "Top 5";
+    } 
+    else if (canvasId === 'miniChartType') {
+        subtitle = "Top 5";
+    }
+    else {
+        subtitle = "Analyse Maintenance";
+    }
+
+    // 2. Création du Canvas temporaire
+    const tempCanvas = document.createElement('canvas');
+    const ctx = tempCanvas.getContext('2d');
+    
+    // Hauteur du bandeau titre
+    const headerHeight = 80; 
+
+    // Dimensions
+    tempCanvas.width = originalCanvas.width;
+    tempCanvas.height = originalCanvas.height + headerHeight;
+
+    // 3. Fond Blanc
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+    // 4. Fond du Header (Gris clair)
+    ctx.fillStyle = '#f8fafc'; 
+    ctx.fillRect(0, 0, tempCanvas.width, headerHeight);
+    
+    // Ligne de séparation
+    ctx.beginPath();
+    ctx.moveTo(0, headerHeight);
+    ctx.lineTo(tempCanvas.width, headerHeight);
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.stroke();
+
+    // 5. Configuration Texte
+    ctx.textAlign = 'center';
+    
+    // Titre Principal
+    ctx.fillStyle = '#1e293b'; // Slate-800
+    ctx.font = 'bold 20px Inter, sans-serif'; 
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(title.replace(/_/g, ' '), tempCanvas.width / 2, headerHeight / 2 - 2);
+
+    // Sous-titre (Légende)
+    ctx.fillStyle = '#64748b'; // Slate-500
+    ctx.font = '500 14px Inter, sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText(subtitle, tempCanvas.width / 2, headerHeight / 2 + 4);
+
+    // 6. Copie du graphique original
+    ctx.drawImage(originalCanvas, 0, headerHeight);
+
+    // 7. Téléchargement
+    const link = document.createElement('a');
+    const timestamp = new Date().toISOString().split('T')[0];
+    const cleanTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    link.download = `analyse_${cleanTitle}_${timestamp}.jpg`;
+    link.href = tempCanvas.toDataURL('image/jpeg', 0.95);
+    link.click();
+}
+        // --- DATA VARIABLES ---
+        let rawData = [];
+        let filteredData = [];
+        let mainChartInstance = null;
+        let miniCharts = { time: null, cause: null, type: null };
+        const LS_KEY = 'maint_dash_v3_config';
+        
+        const CONSOMMABLES_TYPES = ["Changement rouleau","Changement rouleau d'encre","Changement rouleau d'étiquette","Changement rouleau film Bas","Changement rouleau film Haut", "Plus de consommable"];
+        const CONSOMMABLES_CAUSES = ["Plus de film", "Plus de bobine", "Plus d'encre", "Plus d'étiquette"];
+        const AUTRE_TYPES = ["Autre","Autres"];
+        const AUTRE_CAUSES = ["Autre"];
+
+        // --- INIT ---
+        async function init() {
+            const statusDiv = document.getElementById('statusIndicator');
+            try {
+                const response = await fetch('../data/interventions.json'); 
+                if (!response.ok) throw new Error("Fichier local introuvable");
+                rawData = await response.json();
+                
+                statusDiv.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Données chargées (${rawData.length})`;
+                statusDiv.className = "text-[10px] text-emerald-700 font-bold flex items-center gap-1 bg-emerald-100 px-2 py-1 rounded-full border border-emerald-200";
+
+                setDefaultDateRange();
+                populateFilters();
+                analyzeAndPopulateKeywords();
+                
+                initMiniCharts();
+
+                loadState();
+                processAndRender();
+                lucide.createIcons();
+
+            } catch (error) {
+                console.error(error);
+                statusDiv.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> Erreur JSON`;
+                statusDiv.className = "text-[10px] text-red-700 font-bold flex items-center gap-1 bg-red-100 px-2 py-1 rounded-full border border-red-200";
+            }
+        }
+
+function initMiniCharts() {
+    // Plugin : Texte Foncé avec Halo Blanc (Lisibilité maximale)
+    const barLabelPlugin = {
+        id: 'barLabelPlugin',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 11px Inter, system-ui, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            const meta = chart.getDatasetMeta(0);
+            if (!meta.data.length) return;
+
+            meta.data.forEach((bar, index) => {
+                const label = chart.data.labels[index];
+                const value = chart.data.datasets[0].data[index];
+                const text = `${label} (${value})`;
+                
+                // Position : décalage de 8px du bord gauche
+                const xPos = 8; 
+                const yPos = bar.y;
+
+                // 1. DESSINER LE CONTOUR BLANC (HALO)
+                // Cela crée une "zone de protection" autour du texte
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'; 
+                ctx.lineJoin = 'round';
+                ctx.strokeText(text, xPos, yPos);
+
+                // 2. DESSINER LE TEXTE EN GRIS FONCÉ PAR DESSUS
+                ctx.fillStyle = '#0f172a'; // Slate-900 (Presque noir, très net)
+                ctx.fillText(text, xPos, yPos); 
+            });
+            ctx.restore();
+        }
+    };
+
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { 
+            legend: { display: false },
+            tooltip: { enabled: false } // Tooltip désactivé car l'info est déjà affichée
+        },
+        scales: { 
+            x: { display: false, min: 0 }, 
+            y: { display: false }
+        },
+        layout: { padding: { left: 0, right: 0, top: 0, bottom: 0 } },
+        indexAxis: 'y'
+    };
+
+    // 1. Time (Line chart - Pas de plugin texte ici)
+    miniCharts.time = new Chart(document.getElementById('miniChartTime'), {
+        type: 'line',
+        data: { labels: [], datasets: [] },
+        options: {
+            ...commonOptions,
+            indexAxis: 'x',
+            scales: { x: { display: false }, y: { display: false } },
+            elements: { point: { radius: 0, hitRadius: 10 } }
+        }
+    });
+
+    // 2. Cause (Bar horizontal - Plugin Activé)
+    miniCharts.cause = new Chart(document.getElementById('miniChartCause'), {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        plugins: [barLabelPlugin], 
+        options: commonOptions
+    });
+
+    // 3. Type (Bar horizontal - Plugin Activé)
+    miniCharts.type = new Chart(document.getElementById('miniChartType'), {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        plugins: [barLabelPlugin], 
+        options: commonOptions
+    });
+}
+
+        function updateMiniCharts(data) {
+            const countBy = (field) => {
+                const counts = {};
+                data.forEach(d => { 
+                    let k = (d[field] || "N/A").trim(); 
+                    if(Array.isArray(d[field])) k = d[field][0];
+                    counts[k] = (counts[k]||0)+1; 
+                });
+                return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+            };
+
+            // 1. Time
+            const timeMap = {};
+            data.forEach(d => {
+                const date = d["Date intervention"];
+                if(date && date.length === 8) {
+                    const k = `${date.substring(0,4)}-${date.substring(4,6)}`;
+                    timeMap[k] = (timeMap[k]||0)+1;
+                }
+            });
+            const timeSorted = Object.entries(timeMap).sort();
+            
+            const ctxTime = document.getElementById('miniChartTime').getContext('2d');
+            const gradTime = ctxTime.createLinearGradient(0,0,0,180);
+            gradTime.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+            gradTime.addColorStop(1, 'rgba(59, 130, 246, 0.05)');
+
+            miniCharts.time.data.labels = timeSorted.map(e=>e[0]);
+            miniCharts.time.data.datasets = [{
+                data: timeSorted.map(e=>e[1]),
+                borderColor: '#2563eb',
+                backgroundColor: gradTime,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }];
+            miniCharts.time.update();
+
+            // 2. Cause
+            const topCauses = countBy("Cause");
+            miniCharts.cause.data.labels = topCauses.map(e=>e[0].substring(0, 18) + (e[0].length>18?"...":""));
+            miniCharts.cause.data.datasets = [{
+                data: topCauses.map(e=>e[1]),
+                backgroundColor: ['#ef4444', '#f87171', '#fca5a5', '#fecaca', '#fee2e2'],
+                borderRadius: 4,
+                barThickness: 15
+            }];
+            miniCharts.cause.update();
+
+            // 3. Type
+            const topTypes = countBy("Type de panne");
+            miniCharts.type.data.labels = topTypes.map(e=>e[0].substring(0, 18) + (e[0].length>18?"...":""));
+            miniCharts.type.data.datasets = [{
+                data: topTypes.map(e=>e[1]),
+                backgroundColor: ['#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#ede9fe'],
+                borderRadius: 4,
+                barThickness: 15
+            }];
+            miniCharts.type.update();
+        }
+
+        // --- CORE PROCESS ---
+        function processAndRender() {
+            const startStr = document.getElementById('dateStart').value;
+            const endStr = document.getElementById('dateEnd').value;
+            const startInt = startStr ? parseInt(startStr.replaceAll('-','')) : 0;
+            const endInt = endStr ? parseInt(endStr.replaceAll('-','')) : 99999999;
+            
+            const activeTypes = Array.from(document.querySelectorAll('.filter-type:checked')).map(cb => cb.value);
+            const activeCauses = Array.from(document.querySelectorAll('.filter-cause:checked')).map(cb => cb.value);
+            const activeKeywords = Array.from(document.querySelectorAll('.filter-keyword:checked')).map(cb => cb.value);
+
+            filteredData = rawData.filter(item => {
+                const dateVal = item["Date intervention"] ? parseInt(item["Date intervention"]) : 0;
+                if (dateVal < startInt || dateVal > endInt) return false;
+                
+                const typeVal = (item["Type de panne"] || "Non renseigné").trim();
+                const causeVal = (item["Cause"] || "Non renseigné").trim();
+                
+                if (!activeTypes.includes(typeVal)) return false;
+                if (!activeCauses.includes(causeVal)) return false;
+
+                if (activeKeywords.length > 0) {
+                    const summary = (item["Résumé intervention"] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const hasKeyword = activeKeywords.some(kw => summary.includes(kw));
+                    if (!hasKeyword) return false;
+                }
+                
+                return true;
+            });
+
+            calculateKPIs(filteredData);
+            updateMiniCharts(filteredData);
+            updateChart();
+            saveState();
+        }
+
+function updateChart() {
+    // --- 1. MISE A JOUR VISUELLE DES BOUTONS (Nouveau) ---
+    // On parcourt tous les boutons radio de granularité
+    document.querySelectorAll('input[name="granularity"]').forEach(input => {
+        const label = input.parentElement;
+        // On remet une base neutre à tout le monde
+        label.className = "px-2 py-1 text-[10px] cursor-pointer rounded transition-colors border";
+        
+        if (input.checked) {
+            // Style ACTIF (Bleu, gras, bordure)
+            label.classList.add("bg-blue-50", "text-blue-700", "font-bold", "border-blue-100");
+        } else {
+            // Style INACTIF (Gris, hover léger, bordure invisible)
+            label.classList.add("text-slate-500", "hover:bg-slate-50", "border-transparent");
+        }
+    });
+
+    // --- 2. LOGIQUE DE DONNÉES (Existante) ---
+    if (!filteredData.length) { if(mainChartInstance) mainChartInstance.destroy(); return; }
+    
+    const groupBy = document.getElementById('groupBySelect').value;
+    const metric = document.getElementById('metricSelect').value;
+    const limitMode = document.getElementById('limitSelect').value;
+    const searchTerm = document.getElementById('searchInput').value.trim();
+    const granularity = document.querySelector('input[name="granularity"]:checked')?.value || 'month';
+
+    const aggregated = {};
+    filteredData.forEach(item => {
+        const key = generateKey(item, groupBy, granularity);
+        let val = (metric === 'count') ? 1 : (metric === 'downtime') ? parseNum(item["Durée arrêt (h)"]) : parseNum(item["Nombre d'heures"]);
+        aggregated[key] = (aggregated[key] || 0) + val;
+    });
+
+    let entries = Object.entries(aggregated);
+    updateDataList(entries.map(e => e[0]));
+
+    if (groupBy !== 'date') {
+        entries.sort((a, b) => b[1] - a[1]);
+        if (searchTerm) {
+            const idx = entries.findIndex(e => e[0].toLowerCase() === searchTerm.toLowerCase());
+            if (idx !== -1) entries = entries.slice(Math.max(0, idx - 4), Math.min(entries.length, idx + 4));
+        } else if (limitMode !== 'all') {
+            entries = entries.slice(0, parseInt(limitMode));
+        }
+    } else {
+        entries.sort((a, b) => a[0].localeCompare(b[0]));
+    }
+
+    const labels = entries.map(e => e[0]);
+    const data = entries.map(e => e[1]);
+
+    const container = document.querySelector('.chart-main > div');
+    if (labels.length > 30) {
+        container.style.width = `${labels.length * 35}px`;
+    } else {
+        container.style.width = '100%';
+    }
+
+    renderMainChart(labels, data, groupBy === 'date' ? 'line' : 'bar');
+}
+
+function renderMainChart(labels, data, type) {
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    if (mainChartInstance) mainChartInstance.destroy();
+
+    let bg = [];
+    let borderColor = 'transparent'; // Par défaut (barres) : invisible
+    let borderWidth = 0;             // Par défaut (barres) : 0px
+
+    if (type === 'line') {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+        gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+        bg = gradient;
+        
+        // Config spécifique LIGNE (Bleu visible)
+        borderColor = '#2563eb'; 
+        borderWidth = 2;
+    } else {
+        // Config spécifique BARRES (Couleurs HSL, sans bordure)
+        bg = labels.map((_, i) => `hsl(${210 + (i * 5)}, 80%, ${50 + (i % 2)*10}%)`);
+    }
+
+    mainChartInstance = new Chart(ctx, {
+        type: type,
+        data: {
+            labels: labels,
+            datasets: [{
+                label: document.getElementById('metricSelect').options[document.getElementById('metricSelect').selectedIndex].text,
+                data: data,
+                backgroundColor: bg,
+                borderColor: borderColor, // Applique la couleur définie plus haut
+                borderWidth: borderWidth, // Applique l'épaisseur définie plus haut
+                borderRadius: 4,
+                fill: type === 'line',
+                tension: 0.3,
+                // Style des points pour la ligne
+                pointRadius: type === 'line' ? 3 : 0,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#2563eb',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            onClick: (evt) => {
+                const points = mainChartInstance.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+                if (points.length) openDrillDown(mainChartInstance.data.labels[points[0].index]);
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    titleFont: { size: 13, family: 'Inter' },
+                    bodyFont: { size: 12, family: 'Inter' }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 0, font: {size: 10} } },
+                y: { border: { dash: [4, 4] }, grid: { color: '#f1f5f9' }, beginAtZero: true }
+            }
+        }
+    });
+}
+
+        // --- COMMON UTILS ---
+        function calculateKPIs(data) {
+            const down = data.reduce((acc, c) => acc + parseNum(c["Durée arrêt (h)"]), 0);
+            const labor = data.reduce((acc, c) => acc + parseNum(c["Nombre d'heures"]), 0);
+            const counts = {};
+            data.forEach(d => { const k = (d["Désignation machine"]||"?").trim(); counts[k] = (counts[k]||0)+1; });
+            const top = Object.entries(counts).sort((a,b) => b[1]-a[1])[0];
+            document.getElementById('kpiCount').innerText = data.length.toLocaleString();
+            document.getElementById('kpiDowntime').innerText = down.toFixed(1);
+            document.getElementById('kpiLabor').innerText = labor.toFixed(1);
+            document.getElementById('kpiTopMachine').innerText = top ? top[0] : "-";
+        }
+
+        function populateFilters() {
+            const types = [...new Set(rawData.map(d => (d["Type de panne"] || "Non renseigné").trim()))].filter(Boolean).sort();
+            const causes = [...new Set(rawData.map(d => (d["Cause"] || "Non renseigné").trim()))].filter(Boolean).sort();
+            createCheckboxes('typeFilterContainer', types, 'filter-type');
+            createCheckboxes('causeFilterContainer', causes, 'filter-cause');
+        }
+
+function createCheckboxes(containerId, items, className) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+    items.forEach(item => {
+        const safeValue = item.replace(/"/g, '&quot;');
+        const div = document.createElement('div');
+        div.className = "flex items-center group";
+        
+        // J'ai ajouté onchange="processAndRender()" ici ↓
+        div.innerHTML = `
+            <label class="flex items-center w-full p-1.5 hover:bg-slate-50 rounded cursor-pointer transition-colors">
+                <input type="checkbox" checked value="${safeValue}" onchange="processAndRender()" class="${className} w-3.5 h-3.5 checkbox-custom text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                <span class="ml-2 text-[11px] text-slate-600 group-hover:text-slate-900 truncate select-none" title="${safeValue}">${item}</span>
+            </label>
+        `;
+        container.appendChild(div);
+    });
+}
+
+        function analyzeSummaries(data, limit = 100) {
+            const counts = {}; const displayMap = {};
+            const STOP = new Set(['le','la','les','un','une','des','du','de','d','l','et','ou','a','à','au','aux','en','par','pour','sur','dans','est','sont','ont','fait','être','avoir','ce','se','sa','son','ses','plus','très','trop','peu','ras','ok','non','oui','machine','intervention','maintenance','panne','arret','h','min','car','donc','avec','sans','sous','vers','avant','apres','mais','pas','que','qui','quoi','si','faut','voir','autre','petit','grand','gros','bon','mauvais','hs','changer','remplacer','nettoyage','nettoyer','controle','verifier','verification','test','essai','probleme','defaut']);
+            data.forEach(item => {
+                const text = (item['Résumé intervention'] || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, " ");
+                const words = text.split(/\s+/).filter(w => w.length > 2 && !STOP.has(w));
+                const stems = words.map(w => ({ original: w, root: getRootWord(w) }));
+                for (let i = 0; i < stems.length; i++) {
+                    const itemA = stems[i];
+                    counts[itemA.root] = (counts[itemA.root] || 0) + 1;
+                    if (!displayMap[itemA.root] || itemA.original.length > displayMap[itemA.root].length) displayMap[itemA.root] = itemA.original;
+                }
+            });
+            return Object.entries(counts).filter(([k, c]) => c > 1).sort((a,b) => b[1] - a[1]).slice(0, limit).map(([k, c]) => [displayMap[k] || k, c]);
+        }
+
+        function getRootWord(word) {
+            const TYPO = { "postion": "position", "slings": "sling", "cintres": "cintre", "films": "film", "haute": "haut", "bourage": "bourrage", "bloque": "blocage" };
+            if (TYPO[word]) return TYPO[word];
+            let stem = word.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (stem.endsWith('s') || stem.endsWith('x') || stem.endsWith('e')) stem = stem.slice(0, -1);
+            if (stem.endsWith("ement")) stem = stem.slice(0, -5);
+            return stem;
+        }
+
+        function analyzeAndPopulateKeywords() {
+            const keywords = analyzeSummaries(rawData, 60);
+            const container = document.getElementById('keywordFilterContainer');
+            container.innerHTML = "";
+            keywords.forEach(([word, count]) => {
+                if (count < 2) return;
+                const div = document.createElement('div');
+                div.className = "keyword-item";
+                div.innerHTML = `
+                    <label class="flex items-center justify-between p-1.5 hover:bg-white rounded cursor-pointer transition-colors group">
+                        <div class="flex items-center overflow-hidden">
+                            <input type="checkbox" value="${word}" class="filter-keyword w-3 h-3 text-indigo-500 rounded border-indigo-200 focus:ring-indigo-400">
+                            <span class="ml-2 text-[11px] text-indigo-800/80 group-hover:text-indigo-900 truncate select-none">${word}</span>
+                        </div>
+                        <span class="text-[9px] text-indigo-400 font-bold px-1">${count}</span>
+                    </label>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+function toggleAll(id, s) { 
+    document.getElementById(id).querySelectorAll('input').forEach(i=>i.checked=s); 
+    processAndRender(); // Ajout impératif ici
+}
+        function removeConsumables() {
+            const uncheck = (sel, list) => document.querySelectorAll(sel).forEach(i => { if(list.some(x => x===i.value)) i.checked=false; });
+            uncheck('.filter-type', CONSOMMABLES_TYPES);
+            uncheck('.filter-cause', CONSOMMABLES_CAUSES);
+            processAndRender();
+        }
+                function removeAutre() {
+            const uncheck = (sel, list) => document.querySelectorAll(sel).forEach(i => { if(list.some(x => x===i.value)) i.checked=false; });
+            uncheck('.filter-type', AUTRE_TYPES);
+            uncheck('.filter-cause', AUTRE_CAUSES);
+            processAndRender();
+        }
+        function filterKeywordList() {
+            const search = document.getElementById('keywordSearchInput').value.toLowerCase();
+            document.querySelectorAll('.keyword-item').forEach(item => {
+                const text = item.querySelector('span').textContent;
+                item.style.display = text.includes(search) ? 'block' : 'none';
+            });
+        }
+        function clearKeywordFilter() { document.querySelectorAll('.filter-keyword').forEach(k => k.checked = false); processAndRender(); }
+        
+        function generateKey(item, groupBy, granularity) {
+            if (groupBy === 'date') { 
+                const raw = item["Date intervention"]; 
+                if(raw&&raw.length===8){
+                    const y=raw.substring(0,4),m=raw.substring(4,6),d=raw.substring(6,8);
+                    if(granularity==='year')return y;
+                    if(granularity==='month')return `${y}-${m}`;
+                    if(granularity==='week'){ 
+                        const date = new Date(y, m-1, d);
+                        const onejan = new Date(date.getFullYear(),0,1);
+                        const week = Math.ceil((((date.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7);
+                        return `${y}-S${week}`;
+                    }
+                } 
+                return "Inconnu"; 
+            }
+            let rawKey = ""; 
+            if (groupBy === 'personnel') rawKey = Array.isArray(item["Personnel"])?item["Personnel"][0]:item["Personnel"]; 
+            else if (groupBy==='machine') rawKey=item["Désignation machine"]; 
+            else if (groupBy==='type_panne') rawKey=item["Type de panne"]; 
+            else if (groupBy==='cause') rawKey=item["Cause"]; 
+            return (rawKey||"Non renseigné").trim()||"Non renseigné";
+        }
+        function handleGroupByChange() { 
+            const v=document.getElementById('groupBySelect').value; 
+            const g=document.getElementById('granularityContainer'); 
+            if(v==='date') { g.classList.remove('hidden'); g.classList.add('flex'); } 
+            else { g.classList.add('hidden'); g.classList.remove('flex'); }
+            updateChart(); saveState(); 
+        }
+        function updateDataList(keys) { const dl=document.getElementById('xAxisOptions'); dl.innerHTML=''; keys.slice(0,500).forEach(k=>{const o=document.createElement('option');o.value=k;dl.appendChild(o);}); }
+        function saveState() { localStorage.setItem(LS_KEY,JSON.stringify({dateStart:document.getElementById('dateStart').value,dateEnd:document.getElementById('dateEnd').value,groupBy:document.getElementById('groupBySelect').value,metric:document.getElementById('metricSelect').value})); }
+        function loadState() { 
+            setDefaultDateRange();
+            try{const c=JSON.parse(localStorage.getItem(LS_KEY)); if(c){if(c.dateStart)document.getElementById('dateStart').value=c.dateStart; if(c.dateEnd)document.getElementById('dateEnd').value=c.dateEnd; if(c.groupBy)document.getElementById('groupBySelect').value=c.groupBy; if(c.metric)document.getElementById('metricSelect').value=c.metric; handleGroupByChange();}}catch(e){} 
+        }
+        function setDefaultDateRange() {
+            const today = new Date();
+            const past = new Date();
+            past.setFullYear(today.getFullYear() - 3);
+            if (!document.getElementById('dateStart').value) document.getElementById('dateStart').value = past.toISOString().split('T')[0];
+            if (!document.getElementById('dateEnd').value) document.getElementById('dateEnd').value = today.toISOString().split('T')[0];
+        }
+        function resetFilters() { localStorage.removeItem(LS_KEY); location.reload(); }
+        const parseNum = (v) => { if(!v)return 0; if(Array.isArray(v))return v.reduce((a,c)=>a+parseFloat(c||0),0); return parseFloat(v)||0; };
+
+// --- DRILL DOWN (MODALE RESTAURÉE) ---
+function openDrillDown(label) {
+    const groupBy = document.getElementById('groupBySelect').value;
+    const granularity = document.querySelector('input[name="granularity"]:checked')?.value || 'month';
+    
+    // 1. Filtrer les données pour la sélection
+    const specificData = filteredData.filter(item => generateKey(item, groupBy, granularity) === label);
+    if (specificData.length === 0) return;
+
+    // 2. Analyser les mots clés pour CETTE sélection
+    const topKeywords = analyzeSummaries(specificData, 10);
+
+    // 3. Préparer le Header de la modale
+    let contentHTML = `
+        <div class="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 text-white p-2 rounded-lg"><i data-lucide="info" class="w-5 h-5"></i></div>
+                <div>
+                    <p class="font-bold text-lg text-slate-800">${specificData.length} Interventions</p>
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Filtre actif : <strong class="text-blue-700">${label}</strong></p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-slate-400">Total Arrêt</p>
+                <p class="font-bold text-slate-700 text-lg">${specificData.reduce((acc, c) => acc + parseNum(c["Durée arrêt (h)"]), 0).toFixed(1)}h</p>
+            </div>
+        </div>
+    `;
+    
+    // 4. Grille des statistiques
+    contentHTML += `<div class="grid grid-cols-1 md:grid-cols-3 gap-6">`;
+    
+    // Colonne 1 & 2 : Données techniques (Logique dynamique selon le groupement)
+    if (groupBy === 'machine') {
+        contentHTML += generateRankingList(specificData, "Type de panne", "Top Pannes");
+        contentHTML += generateRankingList(specificData, "Cause", "Top Causes");
+    } else if (groupBy === 'type_panne') {
+        contentHTML += generateRankingList(specificData, "Désignation machine", "Top Machines");
+        contentHTML += generateRankingList(specificData, "Cause", "Top Causes");
+    } else {
+        // Défaut
+        contentHTML += generateRankingList(specificData, "Désignation machine", "Machines concernées");
+        contentHTML += generateRankingList(specificData, "Type de panne", "Types de pannes");
+    }
+
+    // Colonne 3 : Analyse Sémantique (Mots clés)
+    contentHTML += `
+        <div class="border border-indigo-100 rounded-xl bg-indigo-50/50 p-4 flex flex-col h-full">
+            <h4 class="font-bold text-indigo-800 mb-4 flex items-center gap-2 text-xs uppercase tracking-wider border-b border-indigo-100 pb-2">
+                <i data-lucide="message-square" class="w-3 h-3"></i> Analyse Textuelle
+            </h4>
+            <div class="overflow-y-auto pr-1 custom-scrollbar flex-1">
+                <ul class="space-y-2">
+                    ${topKeywords.map(([word, count]) => `
+                        <li class="flex justify-between items-center group cursor-default">
+                            <span class="text-xs font-medium text-slate-600 group-hover:text-indigo-700 transition-colors capitalize">${word}</span>
+                            <span class="bg-white text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm">${count}</span>
+                        </li>
+                    `).join('')}
+                    ${topKeywords.length === 0 ? '<li class="text-xs text-slate-400 italic">Aucun mot clé significatif trouvé.</li>' : ''}
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    contentHTML += `</div>`; // Fin grid
+
+    // 5. Affichage
+    document.getElementById('modalTitle').innerText = label;
+    document.getElementById('modalContent').innerHTML = contentHTML;
+    
+    const modal = document.getElementById('detailModal');
+    modal.classList.remove('hidden', 'pointer-events-none', 'opacity-0');
+    
+    // Relancer les icônes pour le nouveau contenu HTML
+    lucide.createIcons();
+}
+
+// --- FONCTION UTILITAIRE POUR LISTE AVEC BARRES (Style V3) ---
+function generateRankingList(data, keyField, title) {
+    // Compter les occurrences
+    const counts = {};
+    data.forEach(item => { 
+        let val = item[keyField]; 
+        if (Array.isArray(val)) val = val[0]; 
+        val = (val || "Non renseigné").trim(); 
+        counts[val] = (counts[val] || 0) + 1; 
+    });
+
+    // Trier et garder le Top 10
+    const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 10);
+    const maxVal = sorted.length > 0 ? sorted[0][1] : 1;
+
+    let html = `
+        <div class="border border-slate-200 rounded-xl bg-white p-4 shadow-sm flex flex-col h-full">
+            <h4 class="font-bold text-slate-700 mb-4 flex items-center gap-2 text-xs uppercase tracking-wider border-b border-slate-100 pb-2">
+                <i data-lucide="bar-chart-2" class="w-3 h-3 text-slate-400"></i> ${title}
+            </h4>
+            <ul class="space-y-3 overflow-y-auto pr-1 custom-scrollbar flex-1">`;
+            
+    sorted.forEach(([k, v]) => {
+        const pct = ((v / maxVal) * 100).toFixed(0);
+        html += `
+            <li class="relative group">
+                <div class="flex justify-between items-center text-xs mb-1 relative z-10">
+                    <span class="font-medium text-slate-600 truncate w-3/4 group-hover:text-blue-600 transition-colors" title="${k}">${k}</span>
+                    <span class="font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">${v}</span>
+                </div>
+                <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-blue-500 rounded-full transition-all duration-500 group-hover:bg-blue-600" style="width: ${pct}%"></div>
+                </div>
+            </li>`;
+    });
+
+    if(sorted.length === 0) html += `<li class="text-xs text-slate-400 italic">Aucune donnée disponible.</li>`;
+
+    html += `</ul></div>`;
+    return html;
+}
+
+        function closeModal() {
+            const modal = document.getElementById('detailModal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+
+body {
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    font-weight: bold;
+    font-size: 16px; /* Remplacez la valeur par celle que vous souhaitez */
+        margin-left: 0px;
+        margin-right: 0px;
+}
+
+#updateTimeButton {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    top: 40px;
+    right: 5px;
+}
+
+#chrono {
+    font-size: 30px;
+    display: inline-block;
+    text-align: center;
+    margin: 0px;
+}
+.chrono-status {
+    font-size: 25px;
+    display: inline-block;
+    text-align: center;
+    margin: 0px;
+}
+
+    @media screen and (max-width: 600px) {
+    /* Styles spécifiques aux petits écrans */
+    .container {
+        max-width: 100%;
+        /* ... autres styles ... */
+
+
+    }
+}
+
+.modal-button {
+    background-color: #3498db;
+    color: #fff;
+    border: none;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 5px;
+        height: 30px;
+}
+
+
+
+.place-details {
+    display: flex;
+    flex-direction: column; /* Afficher les éléments en colonne */
+}
+
+
+
+@keyframes gradientMove {
+    0% {
+        background-position: 100% 0%;
+    }
+    50% {
+        background-position: 0% 100%;
+    }
+    100% {
+        background-position: 100% 0%;
+    }
+}
+li.active-chrono {
+    list-style: none;
+    background: linear-gradient(90deg, rgba(150,80,5,1) 0%, rgba(200,150,0,1) 50%, rgba(150,80,5,1) 100%);
+    background-size: 200% 200%;
+    animation: gradientMove 3s infinite;
+    border: 3px solid rgba(255,200,0,1);
+    border-radius: 8px;
+
+    padding: 5px; /* Remplacez la valeur par celle que vous souhaitez */
+}
+
+
+ li.active-chrono.paused {
+    background: linear-gradient(90deg, rgba(0,25,150,1) 0%, rgba(0,100,255,1) 50%, rgba(0,25,150,1) 100%);
+    border: 3px solid rgba(0,150,255,1);
+} li.active-chrono.STOP {
+    background: linear-gradient(90deg, rgba(255,10,10,1) 0%, rgba(150,25,25,1) 50%, rgba(255,10,10,1) 100%);
+    border: 3px solid rgba(255,25,0,1);
+}
+
+textarea {
+  resize: none;
+}
+/* Ajoutez ces styles dans votre fichier CSS ou directement dans votre script JS */
+.modal-button {
+    cursor: pointer;
+
+    flex: 1;
+
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#buttons {           
+    display: flex;
+
+}
+
+
+#zone-texte,
+#zone-pieces {
+
+    border-radius: 8px;
+}
+
+.row-container {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.row-container > div:last-child {
+    margin-right: 0;
+}
+
+.dropdowns-container,
+.input-container {
+    flex: 1; /* Chaque conteneur prend une part égale de l'espace disponible */
+    margin-right: 10px; /* Espacement entre les éléments */
+}
+
+/* Style pour les étiquettes */
+label {
+    display: block;
+    margin-bottom: 5px; /* Espacement entre l'étiquette et l'input */
+    font-weight: bold;
+}
+
+
+/* Style pour les listes déroulantes */
+select {
+    width: 100%; /* Occupera toute la largeur du conteneur */
+    padding: 8px; /* Ajoute un peu d'espace intérieur pour le confort */
+    font-size: 16px; /* Taille de la police */
+    border: 1px solid #ccc; /* Bordure */
+    border-radius: 5px; /* Coins arrondis */
+    background-color: #FFFFFF; /* Couleur de fond */
+    border-radius: 8px;
+}
+
+/* Style pour les options des listes déroulantes */
+select option {
+    padding: 8px; /* Ajoute un peu d'espace intérieur pour le confort */
+    font-size: 16px; /* Taille de la police */
+}
+
+
+#causeDropdown
+{
+      width: 100%; /* Occupera toute la largeur du conteneur */
+    padding: 8px; /* Ajoute un peu d'espace intérieur pour le confort */
+    font-size: 16px; /* Taille de la police */
+    border: 1px solid #ccc; /* Bordure */
+    border-radius: 5px; /* Coins arrondis */
+    background-color: #FFFFFF; /* Couleur de fond */
+    border-radius: 8px;  
+}
+
+#typeDropdown {
+
+        width: 100%; /* Occupera toute la largeur du conteneur */
+    padding: 8px; /* Ajoute un peu d'espace intérieur pour le confort */
+    font-size: 16px; /* Taille de la police */
+    border: 1px solid #ccc; /* Bordure */
+    border-radius: 5px; /* Coins arrondis */
+    background-color: #FFFFFF; /* Couleur de fond */
+    border-radius: 8px;
+}
+
+#tempsArretsInput{        width: 100%; /* Occupera toute la largeur du conteneur */
+    padding: 8px; /* Ajoute un peu d'espace intérieur pour le confort */
+    font-size: 16px; /* Taille de la police */
+    border: 1px solid #ccc; /* Bordure */
+    border-radius: 5px; /* Coins arrondis */
+    background-color: #FFFFFF; /* Couleur de fond */
+    border-radius: 8px;}
+
+    input,
+select {
+    width: 100%; /* S'assure que l'input prend toute la largeur du conteneur */
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #FFFFFF;
+    box-sizing: border-box; /* Inclut padding et bordure dans la largeur */
+}

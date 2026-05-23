@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Recréer CSV (CP1252, LF) depuis pieces.js OU CSV — sans place</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;padding:16px;background:#f7f7f9}
+  h1{font-size:20px;margin:0 0 12px}
+  .card{background:#fff;border:1px solid #ddd;border-radius:10px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  #log{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;background:#fafafa;border:1px dashed #ccc;border-radius:8px;padding:8px;max-height:220px;overflow:auto}
+  button{cursor:pointer;border:1px solid #ccc;background:#fff;border-radius:8px;padding:8px 12px}
+  button.primary{background:#2563eb;color:#fff;border-color:#1e40af}
+  input[type="file"]{padding:6px}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Recréer CSV (CP1252 + LF) depuis <code>pieces.js</code> <em>ou</em> <code>.csv</code> — sans <code>place</code></h1>
+
+  <div class="row" style="margin:8px 0 12px">
+    <input id="jsFile" type="file" accept=".js,.json,.csv" />
+    <button id="processBtn" class="primary">Générer CSV</button>
+  </div>
+
+  <div class="row">
+    <button id="downloadBtn" disabled>Télécharger CSV (CP1252, LF)</button>
+  </div>
+
+  <h3 style="margin-top:16px">Journal</h3>
+  <div id="log">Prêt.</div>
+</div>
+
+<script>
+(async function(){
+  const $ = s => document.querySelector(s);
+  const log = msg => { const el=$('#log'); el.textContent += '\\n' + msg; el.scrollTop = el.scrollHeight; };
+
+  const HEADER_FIELDS = [
+    "Référence interne",
+    "Désignation",
+    "Emplacement (Arborescence complète)",
+    "Code-barres"
+  ];
+  const HEADER_LINE = HEADER_FIELDS.join(";");
+
+  // ---------- Encodeur CP1252 manuel (polyfill) ----------
+  function encodeCp1252(str) {
+    const map = {
+      0x20AC: 0x80, 0x201A: 0x82, 0x0192: 0x83, 0x201E: 0x84, 0x2026: 0x85,
+      0x2020: 0x86, 0x2021: 0x87, 0x02C6: 0x88, 0x2030: 0x89, 0x0160: 0x8A,
+      0x2039: 0x8B, 0x0152: 0x8C, 0x017D: 0x8E, 0x2018: 0x91, 0x2019: 0x92,
+      0x201C: 0x93, 0x201D: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97,
+      0x02DC: 0x98, 0x2122: 0x99, 0x0161: 0x9A, 0x203A: 0x9B, 0x0153: 0x9C,
+      0x017E: 0x9E, 0x0178: 0x9F
+    };
+    const out = new Uint8Array(str.length * 2);
+    let pos = 0;
+    for (let i = 0; i < str.length; i++) {
+      let code = str.charCodeAt(i);
+      if (code >= 0xD800 && code <= 0xDBFF && i + 1 < str.length) {
+        // paire suppléante -> remplace par '?'
+        i++;
+        code = 0x003F;
+      }
+      if (code <= 0x7F) out[pos++] = code;
+      else if (code >= 0xA0 && code <= 0xFF) out[pos++] = code;
+      else if (map[code] !== undefined) out[pos++] = map[code];
+      else out[pos++] = 0x3F; // '?'
+    }
+    return out.subarray(0, pos);
+  }
+
+  function downloadCp1252(filename, csvText){
+    const bytes = encodeCp1252(csvText); // LF only, pas de BOM
+    const blob = new Blob([bytes], { type: 'text/csv;charset=windows-1252' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+
+  // ---------- Entrée -> rows uniformes (accepte JS/JSON/CSV) ----------
+  async function readInputToRows(file){
+    const name = (file.name || "").toLowerCase();
+    const textRaw = await file.text();
+    const text = textRaw.replace(/\uFEFF/g, ""); // strip BOM éventuel
+
+    if (name.endsWith(".csv") || looksLikeCsv(text)) {
+      log("Entrée détectée: CSV");
+      const rows = parseCsv(text);
+      validateHeaderOrThrow(rows.header);
+      return rows.records.map(rec => ({
+        id: (rec[0]||"").trim(),
+        desc: (rec[1]||"").trim(),
+        location: (rec[2]||"").trim(),
+        barcode: (rec[3]||"").trim()
+      }));
+    }
+
+    try {
+      const obj = JSON.parse(text);
+      log("Entrée détectée: JSON");
+      return collectRows(obj);
+    } catch{}
+
+    const piecesObj = await tryParsePiecesFromJs(text);
+    if (piecesObj) {
+      log("Entrée détectée: JS (objet pieces)");
+      return collectRows(piecesObj);
+    }
+
+    throw new Error("Format non reconnu : fournissez un .csv ou un JS/JSON avec un objet 'pieces'.");
+  }
+
+  function looksLikeCsv(t){
+    const first = t.split(/\r\n|\n|\r/)[0] || "";
+    return first.includes(";") && /Référence\s+interne/i.test(first) && /Désignation/i.test(first);
+  }
+
+  // ---------- Parse CSV (séparateur ;) ----------
+  function parseCsv(text){
+    const src = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    const lines = src.split("\n").filter(l => l.length > 0);
+    const records = lines.map(line => splitSemicolonCsvLine(line));
+    if (records.length === 0) return { header: [], records: [] };
+    const header = records[0].map(s => s.replace(/^\uFEFF/,'').trim());
+    const data = records.slice(1);
+    return { header, records: data };
+  }
+
+  function splitSemicolonCsvLine(line){
+    const out = [];
+    let cur = "", inQ = false;
+    for (let i=0; i<line.length; i++){
+      const ch = line[i];
+      if (inQ){
+        if (ch === '"'){
+          if (line[i+1] === '"'){ cur += '"'; i++; }
+          else { inQ = false; }
+        } else {
+          cur += ch;
+        }
+      } else {
+        if (ch === ';'){ out.push(cur); cur = ""; }
+        else if (ch === '"'){ inQ = true; }
+        else { cur += ch; }
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function validateHeaderOrThrow(header){
+    const ok = HEADER_FIELDS.every((h,i) => (header[i]||"").trim() === h);
+    if (!ok){
+      throw new Error("L'entête doit contenir : '" + HEADER_FIELDS.join("', '") + "'");
+    }
+  }
+
+  // ---------- Extraction "pieces" depuis JS ----------
+  async function tryParsePiecesFromJs(txt){
+    const pat = /(?:^|[\s;])(?:export\s+)?(?:const|let|var)?\s*pieces\s*=\s*/m;
+    const m = txt.match(pat);
+    if (m) {
+      const start = txt.indexOf('{', m.index + m[0].length);
+      if (start !== -1) {
+        let i=start, depth=0, inStr=false, q='', esc=false, inTpl=false;
+        for(; i<txt.length; i++){
+          const ch=txt[i];
+          if(inStr){ if(esc){esc=false;} else if(ch==='\\'){esc=true;} else if(ch===q){inStr=false;q='';} continue;}
+          if(inTpl){ if(esc){esc=false;} else if(ch==='\\'){esc=true;} else if(ch==='`'){inTpl=false;} continue;}
+          if(ch==='"'||ch==="'"){inStr=true;q=ch;continue;}
+          if(ch==='`'){inTpl=!inTpl;continue;}
+          if(ch==='{') depth++;
+          if(ch==='}'){
+            depth--;
+            if(depth===0){
+              const objText = txt.slice(start, i+1);
+              try { return JSON.parse(objText); } catch{}
+              try {
+                const obj = (new Function('return ('+objText+');'))();
+                if (obj && typeof obj === 'object') return obj;
+              } catch{}
+              break;
+            }
+          }
+        }
+      }
+    }
+    try {
+      const fn = new Function(`
+        let pieces;
+        (function(){ ${txt} }).call({});
+        if (typeof pieces==='undefined' && typeof window!=='undefined') return window.pieces;
+        return pieces;
+      `);
+      const res = fn();
+      if (res && typeof res === 'object') return res;
+    } catch{}
+    return null;
+  }
+
+  // ---------- Collecte récursive depuis objet "pieces" (ignore 'place') ----------
+  function collectRows(node, path=[], out=[]){
+    for (const key in node){
+      const val = node[key];
+      if (val && typeof val === 'object' && 'id' in val && 'barcode' in val){
+        out.push({
+          id: val.id || '',
+          desc: key,
+          location: path.join('\\'),
+          barcode: val.barcode || ''
+        });
+      } else if (val && typeof val === 'object'){
+        collectRows(val, path.concat(key), out);
+      }
+    }
+    return out;
+  }
+
+  // ---------- Construction CSV (LF only) ----------
+  function makeCsvFromRows(rows){
+    const lines = [HEADER_LINE];
+    for (const r of rows){
+      const line = [
+        String(r.id || '').replaceAll(';', ',').replace(/[\r\n]+/g, ' '),
+        String(r.desc || '').replaceAll(';', ',').replace(/[\r\n]+/g, ' '),
+        String(r.location || '').replaceAll(';', ',').replace(/[\r\n]+/g, ' '),
+        String(r.barcode || '').replaceAll(';', ',').replace(/[\r\n]+/g, ' ')
+      ].join(';');
+      lines.push(line);
+    }
+    return lines.join('\n') + '\n'; // LF only (Unix)
+  }
+
+  // ---------- UI ----------
+  let lastCsv = '';
+  $('#processBtn').addEventListener('click', async()=>{
+    const f = $('#jsFile').files[0];
+    if (!f){ log('Sélectionne un fichier .js, .json ou .csv'); return; }
+    $('#downloadBtn').disabled = true; $('#log').textContent = 'Prêt.\nLecture…';
+    try{
+      const rows = await readInputToRows(f);
+      lastCsv = makeCsvFromRows(rows);
+      log('✅ CSV généré : CP1252 + LF (Unix) + sans BOM');
+      $('#downloadBtn').disabled = false;
+    }catch(e){
+      console.error(e);
+      log('Erreur : ' + (e && e.message ? e.message : e));
+    }
+  });
+
+  $('#downloadBtn').addEventListener('click', ()=>{
+    if (lastCsv) downloadCp1252('pieces_unifie_cp1252.csv', lastCsv);
+  });
+
+})();
+</script>
+</body>
+</html>

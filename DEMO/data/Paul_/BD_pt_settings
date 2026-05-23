@@ -1,0 +1,1 @@
+{"countOvertime":true,"weeklyBase":35,"otStep":15,"deductPause":true,"countNegative":false,"ignoreEarlyStart":true,"nightStart":"21:00","nightEnd":"06:00","autoBackup":true,"forceLocal":false}

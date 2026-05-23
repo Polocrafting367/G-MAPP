@@ -1,0 +1,257 @@
+:root {
+    /* Thème Clair */
+    --bg-color: #f4f6f8;       /* Fond de page gris très clair */
+    --surface-color: #ffffff;  /* Fond du tableau blanc */
+    --text-color: #333333;     /* Texte gris foncé */
+    --border-color: #dde1e6;   /* Bordures douces */
+    
+    --accent-color: #00c8f5;   /* Bleu standard */
+    --success-bg: #d1e7dd;     /* Fond vert pâle pour validé */
+    --success-text: #0f5132;   /* Texte vert foncé */
+    
+    --input-bg: #e9ecef;       /* Fond de la zone d'ajout */
+    --placeholder-color: rgba(0, 0, 0, 0.4);
+}
+
+body {
+    font-family: 'Segoe UI', Inter, system-ui, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 5px;
+}
+
+/* --- Masquage strict des colonnes inutiles --- */
+.intervenant-col,
+.date-butoir-col,
+.realise-col,
+.date-col-max,
+.hidden-force {
+    display: none !important;
+}
+
+/* --- Table Styles --- */
+table {
+    width: 100%;
+    border-collapse: separate; /* Permet le radius */
+    border-spacing: 0;
+    background-color: var(--surface-color);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+th, td {
+    padding: 12px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+    border-right: 1px solid var(--border-color);
+}
+
+th:last-child, td:last-child {
+    border-right: none;
+}
+
+/* --- Entêtes --- */
+.header-row th {
+    background-color: #2c3e50;
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+/* --- Ligne d'Ajout (Spécifique) --- */
+#addTaskRow {
+    background-color: var(--input-bg);
+    border-bottom: 2px solid var(--border-color);
+}
+
+#addTaskRow td {
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+/* Placeholder semi-transparent */
+#addTaskRow .input-zone:empty::before {
+    content: attr(data-placeholder);
+    color: var(--placeholder-color);
+    font-style: italic;
+    pointer-events: none;
+}
+
+/* Bouton Ajouter (+) */
+.btn-add {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 100%;
+    height: 32px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.btn-add:hover {
+    background-color: #0056b3;
+}
+
+/* --- Colonnes --- */
+.small-col { width: 20px; text-align: center; cursor: grab; color: #888; }
+.icon-col { width: 20px; text-align: center; cursor: pointer; }
+.checkbox-wrapper-19 { width: 20px; text-align: center; }
+.action-col { width: 40px; text-align: center; }
+
+.note-col {
+    width: auto;
+    font-size: 1rem;
+    color: var(--text-color);
+}
+
+.date-col {
+    width: 80px;
+    font-size: 0.85rem;
+    color: #666;
+    text-align: right;
+}
+
+/* --- TÂCHES VALIDÉES (VERT) --- */
+tr.completed {
+    background-color: var(--success-bg) !important; /* Force le vert */
+    color: var(--success-text);
+    transition: background-color 0.3s ease;
+}
+
+.move-icon {
+    cursor: grab;
+    touch-action: none; /* Empêche le scroll natif sur la poignée */
+}
+tr.dragged {
+    opacity: 0.5;
+    background-color: #f0f0f0; /* Feedback visuel */
+}
+
+tr.completed .note-col {
+    text-decoration: line-through;
+    color: var(--success-text);
+    opacity: 0.8;
+}
+
+/* --- Importance (Bordures colorées) --- */
+/* Importance 1 : Normal (Gris) - Fond blanc ou très léger gris */
+tr.importance-1 { 
+    border-left: 4px solid #ccc; 
+    background-color: transparent; /* Ou #f9f9f9 pour un gris très léger */
+}
+
+/* Importance 2 : Attention (Jaune) - Fond jaune plus soutenu */
+tr.importance-2 { 
+    border-left: 4px solid #ffc107; 
+    background-color: rgba(255, 193, 7, 0.25); /* 0.25 = intensité */
+}
+
+/* Importance 3 : Important (Rouge) - Fond rouge plus soutenu */
+tr.importance-3 { 
+    border-left: 4px solid #dc3545; 
+    background-color: rgba(220, 53, 69, 0.25); /* Augmente à 0.3 ou 0.4 pour encore plus fort */
+}
+/* Priorité visuelle : Validé l'emporte sur l'importance */
+tr.completed.importance-2,
+tr.completed.importance-3 {
+    background-color: var(--success-bg);
+}
+
+/* --- Inputs & Editable --- */
+[contenteditable] {
+    outline: none;
+    min-height: 20px;
+    cursor: text;
+}
+
+[contenteditable]:focus {
+    background-color: white;
+    box-shadow: 0 0 0 2px var(--accent-color) inset;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+/* Checkbox propre */
+input[type="checkbox"] {
+    accent-color: #198754; /* Vert standard */
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Bouton supprimer (généré par JS) */
+.btn-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+.btn-delete:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Popup Importance */
+.importance-selector {
+    background: white;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    gap: 5px;
+}
+.importance-selector button {
+    background: none; border: none; font-size: 1.2rem; cursor: pointer;
+}
+/* --- STYLE DES SECTIONS (SÉPARATEURS) --- */
+tr.importance-section,
+tr.importance-section td {
+    background-color: #2c3e50 !important; /* Applique le fond sombre à la ligne ET aux cellules */
+    color: #ffffff !important;           /* Texte blanc partout */
+    border-bottom: 1px solid #1a252f;    /* Bordure plus sombre pour fondre */
+border-right-color: #2c3e50 !important;
+}
+
+/* Force le texte blanc spécifiquement dans la zone éditable */
+tr.importance-section .note-col {
+    color: #ffffff !important;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* Masquer le contenu des colonnes inutiles dans les sections */
+tr.importance-section .checkbox-wrapper-19 *,
+tr.importance-section .realise-col {
+    visibility: hidden; 
+}
+
+/* Poubelle blanche */
+tr.importance-section .btn-delete {
+    color: #ffffff !important;
+    opacity: 0.8;
+}
+
+tr.importance-section .btn-delete:hover {
+    opacity: 1;
+    color: #ffcccc !important;
+}
+
+/* Icone info blanche */
+tr.importance-section .icon-col,
+tr.importance-section .icon-col i {
+    color: #ffffff !important;
+}

@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Analyseur de Projet — Fonctions, CSS, Doublons & Stats</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg:#0b0f14; --card:#121820; --muted:#1a2230; --ink:#e9f0f6; --accent:#6dd5fa; --bad:#ff6b6b; --ok:#7dd87d; --warn:#ffd166;
+      --br:16px;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial; background:var(--bg); color:var(--ink); }
+    header { position:sticky; top:0; z-index:50; background:linear-gradient(180deg, rgba(11,15,20,.95), rgba(11,15,20,.7)); backdrop-filter: blur(8px); border-bottom:1px solid #1e2a37; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 16px; }
+
+    h1 { font-size: 20px; margin: 0 0 8px; font-weight: 700; letter-spacing: .2px; }
+    .sub { opacity:.7; font-size: 13px; }
+
+    .toolbar { display:flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+    .toolbar > * { border-radius: var(--br); }
+    .btn { appearance:none; border:1px solid #2a3a4d; background: var(--muted); color:var(--ink); padding:10px 14px; font-weight:600; cursor:pointer; transition: transform .05s ease, background .2s ease; }
+    .btn:hover { background:#223041; }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary { background: linear-gradient(180deg, #1e3a5c, #15273a); border-color:#315178; }
+    .btn.danger { background: linear-gradient(180deg, #4a1f24, #321418); border-color:#7e2c36; }
+    .btn.success { background: linear-gradient(180deg, #21492a, #16321c); border-color:#2e6b3e; }
+
+    input[type="file"] { padding:8px 12px; background: var(--card); border:1px dashed #2a3a4d; color:var(--ink); }
+    label.switch { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; background: var(--card); border:1px solid #2a3a4d; cursor:pointer; }
+    label.switch input { accent-color: var(--accent); }
+
+    progress { width:100%; height:10px; border-radius:999px; overflow:hidden; background:#223041; margin: 12px 0 0; }
+    progress::-webkit-progress-bar { background:#223041; }
+    progress::-webkit-progress-value { background: linear-gradient(90deg, var(--accent), #c3fefa); }
+
+    main .grid { display:grid; grid-template-columns: 1.1fr .9fr; gap:16px; margin-top:16px; }
+    @media (max-width: 900px){ main .grid { grid-template-columns:1fr; } }
+
+    .card { background: var(--card); border:1px solid #1f2a38; border-radius: var(--br); overflow:hidden; }
+    .card > header { background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0)); border-bottom:1px solid #1e2a37; padding:12px 16px; position:sticky; top:48px; z-index: 10; }
+    .card h2 { margin:0; font-size: 16px; }
+    .card .content { padding: 12px 16px 16px; }
+
+    table { width:100%; border-collapse: collapse; }
+    th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #223041; font-size: 13px; }
+    thead th { position: sticky; top: calc(48px + 43px); background: #0f141c; z-index:5; }
+    tr.unused { background: rgba(255, 107, 107, .08); }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid #2a3a4d; background:#0f141c; }
+    .pill.ok { border-color:#2c6f3a; background:#0f1a12; }
+    .pill.warn { border-color:#7a5c1d; background:#1a1407; }
+    .statgrid { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; }
+    @media (max-width:700px){ .statgrid { grid-template-columns: 1fr 1fr; } }
+    .stat { background: var(--muted); border:1px solid #29445c; border-radius:12px; padding:10px 12px; }
+    .stat .k { font-size:12px; opacity:.75; }
+    .stat .v { font-size:18px; font-weight:700; }
+    .small { font-size: 12px; opacity:.8; }
+
+    footer { opacity:.6; font-size:12px; text-align:center; padding:24px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Analyseur de Projet</h1>
+      <div class="sub">Fonctions JS, classes CSS, doublons de fichiers, stats & export ZIP</div>
+      <div class="toolbar" id="toolbar">
+        <input type="file" id="zipInput" accept=".zip" />
+        <button class="btn" id="btnDetectDup">Détecter les doublons</button>
+        <button class="btn danger" id="btnRemoveDup" disabled>Supprimer doublons</button>
+        <button class="btn success" id="btnDownload" disabled>Télécharger ZIP modifié</button>
+        <label class="switch" title="Conserver uniquement le premier exemplaire d'un contenu identique">
+          <input type="checkbox" id="toggleDedupOnDownload" /> Supprimer doublons au téléchargement
+        </label>
+        <span id="quickInfo" class="pill">Aucun fichier chargé</span>
+      </div>
+      <progress id="progressBar" value="0" max="100" style="display:none"></progress>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <section class="card" id="statsCard">
+        <header><h2>Statistiques</h2></header>
+        <div class="content" id="stats"></div>
+      </section>
+
+      <section class="card">
+        <header><h2>Doublons</h2></header>
+        <div class="content">
+          <div id="dups"></div>
+          <p class="small">Les doublons sont détectés par <strong>hash de contenu</strong> (SHA‑256). « Supprimer » retire les copies de l'espace de travail (le premier exemplaire est conservé).</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:16px">
+      <header><h2>Fonctions</h2></header>
+      <div class="content">
+        <div id="result"></div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:16px">
+      <header><h2>Classes CSS non utilisées</h2></header>
+      <div class="content">
+        <div id="unusedCss"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>Made with ❤️ — fonctionne 100% côté client</footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    const zipInput = document.getElementById('zipInput');
+    const resultDiv = document.getElementById('result');
+    const progressBar = document.getElementById('progressBar');
+    const statsDiv = document.getElementById('stats');
+    const dupsDiv = document.getElementById('dups');
+    const unusedCssDiv = document.getElementById('unusedCss');
+    const quickInfo = document.getElementById('quickInfo');
+
+    const btnDetectDup = document.getElementById('btnDetectDup');
+    const btnRemoveDup = document.getElementById('btnRemoveDup');
+    const btnDownload = document.getElementById('btnDownload');
+    const toggleDedupOnDownload = document.getElementById('toggleDedupOnDownload');
+
+    // Espace de travail (modifiable)
+    let WORKSPACE = { files: {}, order: [], rawZipEntries: [], allFiles: {}, allOrder: [], removed: new Set() };
+    // Index des doublons: hash -> [paths]
+    let DUP_INDEX = {};
+
+    // Utilitaires
+    const ext = (name) => (name.split('.').pop() || '').toLowerCase();
+    const human = (n) => {
+      const units = ['B','KB','MB','GB']; let i=0; let v=n;
+      while(v>=1024 && i<units.length-1){ v/=1024; i++; }
+      return `${v.toFixed(v<10?2:1)} ${units[i]}`;
+    };
+
+    async function sha256(text){
+      const enc = new TextEncoder();
+      const buf = enc.encode(text);
+      const digest = await crypto.subtle.digest('SHA-256', buf);
+      const bytes = new Uint8Array(digest);
+      return [...bytes].map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+
+    function updateQuickInfo(){
+      const total = WORKSPACE.order.length;
+      const size = Object.values(WORKSPACE.files).reduce((s,f)=>s+(f.size||0),0);
+      quickInfo.textContent = `${total} fichiers • ${human(size)}`;
+    }
+
+    function renderDupList(){
+      const groups = Object.entries(DUP_INDEX).filter(([,paths])=>paths.length>1);
+      if(groups.length===0){ dupsDiv.innerHTML = '<span class="pill ok">Aucun doublon détecté</span>'; return; }
+      let html = '';
+      for(const [hash, paths] of groups){
+        html += `<div class="stat" style="margin-bottom:8px">
+          <div class="k">${paths.length}× — SHA256: ${hash.slice(0,12)}…</div>
+          <div class="v" style="font-size:13px; font-weight:600; margin-top:6px">${paths.map(p=>`<code>${p}</code>`).join('<br>')}</div>
+          <div style="margin-top:8px">
+            <button class="btn danger" data-action="remove-dup" data-hash="${hash}">Supprimer copies (garder 1)</button>
+          </div>
+        </div>`;
+      }
+      dupsDiv.innerHTML = html;
+      dupsDiv.querySelectorAll('[data-action="remove-dup"]').forEach(btn=>{
+        btn.addEventListener('click',()=> removeDuplicatesByHash(btn.dataset.hash));
+      });
+    }
+
+    async function detectDuplicates(){
+      DUP_INDEX = {};
+      for(const path of WORKSPACE.order){
+        const file = WORKSPACE.files[path];
+        const hash = file.hash || (file.hash = await sha256(file.content));
+        if(!DUP_INDEX[hash]) DUP_INDEX[hash] = [];
+        DUP_INDEX[hash].push(path);
+      }
+      renderDupList();
+      const dupCount = Object.values(DUP_INDEX).reduce((s,arr)=> s + Math.max(0, arr.length-1), 0);
+      btnRemoveDup.disabled = dupCount===0;
+    }
+
+    function removeDuplicatesByHash(hash){
+      const paths = (DUP_INDEX[hash]||[]).slice(1); // garder le premier
+      for(const p of paths){
+        // retirer du set analysé
+        delete WORKSPACE.files[p];
+        const i = WORKSPACE.order.indexOf(p); if(i>-1) WORKSPACE.order.splice(i,1);
+        // marquer comme supprimé pour l'export complet
+        if (WORKSPACE.removed) WORKSPACE.removed.add(p);
+      }
+      detectDuplicates();
+      runAnalysis();
+      updateQuickInfo();
+    }
+      detectDuplicates();
+      runAnalysis();
+      updateQuickInfo();
+    }
+
+    async function downloadZip(){
+      // Construit un ZIP complet, en incluant tous les fichiers d'origine (txt, images, etc.)
+      // Exception : on exclut ceux explicitement retirés via "Supprimer doublons".
+      const zip = new JSZip();
+
+      // Déduplication: si activée, ne s'applique qu'aux fichiers ANALYSÉS (JS/HTML/PHP/JSON/CSS)
+      // pour éviter de casser des assets arbitraires.
+      const dedup = toggleDedupOnDownload.checked;
+      const seenHashes = new Set();
+
+      // Helper pour savoir si un chemin est analysé
+      const isAnalyzed = (p) => !!WORKSPACE.files[p];
+
+      for(const p of WORKSPACE.allOrder){
+        if (WORKSPACE.removed && WORKSPACE.removed.has(p)) continue; // saut des fichiers supprimés
+        const entry = WORKSPACE.allFiles[p];
+        if(!entry) continue;
+
+        if(dedup && isAnalyzed(p)){
+          const h = entry.hash || (entry.isText ? (entry.hash = await sha256(entry.content)) : null);
+          if(h){ if(seenHashes.has(h)) continue; seenHashes.add(h); }
+        }
+
+        if(entry.isText) zip.file(p, entry.content);
+        else zip.file(p, entry.content, { binary: true });
+      }
+
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'projet_modifie.zip';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=> URL.revokeObjectURL(a.href), 2000);
+    }
+        paths = tmp;
+      }
+      const zip = new JSZip();
+      for(const p of paths){ zip.file(p, WORKSPACE.files[p].content); }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'projet_modifie.zip';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=> URL.revokeObjectURL(a.href), 2000);
+    }
+
+    // === Analyse (fonctions, CSS, stats) ===
+    const autoEventHandlers = [ /* liste custom possible */ ];
+
+    function calcStats(){
+      const byExt = {};
+      let totalLinesJS=0, totalLinesCSS=0, totalLinesPHP=0;
+      let filesJS=0, filesCSS=0, filesPHP=0;
+      let totalSize = 0;
+
+      // stats par fichier (analyse sur JS/CSS/PHP)
+      const perFileLines = [];
+
+      for(const path of WORKSPACE.order){
+        const f = WORKSPACE.files[path];
+        const e = ext(path);
+        totalSize += f.size||0;
+        byExt[e] = byExt[e] || { files:0, lines:0 };
+        byExt[e].files++;
+        const lines = (f.content.match(/
+/g)||[]).length + (f.content.length?1:0);
+        perFileLines.push({ path, lines, size: f.size||0 });
+        byExt[e].lines += lines;
+        if(e==='js'){ totalLinesJS += lines; filesJS++; }
+        if(e==='css'){ totalLinesCSS += lines; filesCSS++; }
+        if(e==='php'){ totalLinesPHP += lines; filesPHP++; }
+      }
+
+      // Doublons
+      const dupGroups = Object.values(DUP_INDEX).filter(g=>g.length>1);
+      const dupCount = dupGroups.reduce((s,g)=> s + (g.length-1), 0);
+
+      // Unique par contenu
+      const uniqueByContent = Object.values(DUP_INDEX).length || WORKSPACE.order.length; // après detectDuplicates
+
+      // Fun stats
+      const maxLinesEntry = perFileLines.reduce((a,b)=> b.lines>(a?.lines||-1)? b : a, null);
+      const minLinesEntry = perFileLines.reduce((a,b)=> (a && a.lines<=b.lines)? a : b, perFileLines[0]||null);
+      const totalLinesAll = perFileLines.reduce((s,o)=> s+o.lines, 0);
+      const avgLines = perFileLines.length ? (totalLinesAll / perFileLines.length) : 0;
+      const sortedLines = perFileLines.map(o=>o.lines).sort((a,b)=>a-b);
+      const medianLines = sortedLines.length ? (sortedLines.length%2? sortedLines[(sortedLines.length-1)/2] : (sortedLines[sortedLines.length/2-1]+sortedLines[sortedLines.length/2])/2) : 0;
+
+      // Top 5 plus gros fichiers (tous types)
+      const topLargest = WORKSPACE.allOrder
+        .map(p=>({ path:p, size: (WORKSPACE.allFiles[p]?.size)||0 }))
+        .sort((a,b)=> b.size-a.size).slice(0,5);
+
+      // Extension la plus fréquente (tous types)
+      const extFreq = {};
+      for(const p of WORKSPACE.allOrder){ const e = ext(p); extFreq[e]=(extFreq[e]||0)+1; }
+      const mostCommonExt = Object.entries(extFreq).sort((a,b)=> b[1]-a[1])[0]||['',0];
+
+      // Longueur de noms
+      const nameLengths = WORKSPACE.allOrder.map(p=>p.length);
+      const longestName = WORKSPACE.allOrder.reduce((a,b)=> (b.length>(a?.length||0)? b : a), null);
+      const shortestName = WORKSPACE.allOrder.reduce((a,b)=> (!a||b.length<a.length? b : a), null);
+
+      return {
+        byExt, totalLinesJS, totalLinesCSS, totalLinesPHP,
+        filesJS, filesCSS, filesPHP,
+        totalFiles: WORKSPACE.order.length, totalSize, dupCount, uniqueByContent,
+        maxLinesEntry, minLinesEntry, avgLines, medianLines,
+        topLargest, mostCommonExt,
+        longestName, shortestName,
+      };
+    };
+      let totalLinesJS=0, totalLinesCSS=0, totalLinesPHP=0;
+      let filesJS=0, filesCSS=0, filesPHP=0;
+      let totalSize = 0;
+
+      for(const path of WORKSPACE.order){
+        const f = WORKSPACE.files[path];
+        const e = ext(path);
+        totalSize += f.size||0;
+        byExt[e] = byExt[e] || { files:0, lines:0 };
+        byExt[e].files++;
+        const lines = (f.content.match(/\n/g)||[]).length + (f.content.length?1:0);
+        byExt[e].lines += lines;
+        if(e==='js'){ totalLinesJS += lines; filesJS++; }
+        if(e==='css'){ totalLinesCSS += lines; filesCSS++; }
+        if(e==='php'){ totalLinesPHP += lines; filesPHP++; }
+      }
+
+      // Doublons
+      const dupGroups = Object.values(DUP_INDEX).filter(g=>g.length>1);
+      const dupCount = dupGroups.reduce((s,g)=> s + (g.length-1), 0);
+
+      // Unique par contenu
+      const uniqueByContent = Object.values(DUP_INDEX).length || WORKSPACE.order.length; // après detectDuplicates
+
+      return { byExt, totalLinesJS, totalLinesCSS, totalLinesPHP, filesJS, filesCSS, filesPHP, totalFiles: WORKSPACE.order.length, totalSize, dupCount, uniqueByContent };
+    }
+
+    function renderStats(){
+      const S = calcStats();
+      const lineTotalTarget = S.totalLinesJS + S.totalLinesCSS + S.totalLinesPHP;
+
+      const grid = `
+        <div class="statgrid">
+          <div class="stat"><div class="k">Fichiers (analysés)</div><div class="v">${S.totalFiles}</div></div>
+          <div class="stat"><div class="k">Fichiers uniques (par contenu)</div><div class="v">${S.uniqueByContent}</div></div>
+          <div class="stat"><div class="k">Doublons détectés</div><div class="v">${S.dupCount}</div></div>
+          <div class="stat"><div class="k">Lignes JS</div><div class="v">${S.totalLinesJS.toLocaleString()}</div></div>
+          <div class="stat"><div class="k">Lignes CSS</div><div class="v">${S.totalLinesCSS.toLocaleString()}</div></div>
+          <div class="stat"><div class="k">Lignes PHP</div><div class="v">${S.totalLinesPHP.toLocaleString()}</div></div>
+          <div class="stat"><div class="k">Total lignes (JS+CSS+PHP)</div><div class="v">${(S.totalLinesJS+S.totalLinesCSS+S.totalLinesPHP).toLocaleString()}</div></div>
+          <div class="stat"><div class="k">Taille totale (analysés)</div><div class="v">${human(S.totalSize)}</div></div>
+          <div class="stat"><div class="k">Ext la + fréquente (tous)</div><div class="v small">${S.mostCommonExt[0]||'n/a'} (${S.mostCommonExt[1]})</div></div>
+          <div class="stat"><div class="k">Fichier le + long (lignes)</div><div class="v small">${S.maxLinesEntry? `${S.maxLinesEntry.lines} — ${S.maxLinesEntry.path}`:'n/a'}</div></div>
+          <div class="stat"><div class="k">Fichier le + court</div><div class="v small">${S.minLinesEntry? `${S.minLinesEntry.lines} — ${S.minLinesEntry.path}`:'n/a'}</div></div>
+          <div class="stat"><div class="k">Médiane lignes/fichier</div><div class="v">${Math.round(S.medianLines)}</div></div>
+          <div class="stat"><div class="k">Moyenne lignes/fichier</div><div class="v">${Math.round(S.avgLines)}</div></div>
+          <div class="stat"><div class="k">Nom le + long</div><div class="v small">${S.longestName||'n/a'}</div></div>
+          <div class="stat"><div class="k">Nom le + court</div><div class="v small">${S.shortestName||'n/a'}</div></div>
+          <div class="stat" style="grid-column:1/-1"><div class="k">Top 5 plus gros fichiers (tous types)</div><div class="v small">${S.topLargest.map(o=>`${o.path} — ${human(o.size)}`).join('<br>')||'n/a'}</div></div>
+        </div>`;
+      statsDiv.innerHTML = grid;
+    }
+
+    function analyzeAndRenderTables(files){
+      const functions = {};
+      const functionCalls = {};
+      let totalHtmlCalls = 0;
+
+      const cssClasses = new Set();
+      const usedClasses = new Set();
+
+      let processed = 0; const entries = Object.entries(files);
+
+      for (const [filename, file] of entries) {
+        const content = file.content;
+        if (filename.endsWith('.json')) continue;
+
+        // CSS : collecter classes définies
+        if (filename.endsWith('.css')) {
+          const classRegex = /\.([a-zA-Z0-9\-_]+)\s*\{/g;
+          let match; while ((match = classRegex.exec(content)) !== null) { cssClasses.add(match[1]); }
+        }
+
+        const lines = content.split('\n');
+
+        // JS / HTML / PHP : détecter fonctions
+        if (filename.endsWith('.js') || filename.endsWith('.html') || filename.endsWith('.php')) {
+          const fnRegex = /\bfunction\s+(\w+)\s*\(|\b(?:const|let|var)\s+(\w+)\s*=\s*function\s*\(|\b(?:const|let|var)\s+(\w+)\s*=\s*\([\w\s,]*\)\s*=>/g;
+          let match;
+          while ((match = fnRegex.exec(content)) !== null) {
+            const name = (match[1] || match[2] || match[3])?.trim();
+            if (!name || !/^[a-zA-Z_$][\w$]*$/.test(name)) continue;
+            if (autoEventHandlers.includes(name)) continue;
+
+            const before = content.slice(0, match.index);
+            const defLine = before.split('\n').length - 1;
+
+            if (!functions[name] || typeof functions[name] !== 'object') {
+              functions[name] = { defCount: 1, defSources: [filename], defLines: [{ file: filename, line: defLine }], count: 0, calls: [] };
+            } else {
+              functions[name].defCount++;
+              functions[name].defSources.push(filename);
+              functions[name].defLines.push({ file: filename, line: defLine });
+            }
+          }
+
+          // Détection des appels HTML inline (onClick=...)
+          const htmlCallRegex = /on\w+\s*=\s*"([^"]+)"/g;
+          let callMatch;
+          while ((callMatch = htmlCallRegex.exec(content)) !== null) {
+            const code = callMatch[1];
+            const calls = code.match(/\b(\w+)\s*\(/g);
+            if (calls) {
+              for (const call of calls) {
+                const fn = call.split('(')[0]?.trim();
+                if (!fn || !/^[a-zA-Z_$][\w$]*$/.test(fn)) continue;
+                totalHtmlCalls++;
+                if (!functionCalls[fn]) functionCalls[fn] = [];
+                functionCalls[fn].push(filename);
+              }
+            }
+          }
+
+          // Détection des usages JS
+          lines.forEach((line, i) => {
+            for (const name of Object.keys(functions)) {
+              const isDefinitionLine = functions[name].defLines.some(loc => loc.file === filename && loc.line === i);
+              if (isDefinitionLine) return;
+              const usageRegex = new RegExp(`\\b${name}\\b`);
+              if (usageRegex.test(line)) {
+                functions[name].count++;
+                functions[name].calls.push(filename);
+              }
+            }
+          });
+        }
+
+        // HTML : collecter classes utilisées
+        if (filename.endsWith('.html')) {
+          const classAttrRegex = /class\s*=\s*"(.*?)"/g; let match;
+          while ((match = classAttrRegex.exec(content)) !== null) {
+            const classes = match[1].split(/\s+/); classes.forEach(cls => usedClasses.add(cls));
+          }
+        }
+
+        processed++;
+        progressBar.value = 50 + Math.floor((processed / entries.length) * 50);
+      }
+
+      // Ajouter les appels HTML dans les compteurs
+      for (const [fn, locations] of Object.entries(functionCalls)) {
+        if (functions[fn]) { functions[fn].count += locations.length; functions[fn].calls.push(...locations); }
+      }
+
+      const sortedFunctions = Object.entries(functions).sort((a, b) => a[1].count - b[1].count);
+      const unusedCssClasses = [...cssClasses].filter(cls => !usedClasses.has(cls));
+
+      // Table fonctions
+      let html = '<table><thead><tr><th>Fonction</th><th>Définitions</th><th>Définie dans</th><th>Appels</th><th>Fichiers appelants</th></tr></thead><tbody>';
+      for (const [name, data] of sortedFunctions) {
+        const isUnused = data.count === 0;
+        html += `<tr class="${isUnused ? 'unused' : ''}">`+
+          `<td>${name}</td>`+
+          `<td>${data.defCount}</td>`+
+          `<td>${[...new Set(data.defSources)].join('<br>')}</td>`+
+          `<td>${data.count}</td>`+
+          `<td>${[...new Set(data.calls)].join('<br>')}</td>`+
+        `</tr>`;
+      }
+      html += '</tbody></table>';
+      resultDiv.innerHTML = html;
+
+      // Table CSS non utilisées
+      let cssHTML = '<table><thead><tr><th>Classe</th></tr></thead><tbody>';
+      for (const cls of unusedCssClasses) { cssHTML += `<tr class="unused"><td>${cls}</td></tr>`; }
+      cssHTML += '</tbody></table>';
+      unusedCssDiv.innerHTML = cssHTML;
+
+      renderStats();
+    }
+
+    function runAnalysis(){
+      progressBar.style.display = 'block'; progressBar.value = 0;
+      // recalculer l'index de hash rapidement si besoin
+      // (detectDuplicates() le fait déjà en profondeur si déclenché)
+      renderStats();
+      analyzeAndRenderTables(WORKSPACE.files);
+      progressBar.style.display = 'none';
+    }
+
+    // === Events ===
+    zipInput.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      progressBar.style.display = 'block'; progressBar.value = 0;
+
+      const zip = await JSZip.loadAsync(file);
+      WORKSPACE.files = {}; WORKSPACE.order = []; WORKSPACE.rawZipEntries = [];
+
+      const entries = Object.entries(zip.files);
+      let processed = 0;
+
+      for (const [filename, zipEntry] of entries) {
+        if (!zipEntry.dir){
+          const isText = /\.(js|ts|tsx|jsx|html?|php|json|css|scss|txt|md|svg|xml|ya?ml|ini|env|gitignore)$/i.test(filename);
+          const content = await zipEntry.async(isText ? 'string' : 'uint8array');
+          const size = (zipEntry._data && zipEntry._data.uncompressedSize) || (isText ? content.length : (content?.byteLength||0));
+          // stocker TOUT pour l'export
+          WORKSPACE.allFiles[filename] = { content, size, isText };
+          WORKSPACE.allOrder.push(filename);
+
+          // stocker aussi pour l'analyse si extension prise en charge
+          if (/(\.js|\.html?|\.php|\.json|\.css)$/i.test(filename)){
+            WORKSPACE.files[filename] = { content, size };
+            WORKSPACE.order.push(filename);
+          }
+        }
+        WORKSPACE.rawZipEntries.push({ filename, isDir: zipEntry.dir });
+        processed++;
+        progressBar.value = Math.floor((processed / entries.length) * 50);
+      };
+          WORKSPACE.order.push(filename);
+        }
+        WORKSPACE.rawZipEntries.push({ filename, isDir: zipEntry.dir });
+        processed++;
+        progressBar.value = Math.floor((processed / entries.length) * 50);
+      }
+
+      updateQuickInfo();
+      await detectDuplicates();
+      runAnalysis();
+      btnDownload.disabled = false;
+    });
+
+    btnDetectDup.addEventListener('click', async ()=>{ await detectDuplicates(); renderStats(); });
+    btnRemoveDup.addEventListener('click', ()=>{
+      // Supprimer toutes les copies (garder 1) pour chaque groupe
+      const groups = Object.entries(DUP_INDEX).filter(([,paths])=>paths.length>1);
+      for(const [,paths] of groups){
+        for(const p of paths.slice(1)){
+          delete WORKSPACE.files[p];
+          const i=WORKSPACE.order.indexOf(p); if(i>-1) WORKSPACE.order.splice(i,1);
+          if (WORKSPACE.removed) WORKSPACE.removed.add(p);
+        }
+      }
+      detectDuplicates(); runAnalysis(); updateQuickInfo();
+    });
+      for(const [,paths] of groups){ for(const p of paths.slice(1)){ delete WORKSPACE.files[p]; const i=WORKSPACE.order.indexOf(p); if(i>-1) WORKSPACE.order.splice(i,1); } }
+      detectDuplicates(); runAnalysis(); updateQuickInfo();
+    });
+    btnDownload.addEventListener('click', downloadZip);
+  </script>
+</body>
+</html>

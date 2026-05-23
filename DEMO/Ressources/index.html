@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <p id="loadingText" style="color: white; font-size: 1.5em; margin-top: 10px;">Préparation du chargement...</p>
+  <title>Chargement...</title>
+  <link rel="icon" type="image/png" href="../../SVG/LOGO.svg" />
+  <link rel="icon" sizes="192x192" href="../../SVG/LOGO.svg" />
+  <link rel="apple-touch-icon" sizes="192x192" href="../../SVG/LOGO.svg" />
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0 !important;
+      padding: 0;
+      user-select: none;
+    }
+    #loadingText {
+      position: absolute;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 1.5em;
+      font-weight: bold;
+      z-index: 9999;
+      white-space: nowrap;
+    }
+    #bgFrame {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      z-index: -1;
+    }
+    #loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    #progress-container {
+      width: 80%;
+      background-color: #444;
+      border-radius: 10px;
+      overflow: hidden;
+      height: 20px;
+      margin: 20px 0;
+    }
+    #progress-bar {
+      width: 0%;
+      height: 100%;
+      background-color: #4caf50;
+      transition: width 0.3s;
+    }
+    #credits-container {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      text-align: center;
+      font-size: 1.3em;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <iframe id="bgFrame" src="../Ressources/bgE.html"></iframe>
+
+  <div id="loading-screen">
+    <img src="../../SVG/LOGO.svg" alt="Logo" style="width: 100px; height: 100px; margin-bottom: 20px;" />
+    <p id="loading-text" style="color: white; font-size: 1.5em; margin-bottom: 10px;">Préparation du chargement...</p>
+    <div id="progress-container">
+      <div id="progress-bar"></div>
+    </div>
+    <p id="loading-detail" style="font-size: 1em; margin-top: 10px; color: #ccc;"></p>
+    <div id="credits-container">
+      <p id="credits"></p>
+    </div>
+  </div>
+
+ <script>
+document.addEventListener('DOMContentLoaded', async function() {
+  try {
+    const response = await fetch('../Update.txt');
+    if (!response.ok) throw new Error('Erreur Update.txt');
+    const data = await response.text();
+    document.getElementById('credits').innerHTML = data.replace(/\n/g, '<br>');
+  } catch (error) {
+    console.error(error);
+  }
+});
+const urlParams2 = new URLSearchParams(window.location.search);
+
+const deviceName = localStorage.getItem('DEVICE_NAME') || 'unknownDevice';
+const LS_PIECES_KEY = 'DEV_PIECES'; // "true" | "false"
+const LS_FASTSTART_OVERRIDE = 'DEV_FASTSTART_OVERRIDE'; // "true" => force fast start
+
+function setPiecesInLS(enabled) {
+  localStorage.setItem(LS_PIECES_KEY, enabled ? 'true' : 'false');
+}
+
+
+
+let modeFinal;
+
+if (urlParams2.has("arch")) {
+    modeFinal = "Story";
+} else if (urlParams2.has("mode")) {
+    modeFinal = urlParams2.get("mode");
+} else {
+    modeFinal = "Work";
+}
+
+
+
+
+const user = urlParams2.get("user") || "default";
+const extraSteps = 2;
+const apt = urlParams2.get("Export");
+let currentMode = "";
+const reset = urlParams2.get("reset");
+const connectionQuality = 3000;
+
+
+
+
+
+async function monTraitement() {
+  if (apt) {
+    await removePrefixedItemNoVerify2('device_id');
+  }
+}
+monTraitement();
+
+const MODES = ["Work", "Priv", "Story"];
+const DB_CONFIG = {
+  "Work": { DB_NAME: "MyAppDB", STORE_NAME: "files", LAST_SAVE_KEY: "lastSaveTime" },
+  "Priv": { DB_NAME: "MyAppDBPrev", STORE_NAME: "filesPrev", LAST_SAVE_KEY: "lastSaveTimePrev" },
+  "Story": { DB_NAME: "MyAppDBStory", STORE_NAME: "filesStory", LAST_SAVE_KEY: "lastSaveTimeStory" }
+};
+
+let totalFiles = 0;
+let loadedFiles = 0;
+
+if (reset === "true") {
+  console.log("⚡ Forçage du reset via ?reset=true");
+  const { DB_NAME, LAST_SAVE_KEY } = DB_CONFIG[modeFinal];  // ✅ Correction ici
+  localStorage.removeItem(LAST_SAVE_KEY);
+  const req = indexedDB.deleteDatabase(DB_NAME);
+  req.onsuccess = () => {
+    console.log(`🗑️ IndexedDB ${DB_NAME} supprimée via reset URL`);
+    window.location.href = window.location.pathname + window.location.search.replace(/&?reset=true/, '');
+  };
+  req.onerror = () => console.error("❌ Erreur suppression IndexedDB via reset");
+  req.onblocked = () => console.warn("⚠️ Suppression IndexedDB bloquée");
+}
+
+
+async function checkConnection() {
+  try {
+    const response = await fetch("void.html", { cache: "no-store" });
+    return response.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+function showNetworkError() {
+  const screen = document.getElementById("loading-screen");
+  screen.innerHTML = `
+    <p style="color: white; font-size: 1.2em; margin-bottom: 20px;">⚠️ Connexion Internet insuffisante</p>
+    <button onclick="retryInit()" style="padding: 10px 20px; font-size: 1em;">Réessayer</button>
+  `;
+}
+
+async function retryInit() {
+  document.getElementById("loading-screen").innerHTML = `
+    <p id="loading-text" style="font-size: 1.5em; margin-bottom: 10px;">Préparation du chargement...</p>
+    <div id="progress-container">
+      <div id="progress-bar"></div>
+    </div>
+    <p id="loading-detail" style="font-size: 1em; margin-top: 10px; color: #ccc;"></p>
+    <div id="credits-container">
+      <p id="credits"></p>
+    </div>
+  `;
+  startInit();
+}
+
+async function startInit() {
+  const modeLabels = { "Work": "Correctif", "Priv": "Préventifs", "Story": "Archives" };
+  document.getElementById("loadingText").innerHTML =
+    `Redirection vers ${modeLabels[modeFinal]}<br>après chargement`;
+
+  const connected = await checkConnection();
+  if (!connected) {
+    showNetworkError();
+    const interval = setInterval(async () => {
+      if (await checkConnection()) {
+        clearInterval(interval);
+        retryInit();
+      }
+    }, 5000);
+    return;
+  }
+
+  try {
+    await guardByNow8hRule();
+    const skipFullReload = await checkLastUpdate(); // définit window.fastStart
+
+    // === Chargement des données (toujours) ===
+    if (!skipFullReload) {
+      totalFiles = await getAllFilesCount();
+      for (const mode of MODES) {
+        await processMode(mode); // alimente IndexedDB pour chaque mode
+      }
+    } else {
+      console.log("✅ Cache récent détecté. Saut du rechargement complet.");
+    }
+
+    // === Mémoriser le mode courant ===
+    localStorage.setItem(user + "_uver", modeFinal);
+
+    // === Branchements selon fastStart ===
+    if (window.fastStart === true) {
+      // ⏩ Fast start : PAS de vérif IP/appareil, PAS de preload des autres pages
+      console.log("⏩ Fast start actif : skip verifyDeviceIdBeforePreload & preloadAllStartPages");
+      console.log("✅ Redirection vers start.html (depuis IndexedDB) pour :", modeFinal);
+      await redirectToStartPage(modeFinal, deviceName);
+      return;
+    } else {
+      // Mode normal : on fait la vérif et le préchargement
+      const canContinue = await verifyDeviceIdBeforePreload();
+      if (!canContinue) return;
+
+      await preloadAllStartPages(deviceName);
+      console.log("✅ Redirection finale vers start.html du mode :", modeFinal);
+      await redirectToStartPage(modeFinal, deviceName);
+    }
+  } catch (error) {
+    console.error("❌ Erreur init :", error);
+  }
+}
+
+
+async function checkLastUpdate() {
+  try {
+    const response = await fetch('../Dev.txt');
+    if (!response.ok) throw new Error("Erreur lors de la récupération de Dev.txt");
+
+    const text = await response.text();
+    const lines = text.trim().split('\n');
+
+    const forceReload = (lines[0] || '').trim().toLowerCase() === "true";
+    const maxHours    = parseInt((lines[1] || '').trim(), 10);
+
+    const piecesFlag  = (lines[2] || "false").trim().toLowerCase() === "true";
+    setPiecesInLS(piecesFlag);
+    console.log('Prise en compte des pièces : ' + piecesFlag);
+
+    // --- 4e ligne : fast start ---
+    const fastStart = (lines[3] || "false").trim().toLowerCase() === "true";
+    window.fastStart = fastStart;
+    console.log('Fast start activé (Dev.txt) : ' + fastStart);
+
+    // 👉 MàJ du localStorage selon la 4e ligne :
+    //    (A) garder en phase avec le fichier :
+    if (fastStart) {
+      localStorage.setItem(LS_FASTSTART_OVERRIDE, 'true');
+    } else {
+      localStorage.removeItem(LS_FASTSTART_OVERRIDE); // <-- retire si false (optionnel)
+      // // Si tu préfères ne PAS enlever quand false, commente la ligne ci-dessus.
+    }
+
+    if (forceReload) {
+      console.log("⚠️ Dev.txt indique de forcer le rechargement complet.");
+      window.globalForceReload = true;
+      return false;
+    }
+
+    const now = Date.now();
+    const lastSaveKey   = DB_CONFIG[modeFinal].LAST_SAVE_KEY;
+    const localTimestamp = parseInt(localStorage.getItem(lastSaveKey), 10);
+
+    if (!isNaN(localTimestamp) && !isNaN(maxHours)) {
+      const maxMs = maxHours * 60 * 60 * 1000;
+      if (now - localTimestamp < maxMs) {
+        console.log(`✅ Cache encore valide (${maxHours}h), pas besoin de recharger totalement.`);
+        return true;
+      } else {
+        console.log(`⏰ Cache trop vieux (> ${maxHours}h), on recharge.`);
+      }
+    } else {
+      console.warn("⚠️ Valeurs incorrectes dans Dev.txt ou timestamp invalide.");
+    }
+  } catch (error) {
+    console.warn("⚠️ Impossible de vérifier Dev.txt :", error);
+  }
+
+  return false; // Par défaut, recharger
+}
+
+
+
+async function processMode(mode) {
+  currentMode = mode;
+  const { DB_NAME, STORE_NAME, LAST_SAVE_KEY } = DB_CONFIG[mode];
+
+  // 👇 Si forceReload (lu globalement), supprimer la DB avant
+  if (window.globalForceReload === true) {
+    console.log(`🗑️ Suppression forcée de la DB ${DB_NAME} (via Dev.txt)`);
+    await new Promise((resolve, reject) => {
+      const req = indexedDB.deleteDatabase(DB_NAME);
+      req.onsuccess = () => {
+        //console.log(`✅ DB ${DB_NAME} supprimée`);
+        resolve();
+      };
+      req.onerror = () => {
+        console.error(`❌ Erreur suppression DB ${DB_NAME}`);
+        reject();
+      };
+      req.onblocked = () => {
+        console.warn(`⚠️ Suppression DB ${DB_NAME} bloquée`);
+      };
+    });
+  }
+
+  console.log(`🔁 Traitement mode : ${mode}`);
+  const files = await fetchFileList(mode);
+
+  for (const file of files) {
+    await fetchAndStore(file, DB_NAME, STORE_NAME);
+  }
+
+  await listFilesInDB(DB_NAME, STORE_NAME);
+  localStorage.setItem(LAST_SAVE_KEY, Date.now().toString());
+}
+
+async function fetchFileList(mode) {
+  const response = await fetch(`../Ressources/PHP/scanFilesWork.php?mode=${mode}`);
+  if (!response.ok) throw new Error(`Erreur liste fichiers pour ${mode}`);
+  let files = await response.json();
+
+  // 💡 Ajout manuel des fichiers spécifiques
+  if (mode === "Work") {
+    files.push("/G-MAPP/date_LM.txt");
+      files.push("/G-MAPP/XbGv89Lm.json");
+    files.push("/G-MAPP/Update.txt");
+
+  }
+
+  if (mode === "Priv") {
+    files.push("/G-MAPP/Priv/Planning.json");
+    files.push("/G-MAPP/date_LM.txt");
+          files.push("/G-MAPP/XbGv89Lm.json");
+    files.push("/G-MAPP/Update.txt");
+
+  }
+
+  if (mode === "Story") {
+    files.push("/G-MAPP/data/interventions.json");
+    files.push("/G-MAPP/date_LM.txt");
+          files.push("/G-MAPP/XbGv89Lm.json");
+    files.push("/G-MAPP/Update.txt");
+
+  }
+
+  //console.log("✅ Fichiers pour", mode, ":", files);
+  return files;
+}
+
+
+async function fetchAndStore(filePath, dbName, storeName) {
+  try {
+    document.getElementById("loading-detail").textContent = `Chargement : ${filePath}`;
+
+    const response = await fetch(filePath);
+    if (!response.ok) throw new Error(`Erreur fichier ${filePath}`);
+    const content = await response.text();
+
+    const shortName = filePath.replace(/(\.\.\/)+|G-MAPP\/|Ressources\/|(Work|Priv|Story)\//g, '');
+    const db = await openDatabase(dbName, storeName);
+    const existing = await getStoredFile(db, storeName, shortName);
+
+    if (existing !== content) {
+      await storeFile(db, storeName, shortName, content);
+    }
+
+    updateProgress();
+  } catch (error) {
+    console.error("❌ fetchAndStore error :", error);
+    updateProgress();
+  }
+
+}
+
+async function listFilesInDB(dbName, storeName) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, 1);
+    request.onsuccess = event => {
+      const db = event.target.result;
+      const tx = db.transaction(storeName, "readonly");
+      const store = tx.objectStore(storeName);
+      const keysRequest = store.getAllKeys();
+
+      keysRequest.onsuccess = () => {
+        const keys = keysRequest.result;
+        console.log(`✅ Clés présentes dans ${dbName}/${storeName} :`, keys);
+        resolve(keys);
+      };
+      keysRequest.onerror = () => {
+        console.error(`❌ Erreur lors de la récupération des clés de ${dbName}/${storeName}`);
+        reject(keysRequest.error);
+      };
+    };
+    request.onerror = () => {
+      console.error(`❌ Erreur ouverture DB ${dbName}`);
+      reject(request.error);
+    };
+  });
+}
+
+
+async function openDatabase(dbName, storeName) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, 1);
+    request.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(storeName)) {
+        db.createObjectStore(storeName);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(`❌ Erreur ouverture DB ${dbName}`);
+  });
+}
+
+async function getStoredFile(db, storeName, key) {
+  return new Promise(resolve => {
+    const tx = db.transaction(storeName, "readonly");
+    const store = tx.objectStore(storeName);
+    const req = store.get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+}
+
+async function storeFile(db, storeName, key, content) {
+  return new Promise(resolve => {
+    const tx = db.transaction(storeName, "readwrite");
+    tx.objectStore(storeName).put(content, key);
+    tx.oncomplete = resolve;
+  });
+}
+
+function updateProgress() {
+  loadedFiles++;
+  const progress = (loadedFiles / (totalFiles + extraSteps)) * 100;
+  document.getElementById("progress-bar").style.width = `${progress}%`;
+
+  document.getElementById("loading-text").textContent = 
+    `Chargement pour : ${currentMode} (${loadedFiles}/${totalFiles + extraSteps})`;
+}
+async function redirectToStartPage(mode, deviceName) {
+      //alert("Redirection vers: "+ mode+" Pour: " +deviceName )
+
+  const { DB_NAME, STORE_NAME } = DB_CONFIG[mode];
+  const db = await openDatabase(DB_NAME, STORE_NAME);
+  const startContent = await getStoredFile(db, STORE_NAME, "start.html");
+
+  if (!startContent) {
+    console.error("❌ start.html introuvable dans DB du mode :", mode);
+    return;
+  }
+
+  const currentUrl = window.location.href;
+  const parts = currentUrl.split("index.html");
+  let dynamicPart = parts[1] || "";
+  let paramsString = "";
+
+  if (dynamicPart.startsWith("?")) {
+    paramsString = dynamicPart.substring(1);
+  }
+  if (paramsString.startsWith("&")) {
+    paramsString = paramsString.substring(1);
+  }
+
+
+
+  const baseUrl = "start.html";
+  const finalUrl = `${baseUrl}?${paramsString}`;
+
+  document.body.innerHTML = '';
+
+  const iframe = document.createElement("iframe");
+  iframe.id = "startIframe";
+  iframe.style.position = "fixed";
+  iframe.style.top = "0";
+  iframe.style.left = "0";
+  iframe.style.width = "100%";
+  iframe.style.height = "100%";
+  iframe.style.border = "none";
+  iframe.style.zIndex = "9999";
+
+  document.body.appendChild(iframe);
+
+  setTimeout(() => {
+    const docIframe = iframe.contentDocument || iframe.contentWindow.document;
+    if (docIframe) {
+      docIframe.open();
+      docIframe.write(`<base href="${finalUrl}">` + startContent);
+      docIframe.close();
+    } else {
+      console.error("❌ Impossible d'accéder au document de l'iframe.");
+    }
+  }, 50);
+}
+
+
+window.addEventListener('message', async function(event) {
+  const data = event.data;
+  if (!data) return;
+
+  // 🔄 Recharger le start iframe
+  if (data.type === 'reloadStartIframe') {
+    console.log("🔄 Message reçu pour recharger la start iframe");
+    await reloadStartIframe();
+  }
+
+
+
+  // 📥 Changer de start page
+  if (data.action === 'changeStart') {
+  const { mode } = data;
+    console.log("📥 Changement d'écran pour: ", mode);
+
+  await redirectToStartPage(mode, deviceName);
+  }
+
+  // ♻️ Recharger tout le parent
+  if (data.type === 'reloadParent') {
+    console.log("🔄 Message reçu de l'iframe enfant : reloadParent");
+    window.location.reload();
+  }
+
+
+  if (event.data && event.data.type === 'deviceConflict') {
+    const userChoice = confirm("Vous êtes déjà connecté sur un autre appareil !\nOK pour vous connecter ici");
+    if (userChoice) {
+      event.source.postMessage({ type: 'acceptConflict' }, '*');
+    } else {
+      event.source.postMessage({ type: 'rejectConflict' }, '*');
+      deco()
+    }
+  }
+if (data.type === 'variHRActive') {
+deco();  // Tu peux afficher un message spécial ou changer l'interface
+}
+
+if (data.type === 'Reload') {
+  console.log("🔄 Message reçu pour reload complet (fermer et rouvrir autouser)");
+  await reloadAutoUserIframe();
+}
+if (event.data.type === 'askForceSync') {
+  // On affiche une modale maison (ou alert pour test rapide)
+  const confirmForce = confirm("Vous êtes connecté sur un autre appareil.\nVoulez-vous transmettre vos données maintenant ?\n(Si oui, cela écrasera les données sur l'autre appareil.)");
+
+  if (confirmForce) {
+    window.parent.postMessage({ type: 'acceptForceSync' }, '*');
+  } else {
+    window.parent.postMessage({ type: 'rejectForceSync' }, '*');
+  }
+}
+
+
+});
+
+
+function reloadStartIframe() {
+  const url = new URL(window.location.href);
+
+  // Ajoute ou met à jour le paramètre reset
+  url.searchParams.set("reset", "true");
+
+  // Modifie l'URL et force un reload complet
+  window.location.href = url.toString();
+}
+
+
+
+async function reloadAutoUserIframe() {
+  const iframe = document.getElementById('startIframe');
+  if (iframe) {
+    iframe.parentNode.removeChild(iframe);
+  }
+
+      const autoUser = localStorage.getItem('AUTOUSER');
+        const univ = localStorage.getItem(autoUser + '_uver') || 'Work';
+  mode = univ;
+  console.log(mode)
+  // Récupérer la config du mode autouser
+  const { DB_NAME, STORE_NAME } = DB_CONFIG[mode];
+
+  const db = await openDatabase(DB_NAME, STORE_NAME);
+  const startContent = await getStoredFile(db, STORE_NAME, "start.html");
+
+  if (!startContent) {
+    console.error("❌ start.html introuvable dans DB pour autouser");
+    return;
+  }
+
+  const newIframe = document.createElement("iframe");
+  newIframe.id = "startIframe";
+  newIframe.style.position = "fixed";
+  newIframe.style.top = "0";
+  newIframe.style.left = "0";
+  newIframe.style.width = "100%";
+  newIframe.style.height = "100%";
+  newIframe.style.border = "none";
+  newIframe.style.zIndex = "9999";
+
+  document.body.appendChild(newIframe);
+
+  setTimeout(() => {
+    const docIframe = newIframe.contentDocument || newIframe.contentWindow.document;
+    if (docIframe) {
+      docIframe.open();
+      docIframe.write(`<base href="start.html">` + startContent);
+      docIframe.close();
+    } else {
+      console.error("❌ Impossible d'accéder au document de l'iframe.");
+    }
+  }, 50);
+}
+
+
+
+async function preloadAllStartPages(deviceName) {
+  const modesAll = ["Work", "Priv", "Story"];
+  const modesToPreload = modesAll.filter(mode => mode !== modeFinal);
+  const loadingDetail = document.getElementById("loading-detail");
+  
+  for (const mode of modesToPreload) {
+    loadingDetail.textContent = `Préparation de ${mode}...`;
+
+    await new Promise((resolve) => {
+      loadedFiles++;
+      const progress = (loadedFiles / (totalFiles + extraSteps)) * 100;
+      document.getElementById("progress-bar").style.width = `${progress}%`;
+      document.getElementById("loading-text").textContent = `Préparation de ${mode}... (${loadedFiles}/${totalFiles + extraSteps})`;
+
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = `/G-MAPP/${mode}/start.html?user=${encodeURIComponent(user)}&preview=true`;
+      console.info(`ℹ️ ${mode}/start.html pré-initialisé`);
+
+      iframe.onload = async () => {
+        await new Promise(r => setTimeout(r, 1250));
+        document.body.removeChild(iframe);
+        resolve();
+      };
+      
+      iframe.onerror = async () => {
+        console.error(`❌ Erreur lors du chargement de ${mode}/start.html`);
+        await new Promise(r => setTimeout(r, 1250));
+        document.body.removeChild(iframe);
+        resolve();
+      };
+      
+      document.body.appendChild(iframe);
+    });
+  }
+}
+
+
+
+async function verifyDeviceIdBeforePreload() {
+  const storedDeviceId = await getPrefixedItemNoVerify2('device_id');
+  const newDeviceId = await createDeviceId2();
+  currentDeviceId = newDeviceId;
+  console.log("Avant modification :", storedDeviceId, "et", newDeviceId);
+
+  if (storedDeviceId && storedDeviceId !== currentDeviceId) {
+    const userChoice = confirm("Vous êtes déjà connecté sur un autre appareil !\nOK pour vous connecter ici");
+
+    if (userChoice) {
+      await removePrefixedItemNoVerify2('device_id');
+      await setPrefixedItemNoVerify2('device_id', newDeviceId);
+
+      // 🔥 Attendre et re-fetch pour éviter bug
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const refreshedDeviceId = await getPrefixedItemNoVerify2('device_id');
+      console.log("✅ Après remplacement, device_id serveur:", refreshedDeviceId);
+
+      sessionStorage.setItem('device_id', newDeviceId);
+      console.log("✅ Ancien device_id supprimé et remplacé par le nouveau.");
+    } else {
+      console.log("❌ Annulation par l'utilisateur, on stoppe totalement.");
+      await deco();
+      return false;
+    }
+  } else if (!storedDeviceId) {
+    await setPrefixedItemNoVerify2('device_id', newDeviceId);
+
+    // 🔥 Attendre et re-fetch
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const refreshedDeviceId = await getPrefixedItemNoVerify2('device_id');
+    console.log("✅ Nouveau device_id enregistré (aucun précédent). Re-fetch:", refreshedDeviceId);
+
+    sessionStorage.setItem('device_id', newDeviceId);
+  } else {
+    console.log("✅ Device_id identique, aucune modification.");
+  }
+
+  return true;
+}
+
+
+function getStoragePrefix2() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const userParam = urlParams.get("user") || "default";
+  return `${userParam}_`;
+}
+
+async function getPrefixedItemNoVerify2(key) {
+  const prefix = getStoragePrefix2();
+  prefixedKey = prefix + key ;
+  // Ici on envoie seulement key, pas prefix+key
+  console.log(prefix+key)
+  const url = `/G-MAPP/Ressources/PHP/getData.php?username=${encodeURIComponent(prefix)}&key=${encodeURIComponent(prefixedKey)}`;
+  try {
+    const response = await fetch(url);
+    if (response.ok) {
+      const data = await response.json();
+      console.log("🔎 Réponse brute du serveur :", data);
+      return data.value || null;
+    } else {
+      console.error("Erreur lors de la récupération des données sans vérification.");
+      return null;
+    }
+  } catch (error) {
+    console.error('Erreur lors de la récupération des données sans vérification:', error);
+    return null;
+  }
+}
+async function createDeviceId2() {
+  try {
+    const browserInfo = navigator.userAgent;
+
+    // Récupérer le paramètre `device` dans l'URL
+
+    // Exemple final : "Mozilla/5.0... - MonScanner01"
+    return `${browserInfo}-${deviceName}`;
+  } catch (error) {
+    console.error("Erreur lors de la création de l'ID d'appareil:", error);
+    return `${navigator.userAgent}-unknownDevice`;
+  }
+}
+
+
+
+function getLocalIP2() {
+  return new Promise((resolve, reject) => {
+    const pc = new RTCPeerConnection({ iceServers: [] });
+    pc.createDataChannel('');
+    pc.createOffer()
+      .then((offer) => pc.setLocalDescription(offer))
+      .catch((error) => reject('Error setting local description:', error));
+
+    pc.onicecandidate = (event) => {
+      if (!event || !event.candidate) return;
+      const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/;
+      const match = ipRegex.exec(event.candidate.candidate);
+      if (match) {
+        const ipAddress = match[1];
+        resolve(ipAddress);
+      } else {
+        reject("Aucune adresse IP trouvée");
+      }
+      pc.onicecandidate = null;
+    };
+  });
+}
+
+async function removePrefixedItemNoVerify2(key) {
+  const prefix = getStoragePrefix2(); // récupère ton identifiant utilisateur ou dossier
+
+  try {
+    const response = await fetch('/G-MAPP/Ressources/PHP/removeData.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: prefix,
+        key: key
+      })
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Erreur HTTP:", response.status, text);
+      return;
+    }
+
+    const data = await response.json();
+
+    if (data.status === 'success') {
+      console.log('Clé supprimée avec succès:', prefixedKey);
+    } else {
+      console.warn('Suppression échouée :', data.message || data.status);
+    }
+  } catch (error) {
+    console.error("Erreur lors de la suppression sans vérification :", error);
+  }
+}
+
+async function setPrefixedItemNoVerify2(key, value) {
+  const prefix = getStoragePrefix2();
+  const prefixedKey = prefix + key;
+
+  try {
+    const response = await fetchWithRetry2('/G-MAPP/Ressources/PHP/saveData.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: prefix,
+        key: prefixedKey,
+        value: JSON.stringify(value)  // ✅ Encodage ici
+      })
+    });
+
+    if (!response || !response.ok) {
+      const text = await response.text();
+      console.error("Erreur HTTP lors de la sauvegarde :", response?.status, text);
+      return false;
+    }
+
+    const data = await response.json();
+
+    if (data.status === 'success') {
+      console.log(`💾 ID client sur serveur (corrigé) : ${value}`);
+      return true;
+    } else {
+      console.warn('Sauvegarde échouée :', data.message || data.status);
+      return false;
+    }
+  } catch (error) {
+    console.error("Erreur lors de la sauvegarde sans vérification :", error);
+    return false;
+  }
+}
+
+async function deco() {
+  localStorage.removeItem('AUTOUSER');
+  
+}
+
+async function fetchWithRetry2(url, options = {}, retries = 3, backoff = 300) {
+  if (!navigator.onLine || connectionQuality <= 0) {
+    console.warn(`⛔ Hors ligne : tentative ignorée pour ${url}`);
+    return null;
+  }
+
+  let finalResponse = null;
+  let stop = false;
+
+  // Lancer le timer en parallèle
+  const lockPromise = new Promise(resolve2 => {
+    setTimeout(() => {
+      console.log("⏰ Temps simulé 3s terminé (en parallèle)");
+      resolve2();
+    }, 3000);
+  });
+
+  // Boucle principale de retry
+  while (!stop) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url, options);
+        if (response.ok) {
+          finalResponse = response;
+          console.log("✅ Fichier modifié / envoyé à nouveau");
+          break;
+        }
+      } catch (error) {
+        if (navigator.onLine) {
+          console.error(`Tentative ${i + 1} échouée pour ${url}:`, error);
+        }
+      }
+      await new Promise(resolve2 => setTimeout(resolve2, backoff));
+      backoff *= 2;
+    }
+
+    await new Promise(resolve2 => setTimeout(resolve2, 200));
+    stop = true;
+  }
+
+  // Ici on ne fait PAS `await lockPromise` ⇒ le reste du code n’est pas bloqué
+  // Tu peux décider de l'attendre ailleurs si besoin
+
+  return finalResponse;
+}
+
+async function getAllFilesCount() {
+  let count = 0;
+
+  for (const mode of MODES) {
+    const files = await fetchFileList(mode);
+    count += files.length;
+  }
+
+  // Si tu ajoutes manuellement des fichiers spécifiques (comme dans Work, Priv, Story), ils sont déjà ajoutés dans fetchFileList()
+  return count;
+}
+
+
+// ---[ Contrôle "time" vs maintenant (8h) ]----------------------------------
+
+function parseAppTime(str) {
+  // attend "YYYY-MM-DD_HH:mm:ss", possiblement encodé (%3A)
+  if (!str || typeof str !== 'string') return null;
+  const clean = decodeURIComponent(str).trim();
+  const parts = clean.split('_');
+  if (parts.length !== 2) return null;
+
+  const [d, t] = parts;
+  const [Y, M, D] = d.split('-').map(n => parseInt(n, 10));
+  const [h, m, s] = t.split(':').map(n => parseInt(n, 10));
+  if ([Y, M, D, h, m, s].some(n => Number.isNaN(n))) return null;
+
+  // Date en heure locale
+  return new Date(Y, M - 1, D, h, m, s, 0);
+}
+
+async function getSavedLoginTime(user) {
+  // ../data/${user}_/Comm_lastLoginTime.json (peut être texte ou JSON)
+  const url = `../data/${encodeURIComponent(user)}_/Comm_lastLoginTime.json`;
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const txt = await res.text();
+    let raw = txt.trim();
+
+    if (raw.startsWith('{') || raw.startsWith('[')) {
+      try {
+        const obj = JSON.parse(raw);
+        raw = (obj && (obj.time || obj.value || obj.lastLogin || obj[0])) || raw;
+      } catch { /* ignore */ }
+    }
+    return parseAppTime(raw.replace(/^"|"$/g, ''));
+  } catch {
+    return null;
+  }
+}
+
+function diffMoreThan8Hours(dateA, dateB) {
+  const diffMs = Math.abs(dateA.getTime() - dateB.getTime());
+  const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+  return diffMs > EIGHT_HOURS_MS;
+}
+
+async function guardByNow8hRule() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const user = urlParams.get("user") || "default";
+  const urlTimeParam = urlParams.get("time");
+  const now = new Date();
+
+  if (urlTimeParam) {
+    // Cas 1 : time dans l'URL → NE PAS lire la mémoire
+    const urlTime = parseAppTime(urlTimeParam);
+    if (!urlTime) { await deco(); return false; }
+    if (diffMoreThan8Hours(now, urlTime)) { await deco(); return false; }
+    return true;
+  } else {
+    // Cas 2 : pas de time → lire la mémoire, sinon déco
+    const savedTime = await getSavedLoginTime(user);
+    if (!(savedTime instanceof Date) || Number.isNaN(savedTime.getTime())) {
+      await deco();
+      return false;
+    }
+    if (diffMoreThan8Hours(now, savedTime)) { await deco(); return false; }
+    return true;
+  }
+}
+
+function redirectDirectToStartPage(mode) {
+  const currentUrl = window.location.href;
+  const parts = currentUrl.split("index.html");
+  let paramsString = "";
+
+  if (parts[1]?.startsWith("?")) paramsString = parts[1].substring(1);
+  if (paramsString.startsWith("&")) paramsString = paramsString.substring(1);
+
+  const baseUrl = `/G-MAPP/${mode}/start.html`;
+  const finalUrl = paramsString ? `${baseUrl}?${paramsString}` : baseUrl;
+
+  // Redirection immédiate (remplace l’historique pour éviter "Retour" ambigu)
+  window.location.replace(finalUrl);
+}
+
+
+
+
+    startInit();
+
+
+
+</script>
+
+
+</body>
+</html>

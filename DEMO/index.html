@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>G-MAPP - Chargement Ressource Work</title>
+</head>
+
+<style>
+    /* Styles pour que l'iframe occupe tout l'écran */
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+    }
+    .container {
+        height: 100%; /* Utiliser 100% de la hauteur de la vue */
+        width: 100%;
+    }
+    iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+</style>
+
+<body>
+
+    <div class="container">
+        <iframe id="resourceIframe" scrolling="yes"></iframe>
+    </div>
+
+<script>
+
+function getOrCreateCookieID() {
+    const name = 'AUTOUSER=';
+    const parts = document.cookie.split(';');
+    for (let p of parts) {
+        p = p.trim();
+        if (p.startsWith(name)) return p.substring(name.length);
+    }
+    const id = "Demo G-MAPP";
+    document.cookie = `AUTOUSER=${id}; path=/; max-age=315360000; SameSite=Lax`;
+    return id;
+}
+
+window.onload = function () {
+    let autoUser;
+
+    try {
+        autoUser = localStorage.getItem('AUTOUSER');
+        if (!autoUser) {
+            autoUser = getOrCreateCookieID();
+            localStorage.setItem('AUTOUSER', autoUser);
+        }
+    } catch (e) {
+        autoUser = getOrCreateCookieID();
+    }
+
+    const mode = 'Work';
+    const timestamp = Date.now();
+
+    const base = window.location.origin;
+    const redirectUrl = `${base}/G-MAPP/Ressources/index.html?user=${autoUser}&mode=${mode}&timestamp=${timestamp}`;
+
+    const iframe = document.getElementById('resourceIframe');
+    iframe.src = redirectUrl;
+};
+
+
+
+            trackVisit('G-MAPP DEMO')
+
+function trackVisit(pageName = "Accueil") {
+    // 1. Générer ou récupérer un ID Appareil unique
+    let deviceId = localStorage.getItem('app_device_id');
+    if (!deviceId) {
+        deviceId = 'dev-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
+        localStorage.setItem('app_device_id', deviceId);
+    }
+
+    // 2. Envoyer les données
+    fetch('/track.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            deviceId: deviceId,
+            page: pageName
+        })
+    }).catch(e => console.log("Tracking error", e));
+}
+
+
+</script>
+
+</body>
+</html>

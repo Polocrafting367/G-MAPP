@@ -1,0 +1,394 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0px;
+font-weight: bold;
+background-color: white;
+}
+/* Désactiver la sélection de texte sur toute la page */
+body {
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none;    /* Firefox */
+    -ms-user-select: none;     /* Internet Explorer/Edge */
+    user-select: none;         /* Standard non préfixé, utilisé par Chrome, Opera et Firefox 69+ */
+}
+/* Ajouter à votre fichier CSS */
+.dragged {
+    transform: scale(1.01);
+    background-color:rgba(0,150,255,0.1); /* Agrandir légèrement la ligne */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Ajouter une ombre pour un effet "soulevé" */
+    border-color: #666; /* Optionnel: changer la couleur de bordure */
+    opacity: 0.9; /* Légère transparence */
+    transition: transform 0.2s; /* Transition douce pour le transform */
+}
+
+/* Ajouter à votre fichier CSS */
+.dragged:nth-child(even) {
+    transform: scale(1.01);
+    background-color:rgba(0,150,255,0.1); /* Agrandir légèrement la ligne */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Ajouter une ombre pour un effet "soulevé" */
+    border-color: #666; /* Optionnel: changer la couleur de bordure */
+    opacity: 0.9; /* Légère transparence */
+    transition: transform 0.2s; /* Transition douce pour le transform */
+}
+
+#centred, .intervenant-col, .realise-col, .date-col, .date-col {text-align: center;}
+
+.small-col {
+    width: 15px ;
+}
+
+.icon-col {
+        width: 15px ;
+
+}
+
+.checkbox-col {
+        width: 15px ;
+
+}
+.date-butoir-col {
+    width: 90px; /* Ajustez la largeur selon vos besoins */
+    text-align: center;
+}
+
+.date-Fin{
+
+    text-align: center;
+}
+.intervenant-col {
+        width: 20px ;
+
+}
+
+.realise-col {
+        width: 20px ;
+
+}
+
+.date-col {
+    width: 90px !important;
+}
+
+.action-col {
+        width: 30px ;
+padding: 0%;
+}
+
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+thead th {
+    background-color: #333;
+    color: white;
+    text-align: left;
+    padding: 10px;
+    font-size: 14px;
+}
+
+table th, table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+
+tbody td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+tbody tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+#taskTable thead tr#addTaskRow {
+    position: sticky;
+    top: 2;
+    background-color: #f9f9f9;
+    z-index: 2;
+}
+
+#newTaskInput, #newIntervenantInput {
+    width: 100%;
+    border: 1px solid #ccc;
+    padding: 5px;
+    box-sizing: border-box;
+}
+/* Appliquer aux boutons dans les cellules de tableau */
+table td button {
+    width: 100%; /* Le bouton prend toute la largeur de la cellule */
+    height: 100%; /* Le bouton prend toute la hauteur de la cellule */
+    box-sizing: border-box; /* Inclure les bordures et paddings dans la largeur/hauteur */
+    margin: 0; /* Supprimer les marges */
+    padding: 10px; /* Ajuster le padding interne pour un aspect esthétique */
+    border: none; /* Supprimer les bordures par défaut */
+    background-color: #007BFF; /* Couleur de fond */
+    color: white; /* Couleur du texte */
+    cursor: pointer; /* Style de curseur */
+    text-align: center; /* Centrer le texte */
+    border-radius: 0; /* Coins non arrondis pour s'aligner avec la cellule */
+}
+
+table td button:hover {
+    background-color: #0056b3; /* Couleur de fond au survol */
+}
+
+/* Ajoutez une transition pour rendre les changements plus fluides */
+table td button {
+    transition: background-color 0.3s ease;
+}
+
+button {
+    padding: 5px 10px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.editable {
+    border: 1px dashed #ccc;
+    cursor: text;
+    padding: 5px;
+    min-height: 20px; /* Hauteur minimale */
+    box-sizing: border-box;
+}
+
+.editable:focus {
+    outline: none;
+    border: 1px solid #007BFF;
+}
+.editable:empty:before {
+    content: attr(data-placeholder);
+    color: #aaa;
+    pointer-events: none;
+    display: block;
+}
+button {
+    padding: 5px 10px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.icon {
+    text-align: center;
+    cursor: pointer;
+    font-size: 18px;
+    color: #007BFF;
+}
+
+.icon:hover {
+    color: #0056b3;
+}
+
+.move-icon {
+    cursor: move;
+    text-align: center;
+    color: #333;
+}
+
+@media screen and (max-width: 600px) {
+ .date-butoir-col, .intervenant-col, .realise-col, .date-col-max , .realise-col, #centred, .date-Fin {
+        display: none; /* Masque les colonnes */
+    }
+
+    .small-col {
+    width: 7px ;
+}
+
+.date-col {
+    width: 70px !important;
+}
+
+.icon-col {
+        width: 7px ;
+
+}
+
+.checkbox-col {
+        width: 7px ;
+
+}
+    .action-col {
+        padding: 0%;
+
+   }
+   tbody td {
+    padding: 2px;
+            font-size: 15px;
+
+   }
+}
+
+
+
+.importance-2 {
+    background-color: #fffb8d ; /* Attention */
+}
+
+.importance-2:nth-child(even) {
+    background-color:  #e1d06b  ; /* Attention */
+}
+
+
+
+
+.importance-3 {
+    background-color: #ff9e9e ; /* Important */
+}
+.importance-3:nth-child(even) {
+    background-color: #d57e7e ; /* Important */
+}
+
+.note-col.editable {
+    white-space: pre-wrap; /* Assure que les retours à la ligne et les espaces consécutifs sont respectés */
+    overflow-wrap: break-word; /* Empêche le débordement de texte */
+    word-wrap: break-word; /* Pour les anciens navigateurs */
+    min-height: 20px; /* Hauteur minimale initiale */
+    padding: 4px; /* Un peu de padding pour le texte */
+}
+
+.completed {
+    background-color: rgba(0, 255, 0, 0.2) ; /* Légèrement vert */
+}
+.completed:nth-child(even) {
+    background-color: rgba(10, 150, 10, 0.2); /* Légèrement vert */
+}
+
+/* Style du sélecteur d'importance */
+.importance-selector {
+    background: white;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    display: flex;
+    gap: 5px;
+    z-index: 1000;
+}
+
+.importance-selector button {
+    border: none;
+    background: none;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+
+  .checkbox-wrapper-19 {
+    box-sizing: border-box;
+    --checkbox-height: 25px;
+  }
+
+
+
+  .checkbox-wrapper-19 input[type=checkbox] {
+    display: none;
+  }
+
+  .checkbox-wrapper-19 .check-box {
+    height: var(--checkbox-height);
+    width: var(--checkbox-height);
+    background-color: transparent;
+    border: calc(var(--checkbox-height) * .1) solid #000;
+    border-radius: 5px;
+    position: relative;
+    display: inline-block;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    -moz-transition: border-color ease 0.2s;
+    -o-transition: border-color ease 0.2s;
+    -webkit-transition: border-color ease 0.2s;
+    transition: border-color ease 0.2s;
+    cursor: pointer;
+  }
+  .checkbox-wrapper-19 .check-box::before,
+  .checkbox-wrapper-19 .check-box::after {
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    position: absolute;
+    height: 0;
+    width: calc(var(--checkbox-height) * .2);
+    background-color: #34b93d;
+    display: inline-block;
+    -moz-transform-origin: left top;
+    -ms-transform-origin: left top;
+    -o-transform-origin: left top;
+    -webkit-transform-origin: left top;
+    transform-origin: left top;
+    border-radius: 5px;
+    content: " ";
+    -webkit-transition: opacity ease 0.5;
+    -moz-transition: opacity ease 0.5;
+    transition: opacity ease 0.5;
+  }
+  .checkbox-wrapper-19 .check-box::before {
+    top: calc(var(--checkbox-height) * .72);
+    left: calc(var(--checkbox-height) * .41);
+    box-shadow: 0 0 0 calc(var(--checkbox-height) * .05) var(--background-color);
+    -moz-transform: rotate(-135deg);
+    -ms-transform: rotate(-135deg);
+    -o-transform: rotate(-135deg);
+    -webkit-transform: rotate(-135deg);
+    transform: rotate(-135deg);
+  }
+  .checkbox-wrapper-19 .check-box::after {
+    top: calc(var(--checkbox-height) * .37);
+    left: calc(var(--checkbox-height) * .05);
+    -moz-transform: rotate(-45deg);
+    -ms-transform: rotate(-45deg);
+    -o-transform: rotate(-45deg);
+    -webkit-transform: rotate(-45deg);
+    transform: rotate(-45deg);
+  }
+
+  .checkbox-wrapper-19 input[type=checkbox]:checked + .check-box,
+  .checkbox-wrapper-19 .check-box.checked {
+    border-color: #34b93d;
+  }
+  .checkbox-wrapper-19 input[type=checkbox]:checked + .check-box::after,
+  .checkbox-wrapper-19 .check-box.checked::after {
+    height: calc(var(--checkbox-height) / 2);
+    -moz-animation: dothabottomcheck-19 0.2s ease 0s forwards;
+    -o-animation: dothabottomcheck-19 0.2s ease 0s forwards;
+    -webkit-animation: dothabottomcheck-19 0.2s ease 0s forwards;
+    animation: dothabottomcheck-19 0.2s ease 0s forwards;
+  }
+  .checkbox-wrapper-19 input[type=checkbox]:checked + .check-box::before,
+  .checkbox-wrapper-19 .check-box.checked::before {
+    height: calc(var(--checkbox-height) * 1.2);
+    -moz-animation: dothatopcheck-19 0.4s ease 0s forwards;
+    -o-animation: dothatopcheck-19 0.4s ease 0s forwards;
+    -webkit-animation: dothatopcheck-19 0.4s ease 0s forwards;
+    animation: dothatopcheck-19 0.4s ease 0s forwards;
+  }
+
+.intervenant-col,
+.intervenant-col,
+.date-Fin,
+.date-Fin,
+.realise-col,
+.realise-col,
+.date-col-max,
+.date-col-max,
+.date-butoir-col {
+  display: none !important;
+}

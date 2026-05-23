@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion de Tâches</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <table id="taskTable">
+            <thead>
+                <tr class="header-row">
+                    <th class="small-col"><i class="fa-solid fa-up-down-left-right"></i></th>
+                    <th class="icon-col"><i class="fa-solid fa-circle-exclamation"></i></th>
+                    <th class="checkbox-wrapper-19"><i class="fa-solid fa-check-double"></i></th>
+                    
+                    <th class="note-col">Description</th>
+                    
+                    <th class="hidden-force">Intervenant</th>
+                    <th class="hidden-force">Date Butoir</th>
+                    <th class="hidden-force">Réalisé par</th>
+                    
+                    <th class="date-col"><i class="fa-regular fa-calendar-check"></i></th> <th class="hidden-force">Enreg.</th>
+                    <th class="action-col"><i class="fa-solid fa-gears"></i></th>
+                </tr>
+
+                <tr id="addTaskRow">
+                    <td></td> <td></td> <td></td> 
+                    <td contenteditable="true" class="note-col input-zone" data-placeholder="Entrez la tâche ici..."></td>
+                    
+                    <td contenteditable="true" class="hidden-force"></td>
+                    <td contenteditable="true" class="hidden-force"></td>
+                    
+                    <td class="hidden-force"></td>
+                    <td></td> <td class="hidden-force"></td>
+                    
+                    <td class="action-col">
+                        <button class="btn-add" onclick="addTask()">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </td>
+                </tr>
+            </thead>
+            
+            <tbody id="taskList">
+                </tbody>
+        </table>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
