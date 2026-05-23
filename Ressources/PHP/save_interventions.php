@@ -2,7 +2,13 @@
 header('Content-Type: application/json');
 ini_set('display_errors', 0);
 error_reporting(0);
-$cleType = $_POST['cleType'] ?? 'Work';
+$cleType = $_POST['cleType'] ?? 'Work'; // 'Correctif' ou 'Preventif' (à toi de choisir les libellés)
+$userDir = '../../data/user/';
+$user = $_POST['user'];
+$csvContent = $_POST['csvContent'];
+
+$filePath       = $userDir . $user . '_' . $cleType . '.csv';          // interventions
+$piecesFilePath = $userDir . $user . '_' . $cleType . '_pieces.csv';   // ✅ pièces séparées par type
 
 function getInitials($fullName) {
     $parts = explode(' ', trim($fullName));
@@ -40,11 +46,8 @@ if (!isset($_POST['user']) || !isset($_POST['csvContent'])) {
     exit;
 }
 
-$user = $_POST['user'];
-$csvContent = $_POST['csvContent'];
-$userDir = '../../data/user/';
-$filePath = $userDir . $user . '_' . $cleType . '.csv';
-$piecesFilePath = $userDir . $user . '_pieces.csv';
+
+
 
 if (!is_dir($userDir) && !mkdir($userDir, 0777, true)) {
     echo json_encode(['success' => false, 'error' => 'Impossible de créer le répertoire utilisateur.']);
@@ -63,6 +66,43 @@ function loadCSV($filePath, $hasHeader = true, $delimiter = ";") {
     }
     return $data;
 }
+
+
+function parseAndNormalizePieces($raw) {
+    $out = [];
+    if (!is_string($raw) || trim($raw) === '') {
+        return [$out, '[]'];
+    }
+
+    // enlève crochets éventuels
+    $s = trim($raw);
+    if ($s[0] === '[') $s = substr($s, 1);
+    if (substr($s, -1) === ']') $s = substr($s, 0, -1);
+
+    if ($s === '') return [$out, '[]'];
+
+    foreach (explode(',', $s) as $chunk) {
+        $chunk = trim($chunk);
+        if ($chunk === '') continue;
+
+        // coupe la place d'abord
+        $left = explode('@', $chunk, 2)[0];   // "ID:Q"
+        $parts = explode(':', $left, 2);
+        $id  = isset($parts[0]) ? trim($parts[0]) : '';
+        $qty = isset($parts[1]) ? (int)trim($parts[1]) : 1;
+
+        if ($id !== '' && $qty > 0) {
+            $out[] = [$id, $qty];
+        }
+    }
+
+    // reconstruit au format "[ID:Q, ID:Q]"
+    if (empty($out)) return [$out, '[]'];
+    $str = '[' . implode(', ', array_map(function($pq){ return $pq[0].':'.$pq[1]; }, $out)) . ']';
+    return [$out, $str];
+}
+
+
 
 $interventionNumbers = loadInterventionNumbers($user);
 $lastNumbersByDate = [];
@@ -87,19 +127,22 @@ $newLines = array_map('trim', explode("\n", $csvContent));
 $isHeader = true;
 
 foreach ($newLines as $line) {
-    if ($isHeader) {
-        $isHeader = false;
-        continue;
-    }
+    if ($isHeader) { $isHeader = false; continue; }
+
     $fields = explode(";", $line);
     if (count($fields) < 10) {
+        // ligne invalide, on saute
         continue;
     }
 
-    $id = $fields[0];
-    $date = $fields[1];
+    // --- Normaliser la colonne Pièces (index 6): retirer @place ---
+    list($piecesParsed, $piecesNormalized) = parseAndNormalizePieces($fields[6] ?? '');
+    $fields[6] = $piecesNormalized; // ex: "[ID1:2, ID2:1]"
+
+    $id        = $fields[0];
+    $date      = $fields[1];
     $personnel = $fields[8];
-    $key = $id . '_' . $date . '_' . $personnel;
+    $key       = $id . '_' . $date . '_' . $personnel;
 
     if (isset($existingKeys[$key])) {
         continue;
@@ -109,17 +152,25 @@ foreach ($newLines as $line) {
     if (!isset($interventionNumbers[$interventionKey])) {
         $lastNumber = $lastNumbersByDate[$date] ?? ($interventionNumbers[$date] ?? 0);
         $lastNumbersByDate[$date] = $lastNumber + 1;
-        $interventionNumbers[$interventionKey] = sprintf("%s%s%04d", $date, getInitials($user), $lastNumbersByDate[$date]);
+        $interventionNumbers[$interventionKey] = sprintf(
+            "%s%s%04d",
+            $date,
+            getInitials($user),
+            $lastNumbersByDate[$date]
+        );
     }
 
+    // injecte n° fiche corrective
     $fields[10] = $interventionNumbers[$interventionKey];
-    $existingData[] = $fields;
+
+    // empile la ligne normalisée dans le CSV principal
+    $existingData[]    = $fields;
     $existingKeys[$key] = true;
 
-    if (!empty($fields[6])) {
-        $piecesList = explode(',', trim($fields[6], '[]'));
-        foreach ($piecesList as $piece) {
-            list($pieceNumber, $quantity) = explode(':', $piece);
+    // --- Alimente le CSV pièces avec le parsing déjà fait ---
+    if (!empty($piecesParsed)) {
+        foreach ($piecesParsed as $pq) {
+            list($pieceNumber, $quantity) = $pq; // [$id, $qty]
             $pieceLine = [$fields[10], $pieceNumber, $quantity];
             if (!in_array($pieceLine, $existingPieces, true)) {
                 $existingPieces[] = $pieceLine;
@@ -127,6 +178,7 @@ foreach ($newLines as $line) {
         }
     }
 }
+
 
 usort($existingData, function ($a, $b) {
     return strcmp($a[1], $b[1]) ?: strcmp($a[0], $b[0]);

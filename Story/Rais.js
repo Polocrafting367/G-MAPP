@@ -1,7 +1,0 @@
-const lieuData = {
-    types: [
-],
-    causes: [
-] 
-};
-

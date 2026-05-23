@@ -1,4 +1,0 @@
-false
-144
-true
-true

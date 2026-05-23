@@ -55,70 +55,17 @@
             <textarea id="zone-texte" placeholder="Saisissez quelque chose..."></textarea>
 
 
-            <label for="causeInput" style="display: none;">Sortie de pièces :</label>
+<label id="label-pieces" for="causeInput" style="display:none;">Sortie de pièces :</label>
 
-            <!-- Conteneur pour afficher dynamiquement les capsules avec défilement horizontal -->
-            <div id="capsules-container" style="display: none;" style="padding: 8px; border: 1px solid #ccc; min-height: 30px; display: flex; flex-wrap: nowrap; gap: 10px; overflow-x: auto; white-space: nowrap; background: rgba(100,100,100,0.5); border-radius: 10px;">
-                <!-- Les capsules seront affichées ici -->
-            </div>
+<!-- Ligne capsules + bouton + -->
+<div id="pieces-row" class="pieces-row" style="display: none;">
+  <div id="capsules-container" class="capsules"></div>
+  <button id="add-piece-button" class="add-piece-btn" type="button" onclick="SendPiece()" aria-label="Ajouter une pièce">+</button>
+</div>
 
-            <!-- Styles pour gérer les barres de défilement -->
-            <style>
-                /* Par défaut : cacher la barre de défilement sur mobile et permettre le défilement horizontal */
-                #capsules-container {
-                    overflow-x: auto;
-                    /* Activer le défilement horizontal */
-                    -webkit-overflow-scrolling: touch;
-                    /* Défilement fluide sur mobile */
-                }
+<!-- Zone texte (si tu veux la garder, masquée) -->
+<textarea id="zone-pieces" placeholder="Pièces de sortie... (Facultatif)" style="display:none;width:100%;"></textarea>
 
-                /* Masquer la barre de défilement horizontale dans Webkit (Chrome, Safari) sur mobile */
-                #capsules-container::-webkit-scrollbar {
-                    height: 0px;
-                    /* Masquer la barre de défilement horizontale */
-                }
-
-                /* Masquer la barre de défilement dans les navigateurs modernes (Edge, Firefox) sur mobile */
-                #capsules-container {
-                    -ms-overflow-style: none;
-                    /* Pour IE/Edge */
-                    scrollbar-width: none;
-                    /* Pour Firefox */
-                }
-
-                /* Sur les écrans plus grands (PC) : afficher la barre de défilement */
-                @media (min-width: 601px) {
-                    #capsules-container {
-                        overflow-x: scroll;
-                        /* Afficher la barre de défilement sur PC */
-                    }
-
-                    /* Afficher la barre de défilement horizontale dans Webkit (Chrome, Safari) */
-                    #capsules-container::-webkit-scrollbar {
-                        height: 8px;
-                        /* Taille de la barre de défilement horizontale */
-                        background: transparent;
-                    }
-
-                    /* Afficher la barre de défilement dans les navigateurs modernes (Edge, Firefox) */
-                    #capsules-container {
-                        scrollbar-width: thin;
-                        /* Barre de défilement fine sur PC */
-                    }
-                }
-            </style>
-
-
-
-            <!-- Zone de texte (masquée ou visible selon préférence) -->
-            <textarea id="zone-pieces" placeholder="Pièces de sortie... (Facultatif)" style="width: 100%; display: none;"></textarea>
-
-            <!-- Conteneur flex pour la zone de texte et le bouton -->
-            <div style="display: flex; align-items: stretch; gap: 10px; flex-wrap: nowrap;">
-                <!-- Bouton Ajouter pièce -->
-                <button id="add-piece-button" class="modal-button" onclick="//SendPiece()" style="display: none;" style="background-color: grey; color: white; border: none; padding: 2px; border-radius: 8px; cursor: pointer; width: 100px; min-width: 20%;">
-                    Ajouter pièce
-                </button>
             </div>
 
 

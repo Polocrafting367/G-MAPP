@@ -12,6 +12,9 @@ const causeInput = document.getElementById("causeInput");
 const typeListFix = document.getElementById("typeListFix");
 const causeListFix = document.getElementById("causeListFix");
 
+// tout en haut, près de tes autres const
+const typeDropdown  = document.getElementById('typeDropdown');
+const causeDropdown = document.getElementById('causeDropdown');
 
 // Utiliser les valeurs de typeInput et causeInput dans le reste du code
 document.getElementById('clearTypeBtn').addEventListener('click', () => {
@@ -32,45 +35,153 @@ var totalPauseDuration;
 var elapsedTime;
 var interval; // Déclarer interval au niveau global
 
-
 const tempsArretsInput = document.getElementById("tempsArretsInput");
+let savedTheme = "";
+let contrastEnabled = false;
+
 function removeAllThemes() {
-    ["glassThemeStyle", "retroThemeStyle"].forEach(id => {
+    ["glassThemeStyle", "retroThemeStyle", "contrastStyle"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.remove();
     });
 }
-async function handleThemeButtonClick(theme) {
-    await setPrefixedItem("themeGlassEnabled", theme);
 
-    removeAllThemes();
-
-    if (theme === "glass") {
-        await loadThemeCSS("glassThemeStyle", "CSS/style_glass.css");
-    } else if (theme === "retro") {
-        await loadThemeCSS("retroThemeStyle", "CSS/style_retro.css");
+async function loadThemeCSS(styleId, path) {
+    try {
+        const css = await getFileFromDB(path);
+        let style = document.getElementById(styleId);
+        if (!style) {
+            style = document.createElement("style");
+            style.id = styleId;
+            document.head.appendChild(style);
+        }
+        style.textContent = css;
+        console.log(`✅ CSS chargé depuis IndexedDB : ${path}`);
+    } catch (error) {
+        console.error(`❌ Impossible de charger CSS depuis IndexedDB (${path}) :`, error);
+        return;
     }
 }
-async function loadThemeCSS(styleId, path) {
-  try {
-    // Essaie directement depuis IndexedDB
-    const css = await getFileFromDB(path);
 
-    let style = document.getElementById(styleId);
-    if (!style) {
-      style = document.createElement("style");
-      style.id = styleId;
-      document.head.appendChild(style);
+/* ---------- CONTRASTE : APPLY / REMOVE + PERSIST ---------- */
+function removeContrastCSS() {
+    const node = document.getElementById("contrastStyle");
+    if (node) node.remove();
+}
+async function applyContrastCSS() {
+    if (!document.getElementById("contrastStyle")) {
+        await loadThemeCSS("contrastStyle", "CSS/style_constrast.css");
     }
-    style.textContent = css;
-    console.log(`✅ CSS chargé depuis IndexedDB : ${path}`);
-  } catch (error) {
-    console.error(`❌ Impossible de charger CSS depuis IndexedDB (${path}) :`, error);
+}
+function removeContrastEffects() {
+    document.querySelectorAll("button").forEach(btn => {
+        btn.classList.remove("no-contrast-overlay");
+        const m = btn.querySelector("span[data-contrast-span='1']");
+        if (m) { btn.textContent = m.textContent; }
+    });
+}
+async function applyContrastEffects() {
+    document.querySelectorAll("button").forEach(btn => {
+        if (btn.id && btn.id.startsWith("lancer-chrono-btn")) {
+            btn.classList.add("no-contrast-overlay");
+            return;
+        }
+        if (btn.querySelector("span[data-contrast-span='1']")) return;
+        const span = document.createElement("span");
+        span.setAttribute("data-contrast-span", "1");
+        span.textContent = btn.textContent;
+        span.style.position = "relative";
+        span.style.zIndex = "1";
+        btn.textContent = "";
+        btn.appendChild(span);
+    });
+}
+async function setContrastState(enabled, persist) {
+  contrastEnabled = !!enabled;
+  // NEW: expose l’état au CSS
+  document.documentElement.classList.toggle('contrast-on', contrastEnabled);
 
-    // Si la lecture échoue, on ne tente PAS de fallback, on sort
-    return;
+  if (contrastEnabled) {
+    await applyContrastCSS();
+    await applyContrastEffects();
+  } else {
+    removeContrastEffects();
+    removeContrastCSS();
+  }
+  if (persist) {
+    try { await setPrefixedItem("contrastEnabled", contrastEnabled ? "true" : "false"); } catch {}
   }
 }
+
+/* ---------- LECTURE ETAT CONTRASTE ---------- */
+function waitParentContrast(timeoutMs = 800) {
+    return new Promise(resolve => {
+        let settled = false;
+        function onMsg(e) {
+            if (!e || !e.data || e.data.type !== "contrast-state") return;
+            settled = true;
+            window.removeEventListener("message", onMsg);
+            resolve(!!e.data.enabled);
+        }
+        window.addEventListener("message", onMsg);
+        try { window.parent && window.parent.postMessage({ type: "request-contrast-state" }, "*"); } catch {}
+        setTimeout(() => {
+            if (settled) return;
+            window.removeEventListener("message", onMsg);
+            resolve(null); // parent muet → fallback DB
+        }, timeoutMs);
+    });
+}
+
+async function readContrastFromDB() {
+    try {
+        const raw = await getPrefixedItem("contrastEnabled");
+        return (raw === true || raw === "true");
+    } catch { return false; }
+}
+
+/* ---------- INIT THEME + CONTRASTE ---------- */
+async function ChargTheme() {
+    const rawTheme = await getPrefixedItem("themeEnabled").catch(() => "");
+    try { savedTheme = JSON.parse(rawTheme); } catch { savedTheme = rawTheme; }
+
+    removeAllThemes(); // retire tout, y compris un contraste collé
+
+    if (savedTheme === "glass") {
+        await loadThemeCSS("glassThemeStyle", "CSS/style_glass.css");
+    } else if (savedTheme === "retro") {
+        await loadThemeCSS("retroThemeStyle", "CSS/style_retro.css");
+    }
+
+    // 1) on demande au parent (source de vérité)
+    const fromParent = await waitParentContrast();
+    if (fromParent !== null) {
+        await setContrastState(fromParent, true); // applique + PERSISTE dans l’IndexedDB de l’iframe
+        return;
+    }
+
+    // 2) fallback DB locale si le parent est muet
+    const fromDB = await readContrastFromDB();
+    await setContrastState(fromDB, false);
+}
+
+/* ---------- ECOUTE MISE A JOUR EN DIRECT ---------- */
+window.addEventListener("message", async (e) => {
+    if (!e || !e.data || e.data.type !== "contrast-state") return;
+    await setContrastState(!!e.data.enabled, true); // applique + synchronise la clé locale
+});
+
+/* ---------- ACTION UTILISATEUR ---------- */
+async function handleThemeButtonClick(theme) {
+    await setPrefixedItem("themeGlassEnabled", theme);
+    await setPrefixedItem("themeEnabled", JSON.stringify(theme));
+    await ChargTheme();
+}
+
+/* ---------- BOOT ---------- */
+window.addEventListener("DOMContentLoaded", async () => {
+    await ChargTheme();
+});
 
 
   async function getFileContent(fileName) {
@@ -121,6 +232,7 @@ console.log('if'+ theme)
 if (theme) {
     await handleThemeButtonClick(theme);
 }
+enablePieces();
 
     // Démarrer la récupération des données sans attendre indéfiniment
     const getDataPromise = getPrefixedItem(lieu);
@@ -136,14 +248,21 @@ if (theme) {
     } else {
         // Aucune donnée reçue dans le délai imparti : on initialise le chrono avec les données par défaut ou issues de l'URL
         const tempsParam = getURLParameter('temps');
-        const liste1 = getURLParameter('Text1');
-        const liste2 = getURLParameter('Text2');
-        const Text1 = getURLParameter('liste1');
-        const Text2 = getURLParameter('liste2');
+        const liste1 = getURLParameter('liste1'); // type
+        const liste2 = getURLParameter('liste2'); // cause
+        const Text1  = getURLParameter('Text1');  // zoneTexte
+        const Text2  = getURLParameter('Text2');  // zonePieces
         const tempbox = getURLParameter('arret');
 
-        console.log("iframe RestoCréa pour : " + lieux + " || Avec les éléments || Temps : " + tempsParam + " || Pièces : " + liste1 + " || Résumer : " + liste2 + " || Type : " + Text1 + " || Cause : " + Text2 + " || TPS Arret : " + tempbox);
-
+console.log(
+  `iframe RestoCréa pour : ${lieux} || Avec les éléments` +
+  ` || Temps : ${tempsParam}` +
+  ` || Type : ${liste1}` +
+  ` || Cause : ${liste2}` +
+  ` || Pièces : ${Text2}` +
+  ` || Résumé : ${Text1}` +    // ou l’inverse selon ton intention
+  ` || TPS Arrêt : ${tempbox}`
+);
         if (tempsParam !== "") {
             const tempsActuel = new Date().getTime();
             elapsedTime = 0;
@@ -210,35 +329,45 @@ if (theme) {
 
 
 function convertirTempsEnMillisecondes(temps) {
-    const regex = /(\d+)([jhrsm])/g;
-    let match;
-    let tempsEnMillisecondes = 0;
+  if (!temps) return 0;
 
-    while ((match = regex.exec(temps)) !== null) {
-        const valeur = parseInt(match[1], 10);
-        const unite = match[2];
+  // On autorise des formats variés : "1h 30", "1h30", "27m 58", "3h 5", "56"
+  const str = String(temps).toLowerCase();
 
-        switch (unite) {
-            case 'j':
-                tempsEnMillisecondes += valeur * 24 * 60 * 60 * 1000;
-                break;
-            case 'h':
-                tempsEnMillisecondes += valeur * 60 * 60 * 1000;
-                break;
-            case 'm':
-                tempsEnMillisecondes += valeur * 60 * 1000;
-                break;
-            case 's':
-                tempsEnMillisecondes += valeur * 1000;
-                break;
-            default:
-                // Ignorer les unités inconnues
-                break;
-        }
+  // Règle de défaut contextuelle :
+  // - si unité manquante après 'h' => minutes
+  // - si unité manquante après 'm' => secondes
+  // - sinon (début ou autre)       => minutes
+  let lastContextUnit = null; // 'h' | 'm' | 'j' | 's' | null
+
+  let total = 0;
+  const re = /(\d+)\s*([jhrsm]?)/g; // nombre + unité optionnelle
+  let m;
+
+  while ((m = re.exec(str)) !== null) {
+    const value = parseInt(m[1], 10);
+    let unit = m[2]; // peut être vide
+
+    if (!unit) {
+      if (lastContextUnit === 'h') unit = 'm';
+      else if (lastContextUnit === 'm') unit = 's';
+      else unit = 'm'; // défaut global : minutes
+    } else {
+      lastContextUnit = unit; // met à jour le contexte seulement si unité explicite
     }
 
-    return tempsEnMillisecondes;
+    switch (unit) {
+      case 'j': total += value * 24 * 60 * 60 * 1000; break;
+      case 'h': total += value * 60 * 60 * 1000; break;
+      case 'm': total += value * 60 * 1000; break;
+      case 's': total += value * 1000; break;
+      default:  /* ignore */ break;
+    }
+  }
+
+  return total; // 0 si rien de valide trouvé (comportement inchangé)
 }
+
 
 
 function getURLParameter(name) {
@@ -287,8 +416,7 @@ async function restoreChronoData(differenceTemps) {
                 updateCapsules(); 
             }
 
-            var typeDropdown = document.getElementById("typeDropdown");
-            var causeDropdown = document.getElementById("causeDropdown");
+
             const tempsArretsInput = document.getElementById("tempsArretsInput");
             if (chronoData.type) {
                 typeDropdown.value = chronoData.type;
@@ -351,6 +479,10 @@ async function restoreChronoData(differenceTemps) {
                 document.querySelector('.chrono-status').style.color = 'yellow';
                 displayTime(elapsedTime);
             }
+
+
+
+
         }
     } else {
 
@@ -414,6 +546,11 @@ async function restoreChronoData(differenceTemps) {
 
                 // Enregistrer les données du chrono dans le localStorage
                 await setPrefixedItem(lieu, JSON.stringify(chronoData));
+
+
+
+
+
             } else {
 
                 const tempsActuel = new Date().getTime();
@@ -454,6 +591,9 @@ async function restoreChronoData(differenceTemps) {
 
         return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
     }
+
+
+
 }
 
 
@@ -490,9 +630,7 @@ async function pauseResumeChrono() {
         pauseStartTime = new Date().getTime();
         clearInterval(interval);
 
-        // Ajouter les valeurs de type et de cause
-        const typeDropdown = document.getElementById("typeDropdown");
-        const causeDropdown = document.getElementById("causeDropdown");
+
         const typeValue = typeDropdown.value;
         const causeValue = causeDropdown.value;
         const arretValue = tempsArretsInput.value;
@@ -527,9 +665,6 @@ async function pauseResumeChrono() {
         startTime += pauseDuration;
         interval = setInterval(updateChrono, 1000);
 
-        // Ajouter les valeurs de type et de cause
-        const typeDropdown = document.getElementById("typeDropdown");
-        const causeDropdown = document.getElementById("causeDropdown");
         const typeValue = typeDropdown.value;
         const causeValue = causeDropdown.value;
         const arretValue = tempsArretsInput.value;
@@ -558,159 +693,10 @@ async function pauseResumeChrono() {
     }
 }
 
-async function saveRecord() {
-
-
-    const savedData = await getPrefixedItem(lieu); // Assurez-vous d'utiliser `await`
-
-    const listItem = document.querySelector('.active-chrono');
-    const pauseResumeButton = listItem.querySelector('.modal-button[onclick="pauseResumeChrono()"]');
-    const tempsArretInput = document.getElementById("tempsArretsInput");
-    const tempsArretValue = tempsArretInput.value;
-
-    // Vérifier si la chronologie est en pause
-    if (isPaused === false) {
-        isPaused = true;
-        pauseStartTime = new Date().getTime();
-        clearInterval(interval);
-    }
-
-    // Récupérer les valeurs des listes déroulantes de type et de cause
-    const typeValue = document.getElementById('typeDropdown').value;
-    const causeValue = document.getElementById('causeDropdown').value;
-    const arretValue = document.getElementById('tempsArretsInput').value;
-
-    // Récupérer les valeurs des champs de texte
-    const zoneTexteValue = document.getElementById('zone-texte').value.trim(); // Assurez-vous de bien cibler l'élément
-    const zonePiecesValue = document.getElementById('zone-pieces').value.trim();
-
-    // Vérifier si la zone de texte contient un point-virgule
-
-
-    // Vérifier si les champs obligatoires sont renseignés
-    if (
-        zoneTexteValue.trim() === '' ||
-        typeValue.trim() === '' ||
-        causeValue.trim() === '' ||
-        zoneTexteValue.includes('_') ||
-        zoneTexteValue.includes('&') ||
-        zoneTexteValue.includes('%') ||
-        zoneTexteValue.includes('#') ||
-        zoneTexteValue.includes('|') ||
-        zoneTexteValue.includes(';')
-
-    ) {
-        // Afficher un message d'erreur et empêcher l'enregistrement
-        alert("Vérifier que tous les champs obligatoires (Texte, Type, Cause) soit remplis. \nSans utiliser les caractères spéciaux suivants : \n _ & % # + | ;");
 
 
 
-        listItem.classList.add('STOP');
-        document.querySelector('.chrono-status').textContent = 'Info manquantes';
-        document.querySelector('.chrono-status').style.color = 'white';
-        pauseResumeButton.textContent = 'Reprendre';
-        pauseResumeButton.style.backgroundColor = 'green';
-        isPaused = true;
-        pauseStartTime = new Date().getTime();
-        clearInterval(interval);
 
-        const chronoData = {
-            isPaused: isPaused,
-            startTime: startTime,
-            pauseStartTime: pauseStartTime,
-            totalPauseDuration: totalPauseDuration,
-            elapsedTime: elapsedTime,
-            texteZone: zoneTexte.value,
-            piecesSortie: zonePieces.value,
-            type: typeValue,
-            cause: causeValue,
-            arret: arretValue
-        };
-
-        await setPrefixedItem(lieu, JSON.stringify(chronoData));
-        return;
-    }
-
-    // Créer l'objet chronoData avec les données de la chronologie et les informations de type et de cause
-    const chronoData = {
-        isPaused: isPaused,
-        startTime: startTime,
-        pauseStartTime: pauseStartTime,
-        totalPauseDuration: totalPauseDuration,
-        elapsedTime: elapsedTime,
-        texteZone: zoneTexteValue,
-        piecesSortie: zonePiecesValue,
-        type: typeValue,
-        cause: causeValue,
-        arret: arretValue
-    };
-
-    await setPrefixedItem(lieu, JSON.stringify(chronoData));
-
-    // Marquer la chronologie comme STOP
-    listItem.classList.add('STOP');
-    document.querySelector('.chrono-status').textContent = 'Sauvegarde échouée, réessayez.';
-    document.querySelector('.chrono-status').style.color = 'white';
-    pauseResumeButton.textContent = 'Reprendre';
-    pauseResumeButton.style.backgroundColor = 'green';
-
-    // Si les valeurs nécessaires sont renseignées, procéder à l'enregistrement
-    const tempsAffiche = document.getElementById('chrono').textContent;
-    const currentDate = new Date();
-
-    const lieuSansCompteur = retirerSuffixeCompteur(lieu);
-
-    const formattedDate = `${pad(currentDate.getDate())}/${pad(currentDate.getMonth() + 1)}/${currentDate.getFullYear()}`;
-    
-const texteZoneNettoye = remplacerPlusUnicode(zoneTexteValue);
-
-const enregistrement = `${formattedDate} _ ${tempsAffiche} _ ${lieuSansCompteur} _ ${texteZoneNettoye} _ ${zonePiecesValue} _ ${typeValue} _ ${causeValue} _ ${tempsArretValue}`;
-
-
-console.log(elapsedTime)
-console.log(2 * 60 * 60 * 1000)
-// Vérification si temps < 2 heures
-if (elapsedTime > 2 * 60 * 60 * 1000) {
-const afftime = (elapsedTime / (60 * 60 * 1000)).toFixed(1);
-const confirmer = confirm("Le temps semble élevé : " + afftime + " h. OK pour continuer ?");
-
-    if (!confirmer) {
-        // Mise en pause et indication visuelle
-        isPaused = true;
-        pauseStartTime = new Date().getTime();
-        clearInterval(interval);
-        listItem.classList.add('STOP');
-        document.querySelector('.chrono-status').textContent = 'Mis en attente';
-        document.querySelector('.chrono-status').style.color = 'orange';
-        pauseResumeButton.textContent = 'Reprendre';
-        pauseResumeButton.style.backgroundColor = 'green';
-
-        const chronoData = {
-            isPaused: isPaused,
-            startTime: startTime,
-            pauseStartTime: pauseStartTime,
-            totalPauseDuration: totalPauseDuration,
-            elapsedTime: elapsedTime,
-            texteZone: zoneTexteValue,
-            piecesSortie: zonePiecesValue,
-            type: typeValue,
-            cause: causeValue,
-            arret: arretValue
-        };
-
-        await setPrefixedItem(lieu, JSON.stringify(chronoData));
-        return; // Ne pas enregistrer
-    }
-}
-
-        sendEventToParent('enregistrement', enregistrement);
-
-        setTimeout(async () => {
-            sendEventToParent('fermer', lieu);
-
-        }, 100);
-   
-}
 
 function retirerSuffixeCompteur(lieu) {
     return lieu.replace(/\[\d+\]$/, ''); // Retire les suffixes du type [1], [2], [3], etc.
@@ -868,21 +854,44 @@ zoneTexte.addEventListener('blur', () => {
         zoneTexte.value = '';
     }
 });
-function updateFloatingList(input, list, data) {
-  const searchValue = norm(input.value);
+
+
+function updateFloatingList(input, list, data, onPick) {
+  if (!input || !list) return;
+
+  // Sécurise la source de données
+  const dataset =
+    Array.isArray(data) ? data :
+    (input === typeDropdown ? getRawTypes() : getRawCauses());
+
+  const items = Array.isArray(dataset) ? dataset : [];
+
+  const searchValue = norm(input.value || '');
   list.innerHTML = '';
 
   let hasMatch = false;
-  data.forEach(item => {
+  items.forEach(item => {
     if (norm(item).includes(searchValue)) {
       const li = document.createElement('li');
       li.textContent = item;
-      li.onclick = () => {
-        input.value = item;           // valeur “propre”
-        input.classList.remove("not-in-list");
+
+      li.addEventListener('click', () => {
+        const txt = li.textContent.trim();
+        if (!txt || txt === 'Aucun résultat') return;
+        if (typeof onPick === 'function') onPick(item);
+        else {
+          input.value = item;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
         list.style.display = 'none';
+        queueMicrotask(() => {
+          input.focus({ preventScroll: true });
+          const len = input.value.length;
+          try { input.setSelectionRange(len, len); } catch {}
+        });
         updateLocalStorage();
-      };
+      });
+
       list.appendChild(li);
       hasMatch = true;
     }
@@ -895,8 +904,213 @@ function updateFloatingList(input, list, data) {
     li.style.cursor = 'default';
     list.appendChild(li);
   }
-  list.style.display = 'block';
+
+  wireListPointer(list, input, ({ text }) => {
+    if (typeof onPick === 'function') onPick(text);
+    else {
+      input.value = text;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    list.style.display = 'none';
+    updateLocalStorage();
+  });
+
+  openOnly(list);
 }
+
+
+async function saveRecord() {
+  const savedData = await getPrefixedItem(lieu);
+
+  const listItem = document.querySelector('.active-chrono');
+  const pauseResumeButton = listItem.querySelector('.modal-button[onclick="pauseResumeChrono()"]');
+
+  if (isPaused === false) {
+    isPaused = true;
+    pauseStartTime = new Date().getTime();
+    clearInterval(interval);
+  }
+
+  // --- UI courante
+  const typeEl        = document.getElementById('typeDropdown');
+  const causeEl       = document.getElementById('causeDropdown');
+  const zoneTexteEl   = document.getElementById('zone-texte');
+  const zonePiecesEl  = document.getElementById('zone-pieces');
+  const arretEl       = document.getElementById('tempsArretsInput');
+
+  const typeRaw    = (typeEl?.value ?? '').trim();
+  const causeRaw   = (causeEl?.value ?? '').trim();
+  const zoneText   = (zoneTexteEl?.value ?? '').trim();
+  const piecesTxt  = (zonePiecesEl?.value ?? '').trim();
+  const arretValue = (arretEl?.value ?? '').trim();
+
+  // ★ 1) Remplacement automatique des '+' par le plein-chasse (U+FF0B)
+  //    On ne modifie pas l'UI, seulement la valeur utilisée pour valider / sauvegarder.
+  const zoneTextFixed = remplacerPlusUnicode(zoneText);
+
+  // --- LISTES BRUTES Rais.js
+  const rawFromRais =
+    (typeof lieuData !== 'undefined' && lieuData) ? lieuData :
+    (typeof window !== 'undefined' && window.lieuData ? window.lieuData : null);
+
+  const allowedTypes  = Array.isArray(rawFromRais?.types)  ? rawFromRais.types  : [];
+  const allowedCauses = Array.isArray(rawFromRais?.causes) ? rawFromRais.causes : [];
+
+  // --- Canonisation Type/Cause (si listes dispo)
+  const toCanonMap = (arr) => new Map(arr.map(x => [norm(x), x]));
+  let typeCanon  = typeRaw;
+  let causeCanon = causeRaw;
+
+  if (allowedTypes.length) {
+    const m = toCanonMap(allowedTypes);
+    typeCanon = m.get(norm(typeRaw)) ?? '';
+  }
+  if (allowedCauses.length) {
+    const m = toCanonMap(allowedCauses);
+    causeCanon = m.get(norm(causeRaw)) ?? '';
+  }
+
+  // --- Reset styles d'erreur
+  typeEl?.classList?.remove('input-invalid');
+  causeEl?.classList?.remove('input-invalid');
+  zoneTexteEl?.classList?.remove('input-invalid');
+
+  const mustCheckType  = allowedTypes.length  > 0;
+  const mustCheckCause = allowedCauses.length > 0;
+
+  const badType  = mustCheckType  && !typeCanon;
+  const badCause = mustCheckCause && !causeCanon;
+
+  // --- Règles Résumé
+  // ★ 2) On valide sur la version corrigée (zoneTextFixed) ; le '+' original n’entrera plus en conflit.
+  const forbiddenChars = /[_&%#|;"]/; // _ & % # | ; " +
+  const badResume = (zoneTextFixed === '') || forbiddenChars.test(zoneTextFixed);
+
+  // --- Si erreur(s)
+  if (badType || badCause || badResume) {
+    if (badType)  { typeEl.value  = ''; typeEl.classList?.add('input-invalid'); }
+    if (badCause) { causeEl.value = ''; causeEl.classList?.add('input-invalid'); }
+    if (badResume){               zoneTexteEl.classList?.add('input-invalid'); } // on NE vide PAS le résumé
+
+    const parts = [];
+    if (badType)  parts.push('Type');
+    if (badCause) parts.push('Cause');
+    if (badResume)parts.push('Résumé');
+
+    // Texte de statut
+    let statusLabel = '';
+    if (parts.length === 3) {
+      statusLabel = parts.slice(0, -1).join(', ') + ' et ' + parts.slice(-1);
+    } else {
+      if (parts.length === 1) {
+        statusLabel = 'Erreur ' + parts[0];
+      } else if (parts.length === 2) {
+        statusLabel = 'Erreur ' + parts.join(' et ');
+      } else {
+        statusLabel = 'Erreur ' + parts.slice(0, -1).join(', ') + ' et ' + parts.slice(-1);
+      }
+    }
+
+    const alertLines = [];
+    if (badType && badCause) alertLines.push('Type/Cause vide ou incorrect');
+    else if (badType)        alertLines.push('Type vide ou incorrect');
+    else if (badCause)       alertLines.push('Cause vide ou incorrect');
+
+    if (badResume) {
+      alertLines.push(
+        'Résumé vide ou incorrect car :',
+        '_  &  %  #  |  ;  "',
+        'Innutilisable !'
+      );
+    }
+
+    alert(alertLines.join('\n'));
+
+    listItem.classList.add('STOP');
+    document.querySelector('.chrono-status').textContent = statusLabel;
+    document.querySelector('.chrono-status').style.color = 'white';
+    pauseResumeButton.textContent = 'Reprendre';
+    pauseResumeButton.style.backgroundColor = 'green';
+    isPaused = true;
+    pauseStartTime = new Date().getTime();
+    clearInterval(interval);
+
+    await setPrefixedItem(lieu, JSON.stringify({
+      isPaused, startTime, pauseStartTime, totalPauseDuration, elapsedTime,
+      // ★ 3) On persiste aussi la version corrigée
+      texteZone: zoneTextFixed,
+      piecesSortie: piecesTxt,
+      type: typeEl.value,
+      cause: causeEl.value,
+      arret: arretValue
+    }));
+    return;
+  }
+
+  // --- OK : remettre la forme canonique si trouvée
+  if (typeCanon)  typeEl.value  = typeCanon;
+  if (causeCanon) causeEl.value = causeCanon;
+
+  // --- Persistance avant construction de la ligne
+  const chronoData = {
+    isPaused,
+    startTime,
+    pauseStartTime,
+    totalPauseDuration,
+    elapsedTime,
+    // ★ 4) Toujours stocker la version corrigée
+    texteZone: zoneTextFixed,
+    piecesSortie: piecesTxt,
+    type: typeCanon,
+    cause: causeCanon,
+    arret: arretValue
+  };
+  await setPrefixedItem(lieu, JSON.stringify(chronoData));
+
+  listItem.classList.add('STOP');
+  document.querySelector('.chrono-status').textContent = 'Enregistrement…';
+  document.querySelector('.chrono-status').style.color = 'white';
+  pauseResumeButton.textContent = 'Reprendre';
+  pauseResumeButton.style.backgroundColor = 'green';
+
+  // --- Construction de la ligne à envoyer
+  const tempsAffiche = document.getElementById('chrono').textContent;
+  const currentDate  = new Date();
+  const lieuSansCompteur = retirerSuffixeCompteur(lieu);
+  const formattedDate = `${pad(currentDate.getDate())}/${pad(currentDate.getMonth() + 1)}/${currentDate.getFullYear()}`;
+
+  // ★ 5) Enregistrement avec la version corrigée (et re-sécurité via ta fonction)
+  const texteZoneNettoye = remplacerPlusUnicode(zoneTextFixed);
+
+  const enregistrement = `${formattedDate} _ ${tempsAffiche} _ ${lieuSansCompteur} _ ${texteZoneNettoye} _ ${piecesTxt} _ ${typeCanon} _ ${causeCanon} _ ${arretValue}`;
+
+  // --- Vérif temps > 2h
+  if (elapsedTime > 2 * 60 * 60 * 1000) {
+    const afftime = (elapsedTime / (60 * 60 * 1000)).toFixed(1);
+    const confirmer = confirm("Le temps semble élevé : " + afftime + " h. OK pour continuer ?");
+    if (!confirmer) {
+      isPaused = true;
+      pauseStartTime = new Date().getTime();
+      clearInterval(interval);
+      listItem.classList.add('STOP');
+      document.querySelector('.chrono-status').textContent = 'Mis en attente';
+      document.querySelector('.chrono-status').style.color = 'orange';
+      pauseResumeButton.textContent = 'Reprendre';
+      pauseResumeButton.style.backgroundColor = 'green';
+
+      await setPrefixedItem(lieu, JSON.stringify({
+        isPaused, startTime, pauseStartTime, totalPauseDuration, elapsedTime,
+        texteZone: zoneTextFixed, piecesSortie: piecesTxt, type: typeCanon, cause: causeCanon, arret: arretValue
+      }));
+      return;
+    }
+  }
+
+  // --- Envoi au parent + fermeture
+  sendEventToParent('enregistrement', enregistrement);
+  setTimeout(() => { sendEventToParent('fermer', lieu); }, 100);
+}
+
 
 
 function ensureVisibleForKeyboard(input, list) {
@@ -929,12 +1143,12 @@ function attachKeyboardNavigation(input, list) {
       e.preventDefault();
       input._navIndex = Math.min(items.length - 1, input._navIndex + 1);
       setActiveItem(list, input._navIndex);
-      list.style.display = 'block';
+      openOnly(list);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       input._navIndex = Math.max(0, input._navIndex - 1);
       setActiveItem(list, input._navIndex);
-      list.style.display = 'block';
+      openOnly(list);
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const idx = input._navIndex >= 0 ? input._navIndex : 0;
@@ -951,7 +1165,6 @@ function attachKeyboardNavigation(input, list) {
   });
 
   // clic dans la liste (sans perdre le focus)
-  list.addEventListener('mousedown', ev => ev.preventDefault());
   list.addEventListener('click', ev => {
     const li = ev.target.closest('li');
     if (!li) return;
@@ -971,47 +1184,52 @@ function validateInputValue(input, data) {
 
   if (!found) {
     // Au lieu d'effacer, on laisse la valeur + on peut marquer visuellement
-    // input.value = "";  // ❌ évite d'effacer
-    input.classList.add("not-in-list");
-  } else {
-    input.classList.remove("not-in-list");
-  }
+     input.value = "";  
+  } 
 }
 
-// 2) Ouvrir / filtrer + auto-scroll sur focus/clic
+// TYPE
 typeDropdown.addEventListener('input', () => {
-  updateFloatingList(typeDropdown, typeListFix, lieuData.types);
-  ensureVisibleForKeyboard(typeDropdown, typeListFix);
-});
-typeDropdown.addEventListener('focus', () => {
-  updateFloatingList(typeDropdown, typeListFix, lieuData.types);
-  ensureVisibleForKeyboard(typeDropdown, typeListFix);
-  });
-typeDropdown.addEventListener('click', () => {
-  updateFloatingList(typeDropdown, typeListFix, lieuData.types);
+  if (isExactIn(getRawTypes(), typeDropdown.value)) { closeAllLists(); return; }
+  updateFloatingList(typeDropdown, typeListFix, getRawTypes());
   ensureVisibleForKeyboard(typeDropdown, typeListFix);
 });
 typeDropdown.addEventListener('blur', () => {
-  validateInputValue(typeDropdown, lieuData.types);
+  if (isInteractingWithList) return;
+  validateInputValue(typeDropdown, getRawTypes());
   setTimeout(() => { typeListFix.style.display = 'none'; }, 10);
 });
-
-causeDropdown.addEventListener('input', () => {
-  updateFloatingList(causeDropdown, causeListFix, lieuData.causes);
-  ensureVisibleForKeyboard(causeDropdown, causeListFix);
+typeDropdown.addEventListener('focus', () => {
+  if (isExactIn(getRawTypes(), typeDropdown.value)) { closeAllLists(); return; }
+  updateFloatingList(typeDropdown, typeListFix, getRawTypes());
+  ensureVisibleForKeyboard(typeDropdown, typeListFix);
 });
-causeDropdown.addEventListener('focus', () => {
-  updateFloatingList(causeDropdown, causeListFix, lieuData.causes);
-  ensureVisibleForKeyboard(causeDropdown, causeListFix);
-  });
-causeDropdown.addEventListener('click', () => {
-  updateFloatingList(causeDropdown, causeListFix, lieuData.causes);
+typeDropdown.addEventListener('click', () => {
+  updateFloatingList(typeDropdown, typeListFix, getRawTypes());
+  ensureVisibleForKeyboard(typeDropdown, typeListFix);
+});
+
+// CAUSE
+causeDropdown.addEventListener('input', () => {
+  if (isExactIn(getRawCauses(), causeDropdown.value)) { closeAllLists(); return; }
+  updateFloatingList(causeDropdown, causeListFix, getRawCauses());
   ensureVisibleForKeyboard(causeDropdown, causeListFix);
 });
 causeDropdown.addEventListener('blur', () => {
-  validateInputValue(causeDropdown, lieuData.causes);
+  if (isInteractingWithList) return;
+  validateInputValue(causeDropdown, getRawCauses());
   setTimeout(() => { causeListFix.style.display = 'none'; }, 10);
 });
+causeDropdown.addEventListener('focus', () => {
+  if (isExactIn(getRawCauses(), causeDropdown.value)) { closeAllLists(); return; }
+  updateFloatingList(causeDropdown, causeListFix, getRawCauses()); // ← pas "cause" !
+  ensureVisibleForKeyboard(causeDropdown, causeListFix);
+});
+causeDropdown.addEventListener('click', () => {
+  updateFloatingList(causeDropdown, causeListFix, getRawCauses());
+  ensureVisibleForKeyboard(causeDropdown, causeListFix);
+});
+
 
 // 3) Navigation clavier — ATTACHER UNE SEULE FOIS
 attachKeyboardNavigation(typeDropdown,  typeListFix);
@@ -1072,6 +1290,181 @@ const tempsSaisi = prompt(`Temps actuel : ${tempsActuel}\nChanger le temps pour 
     }
 });
 
+// --- helpers mini “shield” (bloque les clics de fond quelques ms) ---
+function addShield() {
+  const s = document.createElement('div');
+  s.id = 'ghost-shield';
+  s.style.position = 'fixed';
+  s.style.inset = '0';
+  s.style.zIndex = '2147483646';   // juste sous ta liste (qui est à 2147483647)
+  s.style.background = 'transparent';
+  s.style.pointerEvents = 'auto';  // capture tout
+  document.body.appendChild(s);
+  return s;
+}
+function removeShield() {
+  document.getElementById('ghost-shield')?.remove();
+}
+
+// --- wireListPointer avec shield intégré ---
+function wireListPointer(list, input, onPick) {
+  if (!list || list._wired) return;
+  list._wired = true;
+
+  // Toujours au-dessus et “cliquable”
+  list.style.position = list.style.position || 'absolute';
+  list.style.zIndex = list.style.zIndex || '2147483647';
+  list.style.pointerEvents = 'auto';
+  list.style.touchAction = 'manipulation';
+
+  const THRESHOLD = 6;
+  let press = null;
+  let dragging = false;
+  let startY = 0;
+  let startScrollTop = 0;
+  let cancelNextClick = false;
+
+  // util: si on clique sur la barre de scroll, laisser le natif
+  function isOverScrollbarY(el, e){
+    const r = el.getBoundingClientRect();
+    const w = el.offsetWidth - el.clientWidth; // largeur scroll vertical
+    if (w <= 0) return false;
+    return (e.clientX >= r.right - w - 1);
+  }
+
+  const onPointerDown = (e) => {
+    // garder le natif si on clique la barre de scroll
+    if (isOverScrollbarY(list, e)) return;
+    if (e.button !== 0) return; // gauche uniquement
+
+    // cible robuste même si textNode
+    const target = e.target && e.target.nodeType === 1 ? e.target : e.target?.parentElement;
+    const li = target?.closest('li');
+    if (!li) return;
+
+    isInteractingWithList = true;
+    press = { x: e.clientX ?? 0, y: e.clientY ?? 0, startItem: li, moved: false };
+
+    // ⚠️ NE PAS preventDefault ici → permet le clic simple souris
+    dragging = false; // on n’active le drag qu’après THRESHOLD
+  };
+
+  const onPointerMove = (e) => {
+    if (!press) return;
+
+    const dx = Math.abs((e.clientX ?? 0) - press.x);
+    const dy = Math.abs((e.clientY ?? 0) - press.y);
+    if (dx > THRESHOLD || dy > THRESHOLD) {
+      press.moved = true;
+
+      if (!dragging) {
+        // on démarre le drag maintenant
+        dragging = true;
+        startY = e.clientY ?? 0;
+        startScrollTop = list.scrollTop;
+        try { list.setPointerCapture?.(e.pointerId); } catch {}
+        list.classList.add('is-dragging');
+        // éviter sélection de texte pendant le drag
+        list._prevUserSelect = list.style.userSelect;
+        list.style.userSelect = 'none';
+      }
+    }
+
+    if (dragging) {
+      const currentY = e.clientY ?? 0;
+      list.scrollTop = startScrollTop + (startY - currentY);
+
+      // edge autoscroll (optionnel)
+      const r = list.getBoundingClientRect();
+      const margin = 24;
+      if (currentY < r.top + margin)    list.scrollTop -= 8;
+      if (currentY > r.bottom - margin) list.scrollTop += 8;
+
+      e.preventDefault(); // uniquement pendant le drag
+    }
+  };
+
+  const onPointerUp = (e) => {
+    const p = press;
+    press = null;
+
+    if (dragging) {
+      dragging = false;
+      list.classList.remove('is-dragging');
+      try { list.releasePointerCapture?.(e.pointerId); } catch {}
+      list.style.userSelect = list._prevUserSelect ?? '';
+      list._prevUserSelect = undefined;
+    }
+
+    // relâcher le flag après le cycle (évite blur/fermeture)
+    setTimeout(() => { isInteractingWithList = false; }, 0);
+
+    if (!p) return;
+
+    if (p.moved) {
+      // on a glissé → annuler le clic natif qui suivrait
+      cancelNextClick = true;
+      e.preventDefault();
+      return;
+    }
+
+    // clic simple → sélectionne l'item
+    const txt = p.startItem.textContent.trim();
+    if (!txt || txt === 'Aucun résultat') return;
+
+    if (typeof onPick === 'function') onPick({ text: txt, el: p.startItem, event: e });
+    else {
+      input.value = txt;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    // --- MINI SHIELD : bloque les clics de fond le temps de fermer proprement
+    const shield = addShield();
+    setTimeout(() => {
+      list.style.display = 'none';   // ferme sans risquer un click-through
+      removeShield();
+    }, 80); // 50–120 ms suffisent, inutile d'aller à 500
+
+    queueMicrotask(() => {
+      input.focus({ preventScroll: true });
+      const len = input.value.length;
+      try { input.setSelectionRange(len, len); } catch {}
+    });
+
+    updateLocalStorage();
+    // pas de preventDefault ici: clic traité proprement
+  };
+
+  const onClickCapture = (e) => {
+    if (cancelNextClick) {
+      cancelNextClick = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  };
+
+  const onWheel = (e) => {
+    // laisse scroller la liste, mais ne propage pas au parent
+    e.stopPropagation();
+  };
+
+  list.addEventListener('pointerdown', onPointerDown, { passive: true });
+  list.addEventListener('pointermove', onPointerMove, { passive: false });
+  list.addEventListener('pointerup',   onPointerUp,   { passive: false });
+  list.addEventListener('pointercancel', () => {
+    press = null;
+    if (dragging) {
+      dragging = false;
+      list.classList.remove('is-dragging');
+      list.style.userSelect = list._prevUserSelect ?? '';
+      list._prevUserSelect = undefined;
+    }
+    isInteractingWithList = false;
+  }, { passive: true });
+
+  list.addEventListener('click', onClickCapture, true);
+  list.addEventListener('wheel', onWheel, { passive: true });
+}
 
 
 function UsePreconfig(lieu, Temps, index) {
@@ -1234,52 +1627,97 @@ window.addEventListener('message', async function(event) {
                 pauseResumeChrono();
             }
             break;
+
+case 'removeallcontent': {
+  const ok = confirm(
+    "Confirmez la remise à zéro ?"
+
+  );
+  if (!ok) break;
+
+  await resetIframeContent();
+  break;
+}
+
+
     }
 });
 
+function updateCapsules() {
+  const textarea  = document.getElementById('zone-pieces');
+  const container = document.getElementById('capsules-container');
+  if (!container) return;
 
-     function updateCapsules() {
-                    // Récupérer le contenu de la zone de texte
-                    let content = document.getElementById('zone-pieces').value;
+  container.innerHTML = '';
 
-                    // Nettoyer tout le contenu précédent des capsules
-                    let capsulesContainer = document.getElementById('capsules-container');
-                    capsulesContainer.innerHTML = '';
+  const content = (textarea?.value || '').trim();
+  if (!content) return;
 
-                    // Diviser le contenu en parties (par exemple, chaque élément séparé par une virgule)
-                    let piecesArray = content.split(','); // Divise le texte par les virgules
+  // pièces séparées par des virgules
+  content
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+    .forEach(rawItem => {
+      // Nettoyage de base
+      let token = rawItem.replace(/^[\[\(]\s*|\s*[\]\)]$/g, '');
 
-                    // Pour chaque élément, extraire la référence et la quantité et créer une "capsule"
-                    piecesArray.forEach(piece => {
-                        // Nettoyer l'élément (enlever les espaces inutiles et les crochets)
-                        let cleanedPiece = piece.trim().replace(/[\[\]]/g, '').split(':');
+      // Découpe place (après @) / avant @
+      const atPos  = token.lastIndexOf('@');
+      const before = atPos >= 0 ? token.slice(0, atPos).trim() : token;
+      let place    = atPos >= 0 ? token.slice(atPos + 1).trim() : '';
 
-                        // Vérifier que l'élément a bien une référence et une quantité
-                        if (cleanedPiece.length === 2) {
-                            let reference = cleanedPiece[0].trim(); // Référence de la pièce
-                            let quantity = cleanedPiece[1].trim(); // Quantité de la pièce
+      // Quantité : Q=... ou ref:qty
+      let qty = null;
+      const qMatch = before.match(/Q\s*=\s*([0-9]+(?:[.,][0-9]+)?)/i);
+      if (qMatch) qty = qMatch[1].replace(',', '.');
 
-                            // Formater le texte de la capsule : "Référence : Quantité"
-                            let formattedText = `${reference} Q=${quantity}`;
+      if (!qty) {
+        const parts = before.split(':');
+        if (parts.length === 2 && /^\s*[0-9]+(?:[.,][0-9]+)?\s*$/.test(parts[1])) {
+          qty = parts[1].trim().replace(',', '.');
+        }
+      }
 
-                            // Créer un élément div pour la capsule
-                            let capsule = document.createElement('div');
-                            capsule.textContent = formattedText; // Le texte formaté
+      // Si pas de @, on affiche la partie "identifiant" en place
+      if (!place) {
+        const idPart = before.includes(':') ? before.split(':')[0] : before;
+        place = idPart.trim();
+      }
 
-                            // Ajouter des styles pour rendre la capsule agréable à voir
-                            capsule.style.padding = '3px 6px';
-                            capsule.style.backgroundColor = 'blue';
-                            capsule.style.color = 'white';
-                            capsule.style.borderRadius = '5px';
-                            capsule.style.margin = '1px';
-                            capsule.style.fontSize = '16px';
-                            capsule.style.whiteSpace = 'nowrap'; // Assurer que chaque capsule reste sur la même ligne
+      if (!place) return;
 
-                            // Ajouter la capsule au conteneur
-                            capsulesContainer.appendChild(capsule);
-                        }
-                    });
-                }
+      // ✅ capsule stylée (voir createPrettyCapsule fourni plus haut)
+      const capsule = createPrettyCapsule(place, qty);
+      container.appendChild(capsule);
+    });
+}
+
+
+
+function createPrettyCapsule(place, qty) {
+  const root = document.createElement('div');
+  root.className = 'capsule';
+
+
+
+  // place (mono)
+  const placeNode = document.createElement('span');
+  placeNode.className = 'capsule-place';
+  placeNode.textContent = place;
+  placeNode.title = place;
+  root.appendChild(placeNode);
+
+  // badge quantité
+  if (qty != null && String(qty).trim() !== '') {
+    const qBadge = document.createElement('span');
+    qBadge.className = 'capsule-qty';
+    qBadge.textContent = `Q=${qty}`;
+    root.appendChild(qBadge);
+  }
+
+  return root;
+}
 
 
 
@@ -1309,15 +1747,464 @@ zoneTexte.addEventListener('input', debounce(() => ensureIfActive(zoneTexte), 15
 // Optionnel: si tu veux couvrir la nav clavier
 zoneTexte.addEventListener('keydown', debounce(() => ensureIfActive(zoneTexte), 150));
 
-// 3) Pas besoin de click/touchstart: ils peuvent se déclencher pendant un scroll
 
-// 🔧 Normalisation robuste
-function norm(s) {
+/* --- config --- */
+const FORBIDDEN = ["Annuler","Reprendre","Enregistrer"];
+
+function norm(s){
   return (s ?? "")
-    .normalize("NFD")                 // sépare les accents
-    .replace(/[\u0300-\u036f]/g, "")  // enlève les accents
-    .replace(/\u00A0/g, " ")          // remplace espace insécable par espace normal
-    .replace(/\s+/g, " ")             // compresse les espaces multiples
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"") // accents
+    .replace(/[\u2019\u2018\u02BC]/g, "'")           // ’ ‘ ʼ -> '
+    .replace(/\p{Zs}+/gu, " ")                        // espaces Unicode -> espace
+    .replace(/\s+/g," ")                              // compacter
     .trim()
     .toLowerCase();
+}
+
+function getListArray(selectorOrUl, arr){
+  if (Array.isArray(arr) && arr.length) return arr.slice();
+
+  const root = document.querySelector(selectorOrUl);
+  if (!root) {
+    console.warn('[canon] getListArray: rien trouvé pour', selectorOrUl);
+    return [];
+  }
+
+  // <ul><li>...</li></ul>
+  const lis = root.matches('ul') ? root.querySelectorAll('li') : root.querySelectorAll('ul li');
+  if (lis.length){
+    return Array.from(lis).map(li => li.textContent.trim()).filter(Boolean);
+  }
+
+  // <datalist><option value="..."></datalist>
+  const optionsInDataList = root.matches('datalist') ? root.querySelectorAll('option') : root.querySelectorAll('datalist option');
+  if (optionsInDataList.length){
+    return Array.from(optionsInDataList).map(o => (o.getAttribute('value') ?? o.textContent).trim()).filter(Boolean);
+  }
+
+  // <select><option>...</option></select>
+  const optionsInSelect = root.matches('select') ? root.querySelectorAll('option') : root.querySelectorAll('select option');
+  if (optionsInSelect.length){
+    return Array.from(optionsInSelect).map(o => (o.getAttribute('value') ?? o.textContent).trim()).filter(Boolean);
+  }
+
+  console.warn('[canon] getListArray: pas d’items dans', selectorOrUl);
+  return [];
+}
+
+
+// construit une table norm -> forme canonique
+function makeCanonMap(items){
+  const map = new Map();
+  items.forEach(it => map.set(norm(it), it));
+  return map;
+}
+
+// Normalisation robuste : accents, espaces Unicode, apostrophes typographiques
+
+function attachImmediateCanonicalize(input, items){
+  if (!input) return;
+
+  // Map norm -> forme canonique
+  const canon = new Map(items.map(it => [norm(it), it]));
+
+  input.addEventListener('input', () => {
+    const v  = input.value ?? "";
+    const vn = norm(v);
+
+    // 1) filtre des mots interdits
+    if (FORBIDDEN.some(w => vn.includes(norm(w)))){
+      input.value = "";
+      input.setSelectionRange?.(0, 0);
+      return;
+    }
+
+    // 2) si tout le champ correspond -> remplacer immédiatement
+    const exact = canon.get(vn);
+    if (exact && v !== exact){
+      input.value = exact;
+      input.setSelectionRange?.(exact.length, exact.length);
+      return;
+    }
+
+    // 3) sinon on corrige près du caret : groupes de tokens (2..4) puis 1 token
+    const caret = input.selectionStart ?? v.length;
+
+    // tokens = séquences de lettres/chiffres + . - ' (ASCII) + ’ (typographique)
+    const re = /[\p{L}\p{N}.\-'\u2019]+/gu;
+    const tokens = [...v.matchAll(re)].map(m => ({
+      text: m[0],
+      start: m.index,
+      end: m.index + m[0].length
+    }));
+    if (!tokens.length) return;
+
+    // token qui couvre le caret, sinon le dernier avant
+    let endIdx = tokens.findIndex(t => caret >= t.start && caret <= t.end);
+    if (endIdx === -1){
+      endIdx = tokens.findLastIndex(t => t.end <= caret);
+      if (endIdx === -1) endIdx = tokens.length - 1;
+    }
+
+    // Essayer des groupes (jusqu'à 4 tokens) finissant sur endIdx
+    const MAX_GROUP = 4;
+    for (let size = Math.min(MAX_GROUP, endIdx + 1); size >= 2; size--){
+      const startIdx = endIdx - size + 1;
+      const start = tokens[startIdx].start;
+      const end   = tokens[endIdx].end;
+      const slice = v.slice(start, end);
+      const nslice = norm(slice);
+      const repl = canon.get(nslice);
+      if (repl){
+        const newValue = v.slice(0, start) + repl + v.slice(end);
+        input.value = newValue;
+        const newCaret = start + repl.length;
+        input.setSelectionRange?.(newCaret, newCaret);
+        return;
+      }
+    }
+
+    // 4) sinon, tenter 1 seul token (mot courant)
+    const chosen = tokens[endIdx];
+    const repl1 = canon.get(norm(chosen.text));
+    if (repl1 && repl1 !== chosen.text){
+      const newValue = v.slice(0, chosen.start) + repl1 + v.slice(chosen.end);
+      input.value = newValue;
+      const newCaret = chosen.start + repl1.length;
+      input.setSelectionRange?.(newCaret, newCaret);
+    }
+  });
+
+  // Pour IME/accents : relancer après composition
+  input.addEventListener('compositionend', () => {
+    input.dispatchEvent(new Event('input'));
+  });
+}
+
+(function(){
+  function initOnce(){
+    const typeEl  = document.getElementById('typeDropdown');
+    const causeEl = document.getElementById('causeDropdown');
+
+const types  = getListArray('#typeListFix',  window.lieuData?.types ?? (typeof lieuData !== 'undefined' ? lieuData.types  : undefined));
+const causes = getListArray('#causeListFix', window.lieuData?.causes ?? (typeof lieuData !== 'undefined' ? lieuData.causes : undefined));
+
+
+    attachImmediateCanonicalize(typeEl,  types);
+    attachImmediateCanonicalize(causeEl, causes);
+
+    // si vide, retente brièvement (cas d’injection tardive)
+    if (types.length === 0 || causes.length === 0){
+      setTimeout(() => {
+        const t2 = getListArray('#typeListFix',  window.lieuData?.types);
+        const c2 = getListArray('#causeListFix', window.lieuData?.causes);
+        if (t2.length || c2.length){
+          console.log('[canon] ré-init car listes trouvées plus tard', { t2: t2.length, c2: c2.length });
+          attachImmediateCanonicalize(typeEl,  t2);
+          attachImmediateCanonicalize(causeEl, c2);
+        }
+      }, 300);
+    }
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initOnce);
+  } else {
+    initOnce();
+  }
+})();
+
+
+
+const PRESS_MOVE_THRESHOLD = 6;    // px de tolérance
+
+
+let isInteractingWithList = false;
+
+
+
+const DROPDOWN_LISTS = [typeListFix, causeListFix]; let openListRef = null;
+
+function openOnly(list) { if (!list) return; closeAllLists(list); list.style.display = 'block'; openListRef = list; }
+
+function closeAllLists(except = null) { DROPDOWN_LISTS.forEach(l => { if (l && l !== except) l.style.display = 'none'; }); if (!except) openListRef = null; }
+
+
+// --- helpers : lis directement les données brutes du fichier Rais.js ---
+function getRawTypes() {
+  // si Rais.js a bien défini const lieuData = { types:[...], causes:[...] }
+  // (top-level const est visible par nom, mais pas en window.lieuData)
+  try {
+    if (typeof lieuData !== 'undefined' && Array.isArray(lieuData.types)) {
+      return lieuData.types;
+    }
+  } catch {}
+  // FALLBACK (optionnel) si jamais Rais.js n'est pas chargé
+  return ["Aiguillage","Alarme","ZZ.Type"];
+}
+function getRawCauses() {
+  try {
+    if (typeof lieuData !== 'undefined' && Array.isArray(lieuData.causes)) {
+      return lieuData.causes;
+    }
+  } catch {}
+  return ["Aiguillage","Arrêt d'urgence","Automatisme","ZZ.Cause"];
+}
+
+
+
+// ——— utils existants ———
+const FORBIDDEN_CHARS_RE = /[_&%#|;"]/g;
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function highlightForbiddenHTML(text){
+  if (!text) return "";
+  let out = "", last = 0, m;
+  FORBIDDEN_CHARS_RE.lastIndex = 0;
+  while ((m = FORBIDDEN_CHARS_RE.exec(text))){
+    const i = m.index;
+    out += esc(text.slice(last, i));
+    out += `<span class="bad">${esc(m[0])}</span>`;
+    last = i + m[0].length;
+  }
+  out += esc(text.slice(last));
+  return out;
+}
+
+// ——— NEW: copie métriques (appelée souvent) ———
+function copyMetrics(textarea, mirror){
+  const cs = getComputedStyle(textarea);
+  mirror.style.font          = cs.font;
+  mirror.style.lineHeight    = cs.lineHeight;
+  mirror.style.letterSpacing = cs.letterSpacing;
+
+  mirror.style.padding      = cs.padding;
+  mirror.style.borderRadius = cs.borderRadius;
+
+  mirror.style.width  = cs.width === 'auto' ? `${textarea.clientWidth}px` : cs.width;
+  mirror.style.height = cs.height === 'auto' ? `${textarea.clientHeight}px` : cs.height;
+  mirror.style.boxSizing = cs.boxSizing;
+
+  // NEW: couleurs
+  mirror.style.color = cs.color;
+  // on garde background transparent pour superposer proprement
+}
+
+
+function attachForbiddenHighlighter(textarea, { rearm = false } = {}) {
+  if (!textarea) return;
+
+  // créer une structure de gestion si absente
+  if (!textarea._hl) {
+    textarea._hl = {
+      mounted: false,
+      enabled: false,
+      sync: () => {},
+      mirror: null,
+      ro: null,
+      mo: null
+    };
+  }
+  const hl = textarea._hl;
+
+  if (!hl.mounted) {
+    const wrap = document.createElement('div');
+    wrap.className = 'highlight-wrap';
+
+    const mirror = document.createElement('div');
+    mirror.className = 'highlight-mirror';
+    hl.mirror = mirror;
+
+    // insertion dans le DOM
+    textarea.parentNode.insertBefore(wrap, textarea);
+    wrap.appendChild(mirror);
+    textarea.classList.add('highlight-target');
+    wrap.appendChild(textarea);
+
+    // fonction de sync
+    hl.sync = () => {
+      copyMetrics(textarea, mirror);
+      const t = textarea.value;
+      mirror.innerHTML = hl.enabled
+        ? highlightForbiddenHTML(t) + (t.endsWith("\n") ? " " : "")
+        : esc(t) + (t.endsWith("\n") ? " " : "");
+      mirror.scrollTop = textarea.scrollTop;
+      mirror.scrollLeft = textarea.scrollLeft;
+    };
+
+    // écouteurs
+    let composing = false;
+    textarea.addEventListener('compositionstart', () => (composing = true));
+    textarea.addEventListener('compositionend', () => {
+      composing = false;
+      hl.sync();
+    });
+    textarea.addEventListener('input', () => {
+      if (!composing) hl.sync();
+    });
+    textarea.addEventListener('scroll', () => {
+      mirror.scrollTop = textarea.scrollTop;
+      mirror.scrollLeft = textarea.scrollLeft;
+    });
+
+    // resize observer
+    hl.ro = new ResizeObserver(() => hl.sync());
+    hl.ro.observe(textarea);
+
+    // mutation observer (si changement de classes globales)
+    hl.mo = new MutationObserver(() => hl.sync());
+    hl.mo.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    hl.mounted = true;
+  } else if (!rearm) {
+    return;
+  }
+
+  // activer directement le highlight
+  hl.enabled = true;
+  hl.sync();
+}
+
+
+function isExactIn(arr, v) {
+  const nv = norm(v);
+  return arr.some(x => norm(x) === nv);
+}
+
+/* ========= PATCH HIGHLIGHT – À COLLER TOUT EN BAS ========= */
+
+
+
+// 2) Sécuriser les deux boutons qui plantaient si absents au moment du bind
+document.getElementById('clearTypeBtn')?.addEventListener('click', () => {
+  const el = document.getElementById('typeDropdown');
+  if (el) el.value = '';
+  (typeof updateLocalStorage === 'function') && updateLocalStorage();
+});
+document.getElementById('clearCauseBtn')?.addEventListener('click', () => {
+  const el = document.getElementById('causeDropdown');
+  if (el) el.value = '';
+  (typeof updateLocalStorage === 'function') && updateLocalStorage();
+});
+
+// 3) Boot une fois le DOM prêt : montage du surlignage + sync
+(function bootHighlight(){
+  async function start() {
+    try { await (typeof ChargTheme === 'function' ? ChargTheme() : Promise.resolve()); } catch {}
+
+    const ta = document.getElementById('zone-texte');
+    if (!ta) { console.error('[highlight] #zone-texte introuvable'); return; }
+
+    if (typeof attachForbiddenHighlighter === 'function') {
+      attachForbiddenHighlighter(ta);           // active direct (ta version l’active sans timer)
+      ta._hl && (ta._hl.enabled = true, ta._hl.sync());
+    } else {
+      console.error('[highlight] attachForbiddenHighlighter indisponible');
+    }
+
+    // Si le texte change (restauration, saisie…), on resynchronise l’overlay
+    ta.addEventListener('input', () => ta._hl?.sync());
+    // Si des scripts externes modifient la valeur sans évènement, on force de temps en temps:
+    setTimeout(() => ta._hl?.sync(), 50);
+    setTimeout(() => ta._hl?.sync(), 250);
+    setTimeout(() => ta._hl?.sync(), 1000);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+})();
+
+
+async function resetIframeContent() {
+  // 1) Couper le chrono en cours
+  try { clearInterval(interval); } catch {}
+  
+  // 2) Vider les champs
+  try {
+    const zoneTexteEl  = document.getElementById('zone-texte');
+    const zonePiecesEl = document.getElementById('zone-pieces');
+    const typeEl       = document.getElementById('typeDropdown');
+    const causeEl      = document.getElementById('causeDropdown');
+    const arretEl      = document.getElementById('tempsArretsInput');
+
+    if (zoneTexteEl)  zoneTexteEl.value  = '';
+    if (zonePiecesEl) zonePiecesEl.value = '';
+    if (typeEl)       typeEl.value       = '';
+    if (causeEl)      causeEl.value      = '';
+    if (arretEl)      arretEl.value      = '';
+
+    // Capsules visuelles
+    try { updateCapsules(); } catch {}
+  } catch (e) {
+    console.warn('reset: champs', e);
+  }
+
+  // 3) Remettre le chrono à zéro (état + affichage + redémarrage)
+  try {
+    isPaused = false;
+    const now = Date.now();
+    startTime = now;
+    pauseStartTime = 0;
+    totalPauseDuration = 0;
+    elapsedTime = 0;
+    displayTime(0);
+    interval = setInterval(updateChrono, 1000);
+  } catch (e) {
+    console.warn('reset: chrono', e);
+  }
+
+  // 4) UI (boutons/états)
+  try {
+    const listItem = document.querySelector('.active-chrono');
+    const pauseResumeButton = listItem?.querySelector('.modal-button[onclick="pauseResumeChrono()"]');
+    const status = document.querySelector('.chrono-status');
+
+    listItem?.classList?.remove('paused', 'STOP');
+    if (status) {
+      status.textContent = 'En cours';
+      status.style.color = 'limegreen';
+    }
+    if (pauseResumeButton) {
+      pauseResumeButton.textContent = 'Pause';
+      pauseResumeButton.style.backgroundColor = 'yellow';
+    }
+  } catch (e) {
+    console.warn('reset: UI', e);
+  }
+
+  // 5) Persister l’état « vierge » pour cette iframe
+  try {
+    const chronoData = {
+      isPaused,
+      startTime,
+      pauseStartTime,
+      totalPauseDuration,
+      elapsedTime,
+      texteZone: '',
+      piecesSortie: '',
+      type: '',
+      cause: '',
+      arret: '0'
+    };
+    await setPrefixedItem(lieu, JSON.stringify(chronoData));
+  } catch (e) {
+    console.warn('reset: storage', e);
+  }
+}
+
+function enablePieces(){
+  const enabled = localStorage.getItem('DEV_PIECES') === 'true';
+  const row   = document.getElementById('pieces-row');
+  const label = document.getElementById('label-pieces');
+
+  if (row && label){
+    row.style.display = enabled ? '' : 'none';
+       // cache/affiche la ligne (capsules + bouton)
+    label.style.display = enabled ? 'inline-block' : 'none';
+  }
 }

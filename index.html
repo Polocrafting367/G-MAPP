@@ -3,135 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<link rel="icon" type="image/png" href="../SVG/LOGO.svg">
-<link rel="icon" sizes="192x192" href="../SVG/LOGO.svg">
-<link rel="apple-touch-icon" sizes="192x192" href="../SVG/LOGO.svg">
-<link rel="manifest" href="G-MAPP/manifest.json">
-
-    <title>G-MAPP</title>
+    <title>G-MAPP - Chargement Ressource Work</title>
 </head>
 
 <style>
+    /* Styles pour que l'iframe occupe tout l'écran */
     html, body {
         margin: 0;
         padding: 0;
         height: 100%;
-    overflow: hidden; /* Permet le défilement dans l'iframe */
+        overflow: hidden;
     }
-
-.container {
-    height: 100%;
-    width: 100%;
-    overflow: hidden; /* Permet le défilement */
-}
-
-iframe {
-    width: 100%;
-    height: 100%;
-    border: none; /* Supprime la bordure de l'iframe */
-}
-
+    .container {
+        height: 100%; /* Utiliser 100% de la hauteur de la vue */
+        width: 100%;
+    }
+    iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
 </style>
+
+<body>
+
+    <div class="container">
+        <iframe id="resourceIframe" scrolling="yes"></iframe>
+    </div>
 
 <script>
 
-
-window.onload = function () {
-    const params = new URLSearchParams(window.location.search);
-let deviceName = params.get('device');
-
-if (!deviceName) {
-  deviceName = localStorage.getItem('DEVICE_NAME') || 'Ndef';
+function getOrCreateCookieID() {
+    const name = 'AUTOUSER=';
+    const parts = document.cookie.split(';');
+    for (let p of parts) {
+        p = p.trim();
+        if (p.startsWith(name)) return p.substring(name.length);
+    }
+    const id = "Demo G-MAPP";
+    document.cookie = `AUTOUSER=${id}; path=/; max-age=315360000; SameSite=Lax`;
+    return id;
 }
 
-localStorage.setItem('DEVICE_NAME', deviceName);
+window.onload = function () {
+    let autoUser;
 
-
-    const autoUser = localStorage.getItem('AUTOUSER');
-    const univ = localStorage.getItem(autoUser + '_uver') || 'Work';
-    console.log('Redirec principal - autouser: ' + autoUser + ' - univ: ' + univ + ' - params:' + params);
-
-    const paramF = params.get('f');
-    const interLieu = params.get('i') || params.get('p');
-    const paramType = params.has('i') ? 'i' : (params.has('p') ? 'p' : null);
-    const iframe = document.querySelector('iframe');
-
-    window.history.pushState({}, '', '/G-MAPP');
-
-    if (paramF) {
-        const encodedF = encodeURIComponent(paramF);
-        const redirectUrl = `/G-MAPP/Ressources/index.html?f=${encodedF}&user=${autoUser}&mode=Priv`;
-        console.log("🔁 Redirection vers PRIV pour fiche préventive :", redirectUrl);
-        iframe.src = redirectUrl;
-        return;
+    try {
+        autoUser = localStorage.getItem('AUTOUSER');
+        if (!autoUser) {
+            autoUser = getOrCreateCookieID();
+            localStorage.setItem('AUTOUSER', autoUser);
+        }
+    } catch (e) {
+        autoUser = getOrCreateCookieID();
     }
 
-    if (!autoUser) {
-        const loginUrl = paramType
-            ? `/G-MAPP/HTML/Loggin.html?${paramType}=${interLieu}`
-            : `/G-MAPP/HTML/Loggin.html`;
-        console.log("🔐 Pas de connexion détectée. Redirection iframe :", loginUrl);
-        iframe.src = loginUrl;
-        return;
-    }
-
+    const mode = 'Work';
     const timestamp = Date.now();
-    const baseUrl = `/G-MAPP/Ressources/index.html?user=${autoUser}&mode=${univ}`;
-    const fullUrl = interLieu
-        ? `${baseUrl}&${paramType}=${interLieu}&timestamp=${timestamp}`
-        : `${baseUrl}&timestamp=${timestamp}`;
 
-    console.log(`📂 Chargement de ${univ} dans iframe :`, fullUrl);
-    iframe.src = fullUrl;
+    const base = window.location.origin;
+    const redirectUrl = `${base}/G-MAPP/Ressources/index.html?user=${autoUser}&mode=${mode}&timestamp=${timestamp}`;
+
+    const iframe = document.getElementById('resourceIframe');
+    iframe.src = redirectUrl;
 };
 
 
 
+            trackVisit('G-MAPP DEMO')
 
-
-//if ('serviceWorker' in navigator) {
-//  navigator.serviceWorker.register('service-worker.js').then(registration => {
- //   console.log('Service Worker enregistré avec succès.');
- // }).catch(error => {
-  //  console.log('Service Worker non enregistré:', error);
-  //});
-//}
-
-function postMessageToAllFrames(win, message) {
-    // Envoyer au frame courant
-    try {
-        win.postMessage(message, '*');
-    } catch (err) {
-        console.warn('Impossible d’envoyer à ce frame:', err);
+function trackVisit(pageName = "Accueil") {
+    // 1. Générer ou récupérer un ID Appareil unique
+    let deviceId = localStorage.getItem('app_device_id');
+    if (!deviceId) {
+        deviceId = 'dev-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
+        localStorage.setItem('app_device_id', deviceId);
     }
 
-    // Parcourir tous les iframes enfants
-    const iframes = win.document ? win.document.querySelectorAll('iframe') : [];
-    for (const iframe of iframes) {
-        if (iframe.contentWindow) {
-            postMessageToAllFrames(iframe.contentWindow, message);
-        }
-    }
+    // 2. Envoyer les données
+    fetch('/track.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            deviceId: deviceId,
+            page: pageName
+        })
+    }).catch(e => console.log("Tracking error", e));
 }
-
-window.addEventListener('scan', function(e) {
-    alert('Scan reçu (parent): ' + e.detail);
-
-    const message = { type: 'scan', detail: e.detail };
-
-    // Lancer récursivement depuis la fenêtre principale
-    postMessageToAllFrames(window, message);
-});
-
 
 
 </script>
-<body>
-
-    <div class="container">
-        <iframe scrolling="yes"></iframe>
-
-    </div>
 
 </body>
 </html>

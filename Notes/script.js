@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
     fetchTasks();
-
 });
 
 function fetchTasks() {
@@ -20,38 +19,33 @@ function fetchTasks() {
         .then(tasks => {
             if (Array.isArray(tasks)) {
 
-                // Suppression des tâches invalides
-                const tasksToDelete = tasks.filter(task => {
-                    const idInvalide = !task.id || task.id === 'undefined';
-                    const contenuVide = (!task.note || task.note.trim() === '') &&
-                                        (!task.intervenant || task.intervenant.trim() === '') &&
-                                        (!task.dateButoir || task.dateButoir.trim() === '');
-                    return idInvalide || contenuVide;
-                });
-
-                tasksToDelete.forEach(task => {
+                // Nettoyage des tâches invalides (fire and forget)
+                tasks.filter(task => {
+                    return (!task.id || task.id === 'undefined') ||
+                           ((!task.note || !task.note.trim()) && (!task.intervenant || !task.intervenant.trim()) && (!task.dateButoir || !task.dateButoir.trim()));
+                }).forEach(task => {
                     fetch('deleteTask.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ id: task.id, folderId: folderId }),
-                    }).catch(err => console.error('Erreur suppression tâche inutile :', err));
+                    }).catch(err => console.error('Erreur suppression auto :', err));
                 });
 
-                // Ne conserver que les tâches valides
-                tasks = tasks.filter(task => {
-                    const idValide = task.id !== undefined && task.id !== null && task.id !== 'undefined';
-                    const contenuValide = task.note?.trim() || task.intervenant?.trim() || task.dateButoir?.trim();
-                    return idValide && contenuValide;
-                });
+                // Garder uniquement les valides pour l'affichage
+                tasks = tasks.filter(task => task.id && task.id !== 'undefined' && (task.note?.trim() || task.intervenant?.trim() || task.dateButoir?.trim()));
 
                 const taskList = document.getElementById('taskList');
                 taskList.innerHTML = '';
 
                 tasks.sort((a, b) => a.position - b.position);
+
+                // OPTIMISATION : Utilisation d'un DocumentFragment pour minimiser les reflows
+                const fragment = document.createDocumentFragment();
                 tasks.forEach(task => {
                     const row = createTaskRow(task);
-                    taskList.appendChild(row);
+                    fragment.appendChild(row);
                 });
+                taskList.appendChild(fragment); // Une seule insertion dans le DOM
 
                 setupDragAndDrop();
             } else {
@@ -61,190 +55,194 @@ function fetchTasks() {
         .catch(error => console.error("Erreur lors du chargement des tâches :", error));
 }
 
-
 function createTaskRow(task) {
-  const row = document.createElement('tr');
+    const row = document.createElement('tr');
     row.setAttribute('data-id', task.id);
     row.setAttribute('data-importance', task.importance || '1');
-    row.setAttribute('data-task', JSON.stringify(task)); // stocker toutes les données de la tâche
+    row.setAttribute('data-task', JSON.stringify(task));
     row.className = `importance-${task.importance}`;
-    row.style.webkitUserDrag = 'none !important' ; // ou bien supprimer avec `row.style.webkitUserDrag = '';`
-    row.style.userSelect = 'auto !important';
-    if (task.completed) {
-        row.classList.add('completed');
-    }
-    // Ordre (↕)
+    row.style.userSelect = 'auto !important'; // webkitUserDrag n'est plus nécessaire ici
+    
+    if (task.completed) row.classList.add('completed');
+
+    // --- Ordre (Drag Handle) ---
     const orderCell = document.createElement('td');
     orderCell.className = 'small-col move-icon';
-    orderCell.innerHTML = '↕'; 
-    orderCell.draggable = true;
-    orderCell.addEventListener('touchstart', handleTouchStart, false);
-orderCell.addEventListener('touchmove', handleTouchMove, false);
-orderCell.addEventListener('touchend', handleTouchEnd, false);
-
-orderCell.addEventListener('dragstart', handleDragStart);
-
+    orderCell.innerHTML = '<i class="fa-solid fa-grip-vertical"></i>';
+    // Le TD devient draggable, pas juste l'icône
+    orderCell.draggable = true; 
+    
+    // Listeners Drag & Drop (Desktop)
+    orderCell.addEventListener('dragstart', handleDragStart);
+    
+    // Listeners Touch (Mobile)
+    orderCell.addEventListener('touchstart', handleTouchStart, { passive: false });
+    orderCell.addEventListener('touchmove', handleTouchMove, { passive: false });
+    orderCell.addEventListener('touchend', handleTouchEnd, { passive: false });
+    
     row.appendChild(orderCell);
 
-    // Importance (ℹ️)
+    // --- Reste de la fonction (identique) ---
     const importanceCell = document.createElement('td');
     importanceCell.className = 'icon-col';
-    importanceCell.innerHTML = `<span class="icon">ℹ️</span>`;
+    importanceCell.innerHTML = `<span class="icon"><i class="fa-solid fa-circle-info"></i></span>`;
     importanceCell.onclick = () => showImportanceSelector(row, task.id);
     row.appendChild(importanceCell);
 
-    // Checkbox
-const checkboxCell = document.createElement('td');
-checkboxCell.className = 'checkbox-wrapper-19';
-const checkbox = document.createElement('input');
-checkbox.type = 'checkbox';
-checkbox.id = `checkbox-${task.id}`; // Assure un ID unique pour chaque checkbox
-checkbox.checked = task.completed;
+    const checkboxCell = document.createElement('td');
+    checkboxCell.className = 'checkbox-wrapper-19';
+if (task.importance !== 'section') {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `checkbox-${task.id}`;
+        checkbox.checked = task.completed;
+        const label = document.createElement('label');
+        label.setAttribute('for', checkbox.id);
+        label.className = 'check-box';
+        checkbox.onclick = () => toggleCompletion(task.id, row);
+        
+        checkboxCell.appendChild(checkbox);
+        checkboxCell.appendChild(label);
+    }
+    row.appendChild(checkboxCell);
 
-// Création du label qui sera cliquable
-const label = document.createElement('label');
-label.setAttribute('for', checkbox.id);
-label.className = 'check-box'; // Classe pour le style du label
-
-// Ajouter l'écouteur d'événement sur la checkbox, pas sur le label
-checkbox.onclick = () => toggleCompletion(task.id, row); // Passer également la ligne à la fonction
-
-// Assemble tous les éléments dans la cellule du tableau
-checkboxCell.appendChild(checkbox);
-checkboxCell.appendChild(label);
-row.appendChild(checkboxCell);
-
-
-    // Note
-    const noteCell = document.createElement('td');
-    noteCell.className = 'note-col editable';
-    noteCell.contentEditable = true;
-    noteCell.dataset.placeholder = 'Cliquez pour ajouter une note';
-    noteCell.innerText = task.note || '';
+    const noteCell = createEditableCell('note-col', task.note || '', 'Cliquez pour ajouter une note');
     row.appendChild(noteCell);
-
-    // Intervenant
-    const intervenantCell = document.createElement('td');
-    intervenantCell.className = 'intervenant-col editable';
-    intervenantCell.contentEditable = true;
-    intervenantCell.dataset.placeholder = '-';
-    intervenantCell.innerText = task.intervenant || '';
+    const intervenantCell = createEditableCell('intervenant-col', task.intervenant || '', '-');
     row.appendChild(intervenantCell);
-    // Date Butoir
-    const dateButoirCell = document.createElement('td');
-    dateButoirCell.className = 'date-butoir-col editable';
-    dateButoirCell.contentEditable = true;
-    dateButoirCell.dataset.placeholder = '-';
-    dateButoirCell.innerText = task.dateButoir || '';
+    const dateButoirCell = createEditableCell('date-butoir-col', task.dateButoir || '', '-');
     row.appendChild(dateButoirCell);
 
-    // Réalisé par
     const realiseParCell = document.createElement('td');
     realiseParCell.className = 'realise-col';
     realiseParCell.innerText = task.realisePar || '';
     row.appendChild(realiseParCell);
 
-    // Date d'intervention
     const dateInterventionCell = document.createElement('td');
     dateInterventionCell.className = 'date-col';
     dateInterventionCell.setAttribute('data-type', 'intervention');
     dateInterventionCell.innerText = task.dateIntervention || '';
     row.appendChild(dateInterventionCell);
 
-    // Date d'enregistrement
     const dateEnregistrementCell = document.createElement('td');
     dateEnregistrementCell.className = 'date-col-max';
     dateEnregistrementCell.innerText = task.dateEnregistrement || new Date().toISOString().split('T')[0];
     row.appendChild(dateEnregistrementCell);
 
-
-    // Paramètre
     const paramCell = document.createElement('td');
     paramCell.className = 'action-col';
     const deleteButton = document.createElement('button');
-    deleteButton.innerText = '🗑️';
-    deleteButton.style.backgroundColor = 'red';
-    deleteButton.onclick = () => {
-        const confirmation = window.confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?');
-        if (confirmation) {
-            deleteTask(task.id);
-        }
-    };
+    deleteButton.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    deleteButton.className = 'btn-delete';
+    deleteButton.onclick = () => { if (window.confirm('Supprimer ?')) deleteTask(task.id); };
     paramCell.appendChild(deleteButton);
     row.appendChild(paramCell);
 
-    // Détecter les modifications
-    [noteCell, intervenantCell, dateButoirCell].forEach((cell) => {
+const triggerAutoSave = () => {
+        // On ne sauvegarde que si le bouton est en mode 'save' (donc qu'il y a eu modif)
+        if (deleteButton.getAttribute('data-mode') === 'save') {
+            saveTask(task.id, noteCell.innerText, intervenantCell.innerText, dateButoirCell.innerText);
+        }
+    };
+    
+[noteCell, intervenantCell, dateButoirCell].forEach((cell) => {
+        // 1. Détecter la frappe (Input) pour changer l'icône visuellement
         cell.oninput = () => {
-            deleteButton.innerText = '✅';
-            deleteButton.style.backgroundColor = 'green';
-
-            deleteButton.onclick = () =>
-
-                saveTask(task.id, noteCell.innerText, intervenantCell.innerText, dateButoirCell.innerText);
+            if (deleteButton.getAttribute('data-mode') !== 'save') {
+                deleteButton.innerHTML = '<i class="fa-solid fa-floppy-disk"></i>';
+                deleteButton.style.backgroundColor = 'green';
+                deleteButton.style.color = 'white';
+                deleteButton.setAttribute('data-mode', 'save');
+                
+                // Le clic manuel fonctionne toujours
+                deleteButton.onclick = () => saveTask(task.id, noteCell.innerText, intervenantCell.innerText, dateButoirCell.innerText);
+            }
         };
+
+        // 2. Sauvegarde automatique quand on quitte la cellule (Blur)
+        cell.addEventListener('blur', triggerAutoSave);
+        
+        // Optionnel : Sauvegarder aussi si on appuie sur "Entrée" (évite le saut de ligne)
+        cell.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Empêche le saut de ligne
+                cell.blur(); // Force le "blur" qui va déclencher la sauvegarde ci-dessus
+            }
+        });
     });
-    //enableRowDragAndDrop(row);
 
     return row;
 }
-
+// Helper pour créer les cellules éditables (DRY)
+function createEditableCell(className, text, placeholder) {
+    const cell = document.createElement('td');
+    cell.className = `${className} editable`;
+    cell.contentEditable = true;
+    cell.dataset.placeholder = placeholder;
+    cell.innerText = text;
+    return cell;
+}
 
 function showImportanceSelector(row, taskId) {
+    // Fermer un éventuel sélecteur existant
+    const existing = document.querySelector('.importance-selector');
+    if (existing) existing.remove();
+
     const importanceSelector = document.createElement('div');
     importanceSelector.className = 'importance-selector';
+    
     const levels = [
-        { level: '1', color: '⬜', label: 'Normal' },
-        { level: '2', color: '🟨', label: 'Attention' },
-        { level: '3', color: '🟥', label: 'Important' },
+        { level: '1', color: '<i class="fa-regular fa-circle" style="color:#888"></i>', label: 'Normal' },
+        { level: '2', color: '<i class="fa-solid fa-triangle-exclamation" style="color:#f1c40f"></i>', label: 'Attention' },
+        { level: '3', color: '<i class="fa-solid fa-circle-exclamation" style="color:#e74c3c"></i>', label: 'Important' },
+   { level: 'section', color: '<i class="fa-solid fa-minus" style="color:#2c3e50; font-weight:bold;"></i>', label: 'Séparateur' },
     ];
 
     levels.forEach(({ level, color, label }) => {
         const button = document.createElement('button');
-        button.innerText = color;
+        button.innerHTML = color;
         button.title = label;
         button.onclick = () => {
             row.dataset.importance = level;
-            row.className = `importance-${level}`; // Mettre à jour la classe de la ligne
+            row.className = `importance-${level}`;
+            if (row.classList.contains('completed')) row.classList.add('completed'); // Garder l'état complété visuel
+            
             updateTaskImportance(taskId, level);
-            document.body.removeChild(importanceSelector); // Fermer le sélecteur
-            sortTasks('importance'); // Trier après modification
-            saveRowOrder(); // Sauvegarder l'ordre après le changement d'importance
+            document.body.removeChild(importanceSelector);
+            sortTasks('importance');
+            saveRowOrder();
         };
         importanceSelector.appendChild(button);
     });
 
+    const rect = row.getBoundingClientRect();
     importanceSelector.style.position = 'absolute';
-    importanceSelector.style.top = `${row.getBoundingClientRect().top}px`;
-    importanceSelector.style.left = `${row.getBoundingClientRect().left}px`;
+    importanceSelector.style.top = `${rect.top + window.scrollY}px`; // Correction position scroll
+    importanceSelector.style.left = `${rect.left + window.scrollX}px`;
     document.body.appendChild(importanceSelector);
+    
+    // Fermer si on clique ailleurs
+    setTimeout(() => {
+        document.addEventListener('click', function closeSelector(e) {
+            if (!importanceSelector.contains(e.target) && !row.contains(e.target)) {
+                importanceSelector.remove();
+                document.removeEventListener('click', closeSelector);
+            }
+        });
+    }, 0);
 }
-
 
 function updateTaskImportance(taskId, importance) {
     const folderId = new URLSearchParams(window.location.search).get('folders');
-
     fetch('updateImportance.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: taskId, importance, folderId }), // Ajouter folderId dans le body
+        body: JSON.stringify({ id: taskId, importance, folderId }),
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Erreur HTTP ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(() => {
-        updatePositions();
-        saveRowOrder();
-    })
-    .catch(error => {
-        console.error('Erreur lors de la mise à jour de l\'importance :', error);
-    });
+    .then(res => { if(!res.ok) throw new Error(res.status); return res.json(); })
+    .then(() => { updatePositions(); saveRowOrder(); })
+    .catch(err => console.error('Erreur importance :', err));
 }
-
-
 
 function sortTasks(criteria) {
     const taskList = document.getElementById('taskList');
@@ -252,16 +250,18 @@ function sortTasks(criteria) {
 
     rows.sort((a, b) => {
         if (criteria === 'importance') {
-            return b.dataset.importance - a.dataset.importance; // Rouge > Jaune > Blanc
+            return b.dataset.importance - a.dataset.importance;
         } else if (criteria === 'date') {
             return new Date(b.querySelector('.date-col').innerText) - new Date(a.querySelector('.date-col').innerText);
         } else if (criteria === 'manual') {
-            return a.dataset.id.localeCompare(b.dataset.id); // Tri par ordre ajouté
+            return a.dataset.id.localeCompare(b.dataset.id);
         }
     });
-
-    // Réorganiser les lignes dans le DOM
-    rows.forEach((row) => taskList.appendChild(row));
+    
+    // Fragment ici aussi pour optimiser le tri
+    const fragment = document.createDocumentFragment();
+    rows.forEach(row => fragment.appendChild(row));
+    taskList.appendChild(fragment);
 }
 
 function addTask() {
@@ -271,24 +271,20 @@ function addTask() {
     const dateButoirCell = document.querySelector('#addTaskRow td[contenteditable]:nth-child(6)');
 
     const note = noteCell.innerText.trim();
-    const intervenant = intervenantCell.innerText.trim();
-    const dateButoir = dateButoirCell.innerText.trim();
+    if (!note) { alert('Veuillez entrer une note.'); return; }
 
-    if (!note) {
-        alert('Veuillez entrer une note.');
-        return;
-    }
-
-    const initials = new URLSearchParams(window.location.search)
-        .get('user')
-        .match(/\b\w/g)
-        .join('');
+    const initials = new URLSearchParams(window.location.search).get('user')?.match(/\b\w/g)?.join('') || '';
 
     fetch('addTask.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            note, intervenant, dateButoir, createdBy: initials, importance: '1', folderId // Ajouter folderId
+            note, 
+            intervenant: intervenantCell.innerText.trim(), 
+            dateButoir: dateButoirCell.innerText.trim(), 
+            createdBy: initials, 
+            importance: '1', 
+            folderId 
         }),
     }).then(() => {
         fetchTasks();
@@ -298,20 +294,13 @@ function addTask() {
     });
 }
 
-
-function toggleCompletion(taskId) {
-        const folderId = new URLSearchParams(window.location.search).get('folders');
-
-    const taskRow = document.querySelector(`tr[data-id="${taskId}"]`);
+function toggleCompletion(taskId, taskRow) { // Note: taskRow passé en argument pour éviter querySelector
+    const folderId = new URLSearchParams(window.location.search).get('folders');
     const checkbox = taskRow.querySelector('input[type="checkbox"]');
     const completed = checkbox.checked;
-
-    // Récupérer les initiales de l'utilisateur depuis l'URL
     const initials = new URLSearchParams(window.location.search).get('user')?.match(/\b\w/g)?.join('') || 'Inconnu';
-
     const currentDate = new Date().toISOString().split('T')[0];
 
-    // Mettre à jour l'interface utilisateur immédiatement
     if (completed) {
         taskRow.classList.add('completed');
         taskRow.querySelector('.realise-col').innerText = initials;
@@ -322,43 +311,24 @@ function toggleCompletion(taskId) {
         taskRow.querySelector('.date-col[data-type="intervention"]').innerText = '';
     }
 
-    // Envoyer la mise à jour au serveur
     fetch('toggleCompletion.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            folderId,
-            id: taskId, 
-            completed, 
-            completedBy: initials, 
-            dateIntervention: completed ? currentDate : null 
-        }),
-    })
-    .then(() => {
-        fetchTasks(); // Recharger les tâches pour s'assurer que toutes les mises à jour sont reflétées
-    })
-    .catch((error) => {
-        console.error('Erreur lors de la mise à jour de l\'état complété :', error);
-    });
+        body: JSON.stringify({ folderId, id: taskId, completed, completedBy: initials, dateIntervention: completed ? currentDate : null }),
+    }).then(() => fetchTasks()).catch(err => console.error('Erreur completion :', err));
 }
-
 
 function deleteTask(taskId) {
     const folderId = new URLSearchParams(window.location.search).get('folders');
-
     fetch('deleteTask.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: taskId, folderId }), // Ajouter folderId
-    }).then(() => {
-        fetchTasks();
-    });
+        body: JSON.stringify({ id: taskId, folderId }),
+    }).then(() => fetchTasks());
 }
 
-
 function saveTask(taskId, note, intervenant, dateButoir) {
-        const folderId = new URLSearchParams(window.location.search).get('folders');
-
+    const folderId = new URLSearchParams(window.location.search).get('folders');
     fetch('updateTask.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -370,258 +340,141 @@ function saveTask(taskId, note, intervenant, dateButoir) {
             folderId,
         }),
     })
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error(`Erreur HTTP ${response.status}`);
-            }
-            return response.json();
-        })
-        .then((updatedTask) => {
-
-            // Réinitialiser le bouton en "Supprimer"
-            const row = document.querySelector(`tr[data-id="${taskId}"]`);
-            const deleteButton = row.querySelector('td:last-child button');
-            deleteButton.innerText = '🗑️';
-            deleteButton.style.backgroundColor = 'red';
-            deleteButton.onclick = () => {
-                const confirmation = window.confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?');
-                if (confirmation) {
-                    deleteTask(taskId);
-                }
-            };
-        })
-        .catch((error) => {
-            console.error('Erreur lors de la sauvegarde de la tâche :', error);
-        });
+    .then(res => { if (!res.ok) throw new Error(res.status); return res.json(); })
+    .then(() => {
+        const row = document.querySelector(`tr[data-id="${taskId}"]`);
+        const deleteButton = row.querySelector('.btn-delete');
+        
+        // Reset visuel du bouton
+        deleteButton.innerHTML = '<i class="fa-solid fa-trash"></i>';
+        deleteButton.style.backgroundColor = 'transparent';
+        deleteButton.style.color = '';
+        deleteButton.removeAttribute('data-mode');
+        
+        deleteButton.onclick = () => {
+            if (window.confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) deleteTask(taskId);
+        };
+    })
+    .catch(error => console.error('Erreur save :', error));
 }
-
-
-
-
-
 
 function updatePositions() {
     const rows = document.querySelectorAll("#taskList tr");
     rows.forEach((row, index) => {
         let taskData = JSON.parse(row.getAttribute('data-task'));
         taskData.position = index + 1;
-        row.setAttribute('data-task', JSON.stringify(taskData)); // Mise à jour de l'attribut avec la nouvelle position
+        row.setAttribute('data-task', JSON.stringify(taskData));
     });
 }
 
-
 function saveRowOrder() {
     const folderId = new URLSearchParams(window.location.search).get('folders');
-
     const rows = document.querySelectorAll("#taskList tr");
     const order = Array.from(rows).map((row, index) => ({
         id: row.dataset.id,
         position: index + 1
     }));
 
-    // Créer un objet englobant pour inclure l'ordre des rangées et l'ID du dossier
-    const payload = {
-        order: order,
-        folderId: folderId // Assurer que folderId est une partie de l'objet envoyé
-    };
-
     fetch('saveOrder.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload), // Envoyer l'objet complet en tant que JSON
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Erreur HTTP ${response.status}`);
-        }
-    })
-    .catch(error => {
-        console.error("Erreur lors de la sauvegarde de l'ordre des lignes :", error);
-    });
+        body: JSON.stringify({ order, folderId }),
+    }).catch(err => console.error("Erreur ordre :", err));
 }
-
-
 
 function setupDragAndDrop() {
     const taskList = document.getElementById('taskList');
-    const moveIcons = taskList.querySelectorAll('.small-col.move-icon');
-    moveIcons.forEach(icon => {
-        icon.addEventListener('dragstart', handleDragStart);
-        icon.addEventListener('dragover', handleDragOver);
-        icon.addEventListener('drop', handleDrop);
-        icon.addEventListener('dragend', handleDragEnd);
-    });
+    
+    // On attache l'événement 'dragover' au conteneur (le tableau) 
+    // au lieu de chaque ligne individuelle.
+    taskList.removeEventListener('dragover', handleDragOver); // Nettoyage préventif
+    taskList.removeEventListener('drop', handleDrop);
+    
+    taskList.addEventListener('dragover', handleDragOver);
+    taskList.addEventListener('drop', handleDrop);
 }
-
+// --- DRAG AND DROP LOGIC ---
 
 let draggedRow = null;
-
-
-
-
-
-function enableRowDragAndDrop(row) {
-    row.addEventListener('dragstart', handleDragStart);
-    row.addEventListener('dragover', handleDragOver);
-    row.addEventListener('drop', handleDrop);
-    row.addEventListener('dragend', handleDragEnd);
-}
-
-
-
-// Pour garder la position lors du déplacement sur mobile
+let movingRow = null;
 let touchStartY = 0;
-let touchRowIndex = 0;
-
-
 
 function handleDragStart(event) {
-    event.dataTransfer.setData('text/plain', ''); // Ajouter le type MIME pour Firefox
-        movingRow = event.currentTarget.closest('tr'); // Définir la tâche en mouvement
-
-    draggedRow = this.parentNode; // Fait référence à la ligne entière depuis la cellule
-    this.classList.add('dragged'); // Ajouter la classe 'dragged' à la cellule ou à la ligne selon le style souhaité
-        movingRow.classList.add('dragged');
-
-}
-
-
-function handleDragOver(event) {
-    event.preventDefault(); // Nécessaire pour permettre le drop
-    const targetRow = event.target.closest('tr');
+    // On stocke la ligne en cours de déplacement
+    draggedRow = this.closest('tr');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', ''); // Requis pour Firefox
     
-    if (targetRow) {
-        const taskList = document.getElementById('taskList');
-        const draggingRect = draggedRow.getBoundingClientRect();
-        const targetRect = targetRow.getBoundingClientRect();
+    // Petit délai pour l'effet visuel
+    setTimeout(() => {
+        if (draggedRow) draggedRow.classList.add('dragged');
+    }, 0);
+}
+function handleDragOver(event) {
+    event.preventDefault(); // OBLIGATOIRE pour autoriser le drop
+    event.dataTransfer.dropEffect = 'move';
+
+    const targetRow = event.target.closest('tr');
+    const taskList = document.getElementById('taskList');
+
+    // On s'assure qu'on survole bien une ligne et que ce n'est pas celle qu'on déplace
+    if (targetRow && targetRow !== draggedRow && taskList.contains(targetRow)) {
+        const rect = targetRow.getBoundingClientRect();
+        const next = (event.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
         
-        if (event.clientY < (targetRect.top + targetRect.height / 2)) {
-            // Si la souris est dans la première moitié de la ligne cible, placer avant
-            taskList.insertBefore(draggedRow, targetRow);
-        } else {
-            // Sinon, placer après
-            taskList.insertBefore(draggedRow, targetRow.nextSibling);
-        }
-    } else {
-        // Si aucune ligne n'est ciblée (par exemple, si la souris est au-dessus ou en dessous de toutes les lignes)
-        // cela permet de gérer les cas où la liste est vide ou la souris se trouve au-delà du premier ou dernier élément
-        taskList.appendChild(draggedRow);
+        // Insertion en direct (live swap)
+        taskList.insertBefore(draggedRow, next && targetRow.nextSibling || targetRow);
     }
 }
-
-
 function handleDrop(event) {
     event.preventDefault();
-    // Si nécessaire, ajoutez ici la logique pour gérer la chute
-    saveRowOrder(); // Assurez-vous que l'ordre des lignes est enregistré après la chute
+    if (draggedRow) {
+        draggedRow.classList.remove('dragged');
+        draggedRow = null;
+        saveRowOrder(); // Sauvegarde finale
+    }
 }
-
-
-
-
-let touchStartPosition = null;
-let movingRow = null;
-let originalRow = null;
-
 
 function handleDragEnd() {
     if (draggedRow) {
         draggedRow.classList.remove('dragged');
-        draggedRow = null; // Réinitialiser après le glissement
-        saveRowOrder(); // Sauvegarder l'ordre
+        draggedRow = null;
+        saveRowOrder();
     }
 }
-// Gestion des événements tactiles pour mobile
 
 function handleTouchStart(event) {
-    event.preventDefault();
-    movingRow = this.closest('tr'); // Récupérer la ligne contenant la cellule touchée
+    // Empêcher le scroll si on touche la poignée
+    if (event.cancelable) event.preventDefault();
+    
+    movingRow = this.closest('tr');
     movingRow.classList.add('dragged');
-    touchStartPosition = { y: event.touches[0].clientY, x: event.touches[0].clientX };
 }
 
 function handleTouchMove(event) {
-    event.preventDefault();
-    const currentY = event.touches[0].clientY;
+    if (!movingRow) return;
+    if (event.cancelable) event.preventDefault(); // Empêche le scroll
+
+    const touch = event.touches[0];
+    const elementBehindFinger = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    if (!elementBehindFinger) return;
+
+    const targetRow = elementBehindFinger.closest('tr');
     const taskList = document.getElementById('taskList');
-    const rows = Array.from(taskList.children);
 
-    for (let i = 0; i < rows.length; i++) {
-        const rowRect = rows[i].getBoundingClientRect();
-        if (currentY < rowRect.top + rowRect.height / 2) {
-            taskList.insertBefore(movingRow, rows[i]);
-            break;
-        }
-        if (i === rows.length - 1) {
-            taskList.appendChild(movingRow);
-        }
+    // Logique de déplacement similaire au Desktop
+    if (targetRow && targetRow !== movingRow && taskList.contains(targetRow)) {
+        const rect = targetRow.getBoundingClientRect();
+        const next = (touch.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+        
+        taskList.insertBefore(movingRow, next && targetRow.nextSibling || targetRow);
     }
 }
-
-function updateRowPosition(relativeY, rows, taskList) {
-    let closestRow = null;
-    let closestDistance = Infinity;
-
-    for (const row of rows) {
-        const rowRect = row.getBoundingClientRect();
-        const rowMiddle = rowRect.top - taskListRect.top + taskList.scrollTop + (rowRect.height / 2);
-        const distance = Math.abs(relativeY - rowMiddle);
-        if (distance < closestDistance) {
-            closestDistance = distance;
-            closestRow = row;
-        }
-    }
-
-    if (closestRow && draggedRow) {
-        taskList.insertBefore(placeholder, (relativeY < touchStartY) ? closestRow : closestRow.nextSibling);
-    }
-
-    touchStartY = relativeY;
-}
-
 function handleTouchEnd(event) {
-    event.preventDefault();
     if (movingRow) {
         movingRow.classList.remove('dragged');
-        movingRow = null; // Réinitialiser la référence
-        saveRowOrder(); // Sauvegarder le nouvel ordre après le déplacement
-    }
-}
-
-function findClosestRow(container, y) {
-    return Array.from(container.querySelectorAll('tr')).reduce((closest, row) => {
-        const box = row.getBoundingClientRect();
-        const offset = y - (box.top + box.height / 2);
-        if (Math.abs(offset) < Math.abs(closest.offset)) {
-            return { offset: offset, element: row };
-        }
-        return closest;
-    }, { offset: Number.POSITIVE_INFINITY, element: null }).element;
-}
-
-function updatePlaceholderPosition(event) {
-    const touchY = event.touches[0].clientY;
-    const taskList = document.getElementById('taskList');
-    const rows = Array.from(taskList.children);
-    let closestRow = null;
-    let closestDistance = Infinity;
-
-    for (const row of rows) {
-        const rowRect = row.getBoundingClientRect();
-        const rowMiddle = rowRect.top + (rowRect.height / 2);
-        const distance = Math.abs(touchY - rowMiddle);
-
-        if (distance < closestDistance) {
-            closestDistance = distance;
-            closestRow = row;
-        }
-    }
-
-    if (closestRow) {
-        if (touchY < closestRow.getBoundingClientRect().top + closestRow.getBoundingClientRect().height / 2) {
-            taskList.insertBefore(placeholder, closestRow);
-        } else {
-            taskList.insertBefore(placeholder, closestRow.nextSibling);
-        }
+        movingRow = null;
+        saveRowOrder();
     }
 }

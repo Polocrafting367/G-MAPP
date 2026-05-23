@@ -89,7 +89,7 @@ function ajouterTitreEtIframe(nomLieu, temps, liste1, liste2, Text1, Text2, arre
 
     // Ajouter le bouton "Modifier"
     const modifierButton = document.createElement('button');
-    modifierButton.textContent = "Modifier";
+    modifierButton.textContent = "✏️";
     modifierButton.addEventListener('click', () => {
         // Ouvrir la modal ici
 

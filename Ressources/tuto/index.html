@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="fr" translate="no">
 <head translate="no">
     <meta charset="UTF-8">
@@ -12,12 +13,13 @@
 <body>
   
 <div class="tab">
-    <div id="cameraButton" class="tab-button_u" onclick="openTab('camera')">📷</div>
     <div class="tab_under">
         <div id="creerButton" class="tab-button" onclick="openTab('creer')">Ajouter</div>
         <div id="ChronoButton" class="tab-button" onclick="openTab('Chrono')" annim="false">Chronos</div>
         <div id="interventionsButton" class="tab-button" onclick="openTab('interventions')">Inters.</div>
     </div>
+        <div id="cameraButton" class="tab-button_u" onclick="//openTab('camera')">☰</div>
+
 </div>
 
 
@@ -29,6 +31,12 @@
     </div>
 </div>
 
+<div id="tempTab" class="tabcontent">
+    <div class="container">
+<p id="credits"></p>
+
+    </div>
+</div>
 
 <div id="impTab" class="tabcontent">
     <div class="container">
@@ -48,15 +56,6 @@
 </div>
 
 
-<div id="cameraTab" class="tabcontent">
-    <div class="container">
-        <div class="CamVisu">
-            <h1>Camera QR</h1>
-            <img src="Camera.png" alt="Camera QR" class="center-image">
-        </div>
-    </div>
-</div>
-
 
 <div id="creerTab" class="tabcontent">
     <!-- Contenu de l'onglet "Créer" -->
@@ -68,7 +67,9 @@
 </div>
 
 
-        <ul id="lieux-list" onclick="" class="lieux-list"></ul>
+        <ul id="lieux-list" onclick="" class="lieux-list"> </ul>
+
+
     </div>
 </div>
 
@@ -98,7 +99,6 @@
 
 
 </div>
-
 
 
 
@@ -168,9 +168,9 @@
             </div>
 
         </div>
-
+<br>
         <div id="enregistrements">
-            <div class="groupe-enregistrements" id="groupe-_6ek3q5piu"><h3>Tutoriel</h3><div class="AFregis">24/09/2024 - résumé de l'intervention<div style="display: flex; align-items: center;"><button class="button-supprimer" style="margin-right: 10px;">🗑️</button><span>01m 50s - Technicien ayant participé</span></div><div style="display: flex;"><button class="button-tech" style="margin-right: 5px;">+ Tech.</button><button class="button-restaurer" style="margin-right: 5px;">Restaurer</button></div></div></div>
+<div class="groupe-enregistrements" id="groupe-_96ijp0ulp"><h3>Démo G-MAPP</h3><div class="AFregis"><div style="align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;"><button type="button" class="button-edith" style="margin-right: 10px; color: rgb(255, 255, 255);">✏️</button><span style="align-items: center; gap: 8px; width: 100%;"><span style="display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;"><span style="cursor: pointer;">03/12/2025</span><span> -&nbsp;&nbsp;</span></span><span style="cursor: pointer; flex: 1 1 auto; min-width: 0px; white-space: normal; overflow-wrap: anywhere;">résumer d'intervention thechique</span></span><input type="date" min="2025-11-11" max="2025-12-03" data-edit="date" data-id="_96ijp0ulp" style="width: auto !important; display: none;"><input type="text" data-edit="resume" data-id="_96ijp0ulp" style="display: none;"></div><div class="pieces-row" id="pieces-row-_96ijp0ulp"><button type="button" class="add-piece-btn" aria-label="Ajouter / modifier les pièces" style="color: rgb(255, 255, 255);">✏️</button><div class="capsules" id="capsules-container-_96ijp0ulp"><div class="capsule" style="cursor: pointer;"><span class="capsule-place" title="Pièces">Pièces</span><span class="capsule-qty">Q=1</span></div></div></div><div style="display: flex; align-items: center;"><div style="margin-right: 10px; display: flex; gap: 5px;"><button type="button" class="button-supprimer" style="color: rgb(255, 255, 255);">🗑️</button><button type="button" class="button-edith" style="color: rgb(255, 255, 255);">✏️</button></div><span><span class="temps-editable" style="cursor:pointer">23m 53s</span> - Demo G-MAPP</span></div><div style="display: flex;"><button type="button" class="button-tech" style="margin-right: 5px; color: rgb(255, 255, 255);">+ Tech.</button><button type="button" class="button-restaurer" style="margin-right: 5px; color: rgb(255, 255, 255);">Restaurer</button></div></div></div>
 
 </div>
 
@@ -243,11 +243,7 @@
     <button class="btn" id="nextBtn">Suivant</button>
   </div>
 </div>
-    <div id="credits-container" style="color:white; font-size: 19px;">
-<br><br><br><br><br>
-      <br>
-      <p id="credits"></p>
-    </div>
+
   </div>
 
   <script>
@@ -266,10 +262,10 @@
     });
   </script>
 
-
 <script>
 
 window.onload = function() {
+  openTab('temp')
 }
 
 
@@ -388,34 +384,6 @@ window.onload = function() {
       }
     }
   },
-  {
-  content: "Il est également possible de crée inter via QR code",
-  action:  () => {
-       const aff = document.getElementById('cameraButton');   
-      if (aff) {
-        aff.style.backgroundColor = 'orange'; // Réinitialiser la couleur de fond
-      }
-}
-},
-{
-  content: "Scanner le QRcode via la camera : <br>L'intervention ce lancera automatiquement",
-  action: () => {
-       const aff = document.getElementById('cameraButton');   
-      if (aff) {
-        aff.style.backgroundColor = ''; // Réinitialiser la couleur de fond
-      }
-    
-        openTab('camera'); // Ouvrir l'onglet 'creer'
-  }
-},
-  {
-  content: "Il est possible de scanner ce même QRcode depuis l'aplication 'Appareil Photo' du téléphone, celui si renvera vers le site",
-  action: () => {
-
-    
-        openTab('app'); // Ouvrir l'onglet 'creer'
-  }
-},
   {
     content: "Étape 2 : Gestion de l'intervention",
     action: () => { 

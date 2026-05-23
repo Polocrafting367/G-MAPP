@@ -11,10 +11,10 @@ body {
 
 #updateTimeButton {
     position: absolute;
-    width: 40px;
-    height: 40px;
-    top: 40px;
-    right: 5px;
+    width: 38px;
+    height: 38px;
+    top: 25px;
+    right: 10px;
     border: 0px;
 }
 
@@ -26,7 +26,7 @@ body {
 }
 
 .chrono-status {
-    font-size: 25px;
+    font-size: 20px;
     display: inline-block;
     text-align: center;
     margin: 0px;
@@ -175,7 +175,9 @@ border: 0px;
 /* Style pour les étiquettes */
 label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 1px;
+        margin-top: 3px;
+
     /* Espacement entre l'étiquette et l'input */
     font-weight: bold;
 }
@@ -241,12 +243,9 @@ select option {
 }
 
 #tempsArretsInput {
-    width: 100%;
-    /* Occupera toute la largeur du conteneur */
+    width: calc(100% + 8px);
     padding: 8px;
-    /* Ajoute un peu d'espace intérieur pour le confort */
     font-size: 16px;
-    /* Taille de la police */
     border: 1px solid #ccc;
     /* Bordure */
     border-radius: 5px;
@@ -307,14 +306,18 @@ select {
     color: white;              /* symbole blanc */
   }
 
-/* Une seule définition de la liste */
+
+/* Le conteneur direct (parent de la liste) doit être positionné */
+.suggest-wrap { position: relative; }
+
+/* Liste flottante — une seule définition */
 .floating-list {
   position: absolute;
   top: 100%;
   left: 0;
-  right: 28px;           /* ou width:100% si tu préfères */
-  max-height: 160px;
-  overflow-y: auto;
+  right: 0;                 /* pleine largeur du parent */
+  max-height: 40vh;         /* hauteur bornée */
+  overflow-y: auto;         /* >>> active le scroll */
   background: #fff;
   border: 1px solid #ccc;
   margin: 0;
@@ -322,21 +325,246 @@ select {
   list-style: none;
   z-index: 9999;
   display: none;
+
+  /* pour iOS/Android */
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+
+  /* très important si la page parente capte le scroll : 
+     évite que la molette “parte” au parent */
+  overscroll-behavior: contain;
+
+  /* s’assurer qu’elle reçoit bien les events */
+  pointer-events: auto;
 }
 
 .floating-list li {
   padding: 6px 10px;
   cursor: pointer;
-  background: transparent; /* base */
+  user-select: none;
 }
 
-/* Zébrage… mais seulement quand l’item n’est NI hover NI actif clavier */
-.floating-list li:nth-child(even):not(.active):not(:hover) {
-  background: #f0f0f0;
+.floating-list li:nth-child(even):not(.active):not(:hover) { background: #f6f6f6; }
+.floating-list li.active, .floating-list li:hover { background: #cce4ff; }
+.floating-list { max-height: 165px; outline: 1px dashed red; border-radius: 10px;  }
+
+.floating-list {
+  /* Firefox */
+  scrollbar-width: none; /* auto | thin | none */
+
 }
 
-/* Même rendu pour le hover souris et l’actif clavier */
-.floating-list li.active,
-.floating-list li:hover {
-  background: #cce4ff;   /* même couleur pour les deux */
+
+#typeListFix li.active, #causeListFix li.active{
+  background: rgba(0,0,0,.08);
 }
+
+#typeListFix, #causeListFix{
+  overflow-y: auto;
+  position: absolute;
+  overscroll-behavior: contain;   /* évite de scroller le parent */
+  -webkit-overflow-scrolling: touch;
+  cursor: default;
+}
+#typeListFix.is-dragging, #causeListFix.is-dragging{
+  cursor: grabbing;
+}
+
+.highlight-wrap{position:relative}
+.highlight-mirror{
+  position:absolute; inset:0;
+  padding:8px;
+  white-space:pre-wrap; word-wrap:break-word;
+  color:transparent !important;              /* tout le texte est invisible... */
+  pointer-events:none;            /* ...et ne bloque pas l’édition */
+  overflow:hidden;
+  z-index:2;                      /* ⬅️ au-dessus du textarea */
+}
+.highlight-mirror .bad {
+  color: white;                         /* texte blanc pour bien contraster */
+  background-color: rgba(200,0,0,1);  /* surlignement rouge translucide */
+  border-radius: 2px;                   /* arrondi léger, optionnel */
+  
+}
+
+
+.highlight-target{
+  position:relative;
+  z-index:1;                      /* ⬅️ sous le miroir */
+  background:white;               /* tu peux garder le fond blanc */
+  color:#000;
+  width:100%;
+  box-sizing:border-box;
+}
+
+
+      /* Par défaut : cacher la barre de défilement sur mobile et permettre le défilement horizontal */
+                #capsules-container {
+                    overflow-x: auto;
+                    /* Activer le défilement horizontal */
+                    -webkit-overflow-scrolling: touch;
+                    /* Défilement fluide sur mobile */
+                }
+
+                /* Masquer la barre de défilement horizontale dans Webkit (Chrome, Safari) sur mobile */
+                #capsules-container::-webkit-scrollbar {
+                    height: 0px;
+                    /* Masquer la barre de défilement horizontale */
+                }
+
+                /* Masquer la barre de défilement dans les navigateurs modernes (Edge, Firefox) sur mobile */
+                #capsules-container {
+                    -ms-overflow-style: none;
+                    /* Pour IE/Edge */
+                    scrollbar-width: none;
+                    /* Pour Firefox */
+                }
+
+                /* Sur les écrans plus grands (PC) : afficher la barre de défilement */
+                @media (min-width: 601px) {
+                    #capsules-container {
+                        overflow-x: scroll;
+                        /* Afficher la barre de défilement sur PC */
+                    }
+
+                    /* Afficher la barre de défilement horizontale dans Webkit (Chrome, Safari) */
+                    #capsules-container::-webkit-scrollbar {
+                        height: 8px;
+                        /* Taille de la barre de défilement horizontale */
+                        background: transparent;
+  
+                }}
+
+                .pieces-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.capsules{
+  flex:1;
+  display:flex;
+  flex-wrap:nowrap;
+  gap:2px;
+  overflow-x:auto;
+  white-space:nowrap;
+  border:1px solid #ccc;
+  border-radius:10px;
+  background:rgba(100,100,100,0.5);
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;                /* Firefox */
+}
+.capsules::-webkit-scrollbar{height:0} /* WebKit: cacher sur mobile */
+
+@media (min-width:601px){
+  .capsules::-webkit-scrollbar{height:8px;background:transparent}
+  .capsules{scrollbar-width:thin}
+}
+
+.add-piece-btn{
+  width:36px;
+  height:36px;
+  border:none;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:22px;
+  line-height:1;
+  background:#C0D008;
+  color:#000;
+  cursor:pointer;
+  border: 2px solid #888f00; /* bordure fine et discrète, ton sur ton */
+
+}
+.add-piece-btn:active{transform:scale(0.98)}
+
+
+/* ——————————————————————————
+   Capsules (belles pastilles vertes)
+   —————————————————————————— */
+.capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+    padding: 6px 3px 6px 6px;
+  border-radius: 10px;
+  background-color: #888f00;
+  color: white;
+  border: 1px solid #C0D008;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05), 0 6px 14px rgba(22, 163, 74, 0.25);
+  margin: 1px;
+  font-size: 15px;
+  white-space: nowrap;
+  transform: translateY(0);
+  transition: transform 120ms ease, box-shadow 160ms ease, opacity 120ms ease;
+}
+
+
+
+.capsule-place {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  letter-spacing: 0.1px;
+  font-weight: 600;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+  max-width: 36ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ——— badge quantité ——— */
+.capsule-qty {
+  background: white;
+  color: #536516;
+  border: 0;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 20px;
+  display: inline-block;
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+html.contrast-on .capsule-place {
+  color: #fff !important;
+  box-shadow: none;
+
+}
+
+/* le conteneur prend toute la largeur disponible */
+.highlight-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  /* important si parent en flex: autorise le shrink */
+  min-width: 0;
+}
+
+/* le textarea reste 100% */
+.highlight-target {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* le miroir overlay suit exactement la boîte du textarea */
+.highlight-mirror {
+  position: absolute;
+  inset: 0;                 /* top/right/bottom/left: 0 */
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+  box-sizing: border-box;
+  /* couleur héritée pour rester fidèle au thème */
+  color: inherit;
+}
+
+/* 1. Le conteneur principal style "Carte" */
+.active-chrono li {
+    list-style: none;
+}
+
+#capsules-container, #zone-texte, #tempsArretsInput, #typeDropdown, #causeDropdown
+ {height: 35px;}

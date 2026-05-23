@@ -68,9 +68,7 @@
     <div id="creerTab" class="tabcontent">
         <!-- Contenu de l'onglet "Créer" -->
         <div class="container" >
-         <div id="user-info3" style="display:flex;">
 
-        </div>
             <div id="rech">
                 <input type="text" id="searchInput" placeholder="Rechercher un lieu..." oninput="searchLieu()">
                 <button id="clearButton" style="display: none;" onclick="clearSearchInput()">✖</button>
@@ -110,14 +108,14 @@
   <div class="container">
     <div class="buttons-container">
       <!-- Ajout d'un id pour pouvoir le mettre à jour -->
+      <br>
       <p id="interventionsHeader">Interventions</p>
       <div class="button-wrapper">
-        <button onclick="exportServ()"  style="background-color: green;">
-          Terminer la modification des interventions
-        </button>
+
 
       </div>
-                                  <button onclick="getInterventions()">Afficher inter exporté</button>
+<br>
+<br>
 
     </div>
     <div id="enregistrements"></div>
@@ -130,20 +128,7 @@
 
     </div>
 
-    <div id="cameraTab" class="tabcontent">
-        <div class="container">
-            <div class="CamVisu">
-                <h1>Lecteur de QR code</h1>
 
-                <div id="reader"></div>
-                <select id="cameraSelection"></select>
-                <div id="result"></div>
-                <button id="cancel_cam" onclick="stopCamera()">Arrêter la caméra</button>
-                <button id="start_cam" onclick="startCamera()">Redémarrer la caméra</button>
-
-            </div>
-        </div>
-    </div>
 
  <div id="modifierPieceModal" class="modal">
     <div class="modal-content">
@@ -161,7 +146,7 @@
         </div>
 
         <!-- Partie inférieure (pièces sélectionnées) -->
-        <div id="selectedPiecesContainer" style="cursor: grab; display: none;">
+        <div id="selectedPiecesContainer" style="cursor: grab;">
             <h3>Pièces sélectionnées :</h3>
             <div id="selectedPiecesList" class="draggable-content">
             </div>
@@ -182,24 +167,43 @@
         <h2>Scanner un code-barres</h2>
         <input type="text" id="scannerInput" style="opacity: 0; position: absolute;" />
         <p>Scannez le code-barres maintenant...</p>
-        <div class="barcode">
-            <div class="bar1"></div>
-            <div class="bar"></div>
-            <div class="bar1"></div>
-            <div class="bar1"></div>
-            <div class="bar"></div>
-            <div class="bar1"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar1"></div>
-            <div class="bar1"></div>
-            <div class="bar"></div>
-            <div class="bar1"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="scan-line"></div>
-        </div>
+<div class="barcode-container">
+  <div class="barcode">
+    <!-- Ton motif Code 39 ici -->
+    <div class="bar1"></div><div class="space"></div>
+    <div class="bar1"></div><div class="space1"></div>
+    <div class="bar"></div><div class="space1"></div>
+    <div class="bar"></div><div class="space1"></div>
+    <div class="bar1"></div><div class="space1"></div>
+
+    <div class="bar"></div><div class="space1"></div>
+    <div class="bar"></div><div class="space"></div>
+    <div class="bar1"></div><div class="space1"></div>
+    <div class="bar1"></div><div class="space1"></div>
+    <div class="bar1"></div><div class="space1"></div>
+
+    <div class="bar1"></div><div class="space1"></div>
+    <div class="bar"></div><div class="space"></div>
+    <div class="bar"></div><div class="space1"></div>
+    <div class="bar1"></div><div class="space1"></div>
+    <div class="bar1"></div><div class="space1"></div>
+
+    <div class="bar1"></div><div class="space1"></div>
+    <div class="bar1"></div><div class="space"></div>
+    <div class="bar1"></div><div class="space1"></div>
+    <div class="bar"></div><div class="space1"></div>
+    <div class="bar"></div><div class="space1"></div>
+
+    <div class="bar1"></div><div class="space"></div>
+    <div class="bar1"></div><div class="space1"></div>
+    <div class="bar"></div><div class="space1"></div>
+    <div class="bar"></div><div class="space1"></div>
+    <div class="bar1"></div>
+
+    <div class="scan-line"></div>
+  </div>
+</div>
+
     </div>
 </div>
 
@@ -239,7 +243,7 @@
             <!-- Bouton -->
             <div style="position: sticky; bottom: 0; background-color: white; z-index: 10; padding-top: 10px; border-top: 1px solid #ccc; text-align: center;">
                 <button id="accessButton" class="button" onclick="openWebsite()" style="font-size: 16px; background-color: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                    Ne plus afficher
+                    Essayer G-MAPP
                 </button>
             </div>
         </div>
@@ -263,27 +267,6 @@
 
 
 
-
-
-    <div id="NoteTab" class="tabcontent">
-        <div class="container">
-            <h1>Prise de notes</h1>
-
-            <div class="tab-bar">
-                    
-                <div class="scrollable-tabs">
-                    <div id="tab-buttons">
-                        <!-- Boutons des onglets générés ici -->
-                    </div>
-                </div>
-                <button class="add-tab-button" onclick="showAddOptions()" >+</button>
-
-            </div>
-            <div id="note-display">
-                <textarea id="note-content" style="display: none;" oninput="saveCurrentNote()" placeholder="Écrivez votre note ici..."></textarea>
-            </div>
-        </div>
-    </div>
 
 
 
@@ -329,13 +312,24 @@
                 </label>
                 <hr>
 
-    <h2>Changer la couleurs d'accentuation</h2>
-<button onclick="toggleContrast()">Contraste élevé</button>
+    <h2>Paramètres visuel (utilisateur)</h2>
+<button onclick="toggleContrast()">Contraste élevé</button><br><br>
 
-                <button onclick="supprimerCouleurs()">Supprimer Couleurs</button>
+  <h3>Changer la couleur</h3>
 
-                <input type="range" id="colorSlider" min="0" max="360" step="1" value="230" onchange="updateAngleCouleur(this.value)">
-                <input type="range" class="luminosite" id="sliderLuminosite" min="15" max="80" value="50" oninput="changerCouleurAvecLuminosite()">
+<div class="theme-selector-container">
+
+
+<div class="theme-circle theme-red"       onclick="changerCouleurnew('rouge')"     title="Rouge"></div>
+    <div class="theme-circle theme-orange"    onclick="changerCouleurnew('orange')"    title="Orange"></div>
+    <div class="theme-circle theme-jaune"     onclick="changerCouleurnew('jaune')"     title="Ocre / Doré"></div>
+    <div class="theme-circle theme-green"     onclick="changerCouleurnew('vert')"      title="Vert"></div>
+    <div class="theme-circle theme-turquoise" onclick="changerCouleurnew('turquoise')" title="Bleu Canard"></div>
+    <div class="theme-circle theme-blue"      onclick="changerCouleurnew('bleu')"      title="Bleu"></div>
+    <div class="theme-circle theme-violet"    onclick="changerCouleurnew('violet')"    title="Violet"></div>
+    <div class="theme-circle theme-rose"      onclick="changerCouleurnew('rose')"      title="Vieux Rose"></div>
+    <div class="theme-circle theme-choco"     onclick="changerCouleurnew('choco')"     title="Café / Bois"></div>
+</div>                <!-- Ajouter un séparateur horizontal -->
 
                 <!-- Ajouter un séparateur horizontal -->
 
@@ -343,7 +337,20 @@
 
 
  <hr>
-                <h2>Choix lors de doublon d'inter</h2>
+               
+
+                <h2>Développeur</h2>
+<button onclick="//top.location.href='../Notes/index.html?&user=D%20V&folders=BugIdea'">Bugs/idée Dev</button>
+                <button id="toggleDeveloppeur" onclick="toggleDeveloppeur()">Afficher les options</button>
+
+                <div id="developpeur" style="display: none;">
+                    <div class="button-wrapper">
+
+
+                        <div id="Actu" class="tab-button" onclick="Act()">Actualiser</div>
+                        
+
+ <h2>Choix lors de doublon d'inter</h2>
 <!-- Boutons pour modifier les préférences -->
 <button id="deletePreferenceBtnST">Aucune Préférence</button>
 
@@ -352,7 +359,7 @@
 <button id="setDefaultPauseBtn">'Mettre Pause' </button>
 <button id="setDefaultCreerBtn">'Créer Nouveau' </button>
 </div>
-          <hr>
+   
 
             <br>
          
@@ -402,29 +409,15 @@
 </div>
 
 </div>
-
 <hr>
-<br>
-
-<br>
-                <h2>Développeur</h2>
-<button onclick="top.location.href='../Notes/index.html?&user=D%20V&folders=BugIdea'">Bugs/idée Dev</button>
-                <button id="toggleDeveloppeur" onclick="toggleDeveloppeur()">Afficher les obtions</button>
-
-                <div id="developpeur" style="display: none;">
-                    <div class="button-wrapper">
-
-
-                        <div id="Actu" class="tab-button" onclick="Act()">Actualiser</div>
-                        
-<button id="btnCleanCRH" onclick="nettoyerCRH()">Nettoyer fichiers CRH</button>
+<button id="btnCleanCRH" onclick="//nettoyerCRH()">Nettoyer fichiers CRH</button>
 <pre id="cleanCRHResult" style="white-space: pre-wrap; margin-top: 10px;"></pre>
 
         
                     <button type="button" onclick="ouvrirModalModifierPiece()">Tester Modal Pièces</button>
 
-                    <button type="button" onclick="window.location.href='../Edith/index.html'">Gérer les regroupement</button>
-                    <button class="button" onclick="window.location.href = '../Edith/index2.html'">Gérer les Préconfiguration</button>
+                    <button type="button" onclick="//window.location.href='../Edith/index.html'">Gérer les regroupement</button>
+                    <button class="button" onclick="//window.location.href = '../Edith/index2.html'">Gérer les Préconfiguration</button>
                     <br><br>
                     <button onclick="modalselect('Test')">Tester la modal de 'regroup'</button>
                     <div class="button-wrapper">
@@ -433,7 +426,7 @@
                     <div class="button-wrapper">
                         <button onclick="exportBRUTTxt()">Exporter en local les interventions (BRUT)</button>
                     </div>
-                    <button class="button" onclick="window.location.href = '../QRcode.html'">Crée QRcode pour les lieux</button>
+                    <button class="button" onclick="//window.location.href = '../QRcode.html'">Crée QRcode pour les lieux</button>
                     <br>
 <button id="resetNotifButton" class="button" style="background-color: #c0392b; color: white;">
   🔁 Réinitialiser les notifications
@@ -441,6 +434,11 @@
 
 <div id="developpeur"
      style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 10px;">
+     
+                <button onclick="supprimerCouleurs()">Supprimer Couleurs</button>
+
+                <input type="range" id="colorSlider" min="0" max="360" step="1" value="230" onchange="updateAngleCouleur(this.value)">
+                <input type="range" class="luminosite" id="sliderLuminosite" min="15" max="80" value="50" oninput="changerCouleurAvecLuminosite()">
   <button onclick="handleThemeButtonClick('none')">Aucun thème</button>
 <button onclick="handleThemeButtonClick('glass')">Aero</button>
   <button onclick="handleThemeButtonClick('retro')">2000</button>
@@ -453,7 +451,10 @@
                 <hr>
                 <!-- Ajoutez ce bouton à l'endroit souhaité dans votre page HTML -->
     <div id="credits-container">
-      <p id="credits"></p>
+      <p id="credits">Créé par : polocrafting - Fin 2023 <br>
+        Démo dérrivé de la v3.3.58 <br>
+polocrafting.fr - v3.3.75 - 12/2025<br>
+G-MAPP (Gestion Maintenance APP)</p>
     </div>
   </div>
 
@@ -519,22 +520,38 @@
     <button id="stayLoggedBtn" style="margin-top: 10px; background: #2196f3;display:none;">🔒 Rester connecté sur cet appareil</button>
 
     <button id="extendSessionBtn" style="margin-right: 10px;">Rester 1h de plus</button>
-    <button id="logoutNowBtn" style="background: red;">Déconnexion</button>
+    <button id="logoutNowBtnoff" style="background: red;">Déconnexion</button>
   </div>
 </div>
 
 
 <script>
 
+// --- handler unifié ---
 window.addEventListener('message', function(event) {
-    if (event.data && event.data.type === 'scan') {
-        alert('iframe: ' + event.data.detail);
-        scannedText = "scan-https://" + event.data.detail + "-fin";
-        gestdata(scannedText);
+  if (!event.data || event.data.type !== 'scan') return;
+
+  const detail = String(event.data.detail ?? '').trim();
+
+  const modal = document.getElementById('modifierPieceModal');
+  const isModalOpen = modal && window.getComputedStyle(modal).display !== 'none';
+
+  if (isModalOpen) {
+    // MODE PIÈCES → on travaille au "numéro" seulement
+    const barcode = extractBarcode(detail); // tolère déjà "scan-…-fin" ou une URL
+    if (!barcode) {
+      console.warn('Scan (Pièces) invalide:', detail);
+      alert('Scan (Pièces) invalide : ' + detail);
+      return;
     }
+    alert('Pièces : ' + barcode);
+    cherBarre(barcode);
+  } else {
+            scannedText = "scan-https://" + event.data.detail + "-fin";
+            alert('iframe: ' + scannedText);
+            gestdata(scannedText);
+  }
 });
-
-
 
       const hash = location.hash.substring(1);
   const urlParams = new URLSearchParams(hash);
@@ -638,8 +655,8 @@ let clé = (utilisateurExclu + '_uver')
       "JS/Lieu.js", "Pièces.js", "Préconf.js", "regroup.js", "JS/IMGSVG.js",
       "JS/Bip.js", "JS/index.js", "JS/Data.js", "JS/unorm.js", "JS/style.js",
       "JS/Cookies.js", "JS/Script.js", "JS/GestionIframe.js", "JS/ModalArbre.js",
-      "JS/AffichageEtGestionLieu.js", "JS/GestionInterSauvegarde.js", "JS/camera.js",
-      "JS/scriptQR.js", "JS/GestCSV.js", "JS/note.js", "JS/persoTAB.js", "Rais.js","JS/popup.js","JS/CommunNT.js"
+      "JS/AffichageEtGestionLieu.js", "JS/GestionInterSauvegarde.js", 
+      "JS/GestCSV.js", "JS/note.js", "JS/persoTAB.js", "Rais.js","JS/popup.js","JS/CommunNT.js"
     ];
     for (const file of scripts) {
       try {
@@ -661,7 +678,7 @@ if (username != null && username !== "" && username !== "null") {
     errorr();
 }
 
-
+openTab('creer');
   }
 
   /**
@@ -671,7 +688,7 @@ if (username != null && username !== "" && username !== "null") {
     const startupFunctions = [
          { func: "dateLM", args: [] }, 
         { func: "initConfig", args: [] }, 
-                { func: "ChargTheme", args: [] },
+        { func: "changerCouleurnew", args: [] }, 
 
       { func: "renderButtons", args: [] },
       { func: "checkFirstVisit", args: [] },
@@ -686,6 +703,7 @@ if (username != null && username !== "" && username !== "null") {
                 { func: "updateinfo", args: [] },
                 { func: "start", args: [] },
                 { func: "checkSessionValidity", args: [] },
+
 
 
 

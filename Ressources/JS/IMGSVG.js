@@ -40,3 +40,97 @@ Object.assign(svg.style, {
 
   btn.appendChild(svg);
 }
+
+
+
+(() => {
+  // --- 1) Fabrique un SVG plein suivant currentColor ---
+  function createTriangleSVG(dir) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "tri-svg");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("width", "1em");
+    svg.setAttribute("height", "1em");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    svg.style.display = "inline-block";
+    svg.style.verticalAlign = "-0.125em";
+    svg.style.fill = "currentColor";
+
+    const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    if (dir === "down") {
+      polygon.setAttribute("points", "5,20 95,20 50,95"); // ▼
+    } else if (dir === "right") {
+      polygon.setAttribute("points", "20,5 95,50 20,95"); // ▶
+    }
+    svg.appendChild(polygon);
+    return svg;
+  }
+
+const RE = /[\u2228\u003E]/; 
+  function replaceInTextNode(textNode) {
+    const txt = textNode.nodeValue;
+    if (!RE.test(txt)) return;
+
+    const frag = document.createDocumentFragment();
+    for (const ch of txt) {
+      if (ch === "\u2228") {
+        frag.appendChild(createTriangleSVG("down"));
+      } else if (ch === ">" || ch === "\u003E") {
+        frag.appendChild(createTriangleSVG("right"));
+      } else {
+        frag.appendChild(document.createTextNode(ch));
+      }
+    }
+    textNode.parentNode.replaceChild(frag, textNode);
+  }
+
+  const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "TEXTAREA", "CODE", "PRE", "NOSCRIPT", "TEMPLATE"]);
+  function shouldSkip(node) {
+    if (!node || node.nodeType !== 1) return false;
+    if (SKIP_TAGS.has(node.tagName)) return true;
+    if (node.isContentEditable) return true;
+    if (node.closest && node.closest("[data-no-triangle-replace]")) return true;
+    return false;
+  }
+
+  function walkAndReplace(root) {
+    if (!root || shouldSkip(root)) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const p = node.parentNode;
+        if (!p || shouldSkip(p)) return NodeFilter.FILTER_REJECT;
+        return RE.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      },
+    });
+    const toProcess = [];
+    let n;
+    while ((n = walker.nextNode())) toProcess.push(n);
+    toProcess.forEach(replaceInTextNode);
+  }
+
+  // --- 4) Application uniquement dans les conteneurs ciblés ---
+  const targets = [
+    document.getElementById("lieux-list"),
+    document.getElementById("arborescenceLieux"),
+    document.getElementById("arborescenceContainer3"),
+  ].filter(Boolean);
+
+  targets.forEach(walkAndReplace);
+
+  // --- 5) Observation dynamique uniquement sur ces zones ---
+  const mo = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (node.nodeType === 3) {
+          replaceInTextNode(node);
+        } else if (node.nodeType === 1) {
+          walkAndReplace(node);
+        }
+      }
+    }
+  });
+
+  targets.forEach((t) => mo.observe(t, { childList: true, subtree: true }));
+})();
+

@@ -1,3 +1,8 @@
+window.cibleId = window.cibleId || null;
+window.modalContext = window.modalContext || { origin: null, targetId: null, sourceWindow: null };
+window.cibleId = window.cibleId || null;
+
+
 async function ouvrirModalModifierLieu(nomLieuActuel) {
     const modal = document.getElementById('modifierLieuModal');
     modal.style.display = 'block';
@@ -29,7 +34,7 @@ function parcourirArborescenceSansPreconfiguration(arbre, parent, cheminParent =
         const nomLieuPourJS = lieu.trim().replace(/'/g, "\\'");
 
         const lieuItem = document.createElement('li');
-        const icon = (Object.keys(arbre[lieu]).length > 0) ? '▶' : ' ';
+        const icon = (Object.keys(arbre[lieu]).length > 0) ? '>' : ' ';
         const displayStyle = (niveau === 0) ? 'block' : 'none';
 
         let buttonHTML = '';
@@ -59,72 +64,177 @@ function parcourirArborescenceSansPreconfiguration(arbre, parent, cheminParent =
 }
 
 
+
+
+
+function normalizeForRegexBase(str) {
+  // minuscules + accents retirés
+  return String(str || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '');
+}
+
+function buildNeedleRegex(rawInput) {
+  const s = normalizeForRegexBase(rawInput).trim();
+  if (!s) return null;
+
+  // découpe lettres/chiffres (sans enlever les séparateurs ici)
+  const tokens = s.match(/[\p{L}]+|\d+/gu) || [];
+  if (!tokens.length) return null;
+
+  const SEP = String.raw`[\/_\-\s\\]*`; // séparateurs optionnels
+
+  const parts = tokens.map(tok => {
+    if (/^\d+$/.test(tok)) {
+      // autorise des zéros de tête devant ce nombre
+      // ex: "1" -> "0*1", "01" -> "0*01"
+      return String.raw`0*${tok}`;
+    }
+    // lettres telles quelles (déjà normalisées)
+    // on échappe pour sécurité (même si lettres uniquement après normalisation)
+    return tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  });
+
+  const pattern = parts.join(SEP);
+  return new RegExp(pattern, 'i'); // i = case-insensitive (déjà en minuscules, mais safe)
+}
+
 function searchLieu2(arbre) {
-    const clearButton2 = document.getElementById('clearButton2'); // Bouton de nettoyage de la seconde barre de recherche
-    const searchInput2 = document.getElementById('searchInput2'); // Champ de texte de la seconde barre de recherche
-    const searchTerm2 = normalizeString2(searchInput2.value.toLowerCase());
+    const clearButton = document.getElementById('clearButton2');
+    const searchInput  = document.getElementById('searchInput2');
+    const lieuxList    = document.getElementById('arborescenceLieux');
+    if (!searchInput || !lieuxList) return;
 
-    const arborescenceLieux = document.getElementById('arborescenceLieux'); // L'élément contenant la liste des lieux dans la modal
-    const lieuxItems2 = arborescenceLieux.querySelectorAll('li'); // Tous les éléments `li` de la liste des lieux
+    const termFold = normalizeString(searchInput.value);
+    const terms = termFold.split(/\s+/).filter(Boolean); // multi-termes: tous doivent être contenus
 
-    // Afficher ou masquer le bouton de nettoyage en fonction de la valeur de la recherche
-    clearButton2.style.display = searchInput2.value.trim() !== '' ? 'block' : 'none';
+    if (clearButton) clearButton.style.display = termFold !== '' ? 'block' : 'none';
+  lieuxList.classList.toggle('is-searching', terms.length > 0);
 
-    // Parcourir la liste des lieux
-    for (let i = 0; i < lieuxItems2.length; i++) {
-        const lieuItem2 = lieuxItems2[i];
-        const placeCard2 = lieuItem2.querySelector('.place-card');
+    const lieuxItems = lieuxList.querySelectorAll('li');
 
-        if (placeCard2) {
-            const placeCardText2 = normalizeString2(placeCard2.innerText.toLowerCase());
-            const matchesSearch2 = placeCardText2.includes(searchTerm2);
+    // cache des textes normalisés
+    for (let i = 0; i < lieuxItems.length; i++) {
+        const li = lieuxItems[i];
+        if (!li.__foldText) li.__foldText = normalizeString(li.textContent || '');
+        const pc = li.querySelector('.place-card');
+        if (pc && !pc.__foldText) pc.__foldText = normalizeString(pc.textContent || '');
+    }
 
-            // Masquer ou afficher la place-card en fonction de la correspondance
-            placeCard2.style.display = matchesSearch2 ? 'block' : 'none';
+    for (let i = 0; i < lieuxItems.length; i++) {
+        const li = lieuxItems[i];
+        const pc = li.querySelector('.place-card');
+
+        const matchLi = terms.length === 0 || terms.every(t => li.__foldText.includes(t));
+        if (pc) {
+            const matchPc = terms.length === 0 || terms.every(t => pc.__foldText.includes(t));
+            pc.style.display = matchPc ? 'block' : 'none';
         }
 
-        const lieuName2 = normalizeString2(lieuItem2.innerText.toLowerCase());
-        const searchTerms2 = searchTerm2.split(/\s+/);
-        const matchesSearch2 = searchTerms2.every(term => lieuName2.includes(term));
-
-        if (matchesSearch2) {
-            // Afficher l'élément trouvé
-            lieuItem2.style.display = 'block';
-            lieuItem2.classList.add('active');
-
-            // Ouvrir les branches jusqu'à cet élément
-            let parent2 = lieuItem2.parentElement;
-            while (parent2 && parent2 !== arborescenceLieux) {
-                if (parent2.tagName === 'UL') {
-                    parent2.style.display = 'block';
-                }
-                parent2 = parent2.parentElement;
+        if (matchLi) {
+            li.style.display = 'block';
+            li.classList.add('active');
+            // ouvre les branches parentes
+            let p = li.parentElement;
+            while (p && p !== lieuxList) {
+                if (p.tagName === 'UL') p.style.display = 'block';
+                p = p.parentElement;
             }
         } else {
-            // Cacher les éléments qui ne correspondent pas
-            lieuItem2.style.display = 'none';
-            lieuItem2.classList.remove('active');
+            li.style.display = 'none';
+            li.classList.remove('active');
         }
     }
 
-    // Refermer toutes les branches si la zone de recherche est vide
-    if (searchTerm2 === '') {
-        const allBranches2 = arborescenceLieux.querySelectorAll('ul');
-        allBranches2.forEach(branch => {
-            branch.style.display = 'none';
-        });
+    if (terms.length === 0) {
+        const allBranches = lieuxList.querySelectorAll('ul');
+        allBranches.forEach(b => { b.style.display = 'none'; });
     }
 }
+function searchLieu3(arbre) {
+  const clearButton = document.getElementById('clearButton3');
+  const searchInput = document.getElementById('searchInput3');
+  const lieuxList   = document.getElementById('arborescencePieces');
+  if (!searchInput || !lieuxList) return;
 
-function clearSearchInput2() {
-    const searchInput2 = document.getElementById('searchInput2');
-    searchInput2.value = '';
+  const termFold = normalizeString(searchInput.value);
+  const terms = termFold.split(/\s+/).filter(Boolean);
 
-    // Cacher le bouton après avoir effacé la zone de texte
-    const clearButton2 = document.getElementById('clearButton2');
+  if (clearButton) clearButton.style.display = termFold !== '' ? 'block' : 'none';
+  lieuxList.classList.toggle('is-searching', terms.length > 0);
 
-    searchLieu2(); // Relancer la recherche avec une zone de texte vide
+  const lieuxItems = lieuxList.querySelectorAll('li');
+
+  // Cache des textes normalisés
+  for (let i = 0; i < lieuxItems.length; i++) {
+    const li = lieuxItems[i];
+    if (!li.__foldText) li.__foldText = normalizeString(li.textContent || '');
+    const pc = li.querySelector('.place-card');
+    if (pc && !pc.__foldText) pc.__foldText = normalizeString(pc.textContent || '');
+  }
+
+  // 🔄 Nettoyage des styles appliqués précédemment aux .place-card (parents)
+  lieuxList.querySelectorAll('.place-card').forEach(pcEl => {
+    pcEl.style.removeProperty('padding');
+    pcEl.style.removeProperty('min-height');
+    pcEl.style.removeProperty('display');
+  });
+
+  for (let i = 0; i < lieuxItems.length; i++) {
+    const li = lieuxItems[i];
+    const pc = li.querySelector('.place-card');
+
+    const matchLi = terms.length === 0 || terms.every(t => li.__foldText.includes(t));
+    // ⚠️ On ne touche PAS au styling du .place-card de l’élément trouvé
+    // donc on ne lui met pas de padding/minHeight/display ici.
+    // (on garde le cache _foldText ci-dessus seulement)
+
+    if (matchLi) {
+      li.style.display = 'block';
+      li.classList.add('active');
+
+      // Ouvre les branches parentes + applique le style aux .place-card des PARENTS
+      let p = li.parentElement;
+      while (p && p !== lieuxList) {
+        if (p.tagName === 'UL') {
+          p.style.display = 'block';
+          const parentLi = p.parentElement; // le LI parent de cette UL
+          if (parentLi && parentLi.tagName === 'LI') {
+            parentLi.style.display = 'block';
+            const parentPc = parentLi.querySelector('.place-card');
+            if (parentPc) {
+              parentPc.style.padding = "10px 0 0 10px";
+              parentPc.style.display = "block"; // ou inline/flex/grid selon ton besoin
+parentPc.style.setProperty("height", "15px", "important"); // ✅
+pc.style.minHeight = "0px"; // ✅ correct
+
+
+            }
+          }
+        }
+        p = p.parentElement;
+      }
+    } else {
+      li.style.display = 'none';
+      li.classList.remove('active');
+    }
+  }
+
+  // Quand pas de terme, on replie et on nettoie les styles parent appliqués
+  if (terms.length === 0) {
+    const allBranches = lieuxList.querySelectorAll('ul');
+    allBranches.forEach(b => { b.style.display = 'none'; });
+
+    // (optionnel) s'assurer que tout est clean
+    lieuxList.querySelectorAll('.place-card').forEach(pcEl => {
+      pcEl.style.removeProperty('padding');
+      pcEl.style.removeProperty('min-height');
+      pcEl.style.removeProperty('display');
+    });
+  }
 }
+
 
 
 function normalizeString2(str) {
@@ -287,25 +397,15 @@ function afficherModalEditionPieces(enregistrement, enregistrements) {
     overlay.style.position = 'fixed';
     overlay.style.top = '0';
     overlay.style.left = '0';
-    overlay.style.width = '100vw';
-    overlay.style.height = '100vh';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
     overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'; // Fond gris semi-transparent
     overlay.style.zIndex = '999'; // En dessous de la modal
     document.body.appendChild(overlay);
 
     // Création de la modal
     const modal = document.createElement('div');
-    modal.style.position = 'fixed';
-    modal.style.top = '5%';
-    modal.style.left = '50%';
-    modal.style.transform = 'translate(-50%, 0%)';
-    modal.style.backgroundColor = '#dadada';
-    modal.style.border = '1px solid #ccc';
-    modal.style.padding = '10px';
-    modal.style.borderRadius = '10px';
-    modal.style.zIndex = '1000'; // Au-dessus de l'overlay
-    modal.style.width = '90%';
-    modal.style.boxShadow = '0px 4px 10px rgba(0, 0, 0, 0.1)';
+
 
     // Titre de la modal
     const title = document.createElement('h3');
@@ -317,14 +417,7 @@ function afficherModalEditionPieces(enregistrement, enregistrements) {
 
     // Conteneur des pièces existantes
     const piecesContainer = document.createElement('div');
-    piecesContainer.style.border = '1px solid #ccc';
-    piecesContainer.style.borderRadius = '5px';
-    piecesContainer.style.padding = '10px';
-    piecesContainer.style.marginBottom = '10px';
-    piecesContainer.style.display = 'flex';
-    piecesContainer.style.flexWrap = 'wrap';
-    piecesContainer.style.gap = '10px';
-    piecesContainer.style.backgroundColor = '#f9f9f9';
+
 
     // Charger les pièces existantes
     const pieces = enregistrement.zoneTexte3
@@ -369,19 +462,34 @@ function afficherModalEditionPieces(enregistrement, enregistrements) {
     editButton.style.padding = '5px 10px';
     editButton.style.cursor = 'pointer';
 
-    editButton.addEventListener('click', () => {
-        const ref = refInput.value.trim();
-        const qty = parseInt(qtyInput.value, 10);
+editButton.addEventListener('click', () => {
+  const refRaw = (refInput.value || '').trim();
+  const qty = parseInt(qtyInput.value, 10);
 
-        if (!ref || isNaN(qty) || qty <= 0) {
-            alert('Veuillez entrer une référence valide et une quantité.');
-            return;
-        }
+  // Mode "liste" si on détecte '@' ou une virgule
+  const looksLikeList = /@|,|\[|\]/.test(refRaw);
 
-        addPieceToContainer(piecesContainer, ref, qty);
-        refInput.value = '';
-        qtyInput.value = '1';
-    });
+  if (looksLikeList) {
+    const arr = parsePiecesPayload(refRaw);
+    if (!arr.length) {
+      alert('Aucune entrée valide au format ID:QTT@PLACE');
+      return;
+    }
+    arr.forEach(({ id, qty, place }) => createPieceBubble(id, qty, place));
+    refInput.value = '';
+    qtyInput.value = '1';
+    return;
+  }
+
+  // Mode simple (ID + quantité, place auto)
+  if (!refRaw || isNaN(qty) || qty <= 0) {
+    alert('Veuillez entrer une référence valide et une quantité.');
+    return;
+  }
+  createPieceBubble(refRaw, qty);
+  refInput.value = '';
+  qtyInput.value = '1';
+});
 
     editSection.appendChild(refInput);
     editSection.appendChild(qtyInput);
@@ -440,150 +548,210 @@ function afficherModalEditionPieces(enregistrement, enregistrements) {
     modal.appendChild(actionButtons);
     document.body.appendChild(modal);
 
-    // Ajouter des pièces au conteneur
-    function addPieceToContainer(container, ref, qty) {
-        if (!ref || isNaN(qty) || qty <= 0) return;
+  function addPieceToContainer(container, ref, qty) {
+    if (!ref || isNaN(qty) || qty <= 0) return;
 
-        const pieceElement = document.createElement('div');
-        pieceElement.dataset.ref = ref;
-        pieceElement.dataset.qty = qty;
-        pieceElement.style.padding = '5px 10px';
-        pieceElement.style.backgroundColor = '#f8f9fa';
-        pieceElement.style.border = '1px solid #ccc';
-        pieceElement.style.borderRadius = '5px';
-        pieceElement.style.display = 'flex';
-        pieceElement.style.alignItems = 'center';
-        pieceElement.style.gap = '10px';
+    // récupère la place via l’objet "pieces"
+    const pieceObj = findPieceById(pieces, ref);
+    const place = pieceObj && pieceObj.place ? pieceObj.place : '';
 
-        const pieceText = document.createElement('span');
-        pieceText.textContent = `${ref} Q=${qty}`;
+    const pieceElement = document.createElement('div');
+    pieceElement.classList.add('piece-bubble');
+    pieceElement.dataset.id = ref;          // ID caché
+    pieceElement.dataset.qty = qty;
+    pieceElement.dataset.place = place || '';
 
-        const editButton = document.createElement('button');
-        editButton.textContent = '✏️';
-        editButton.style.backgroundColor = '#ffc107';
-        editButton.style.color = 'black';
-        editButton.style.border = 'none';
-        editButton.style.borderRadius = '5px';
-        editButton.style.padding = '5px';
-        editButton.style.cursor = 'pointer';
+    pieceElement.style.padding = '5px 10px';
+    pieceElement.style.backgroundColor = '#f8f9fa';
+    pieceElement.style.border = '1px solid #ccc';
+    pieceElement.style.borderRadius = '5px';
+    pieceElement.style.display = 'flex';
+    pieceElement.style.alignItems = 'center';
+    pieceElement.style.gap = '10px';
 
-        editButton.addEventListener('click', () => {
-            refInput.value = ref;
-            qtyInput.value = qty;
-            container.removeChild(pieceElement);
-        });
+    const pieceText = document.createElement('span');
+    pieceText.textContent = place ? `${place}  (Q=${qty})` : `Place inconnue  (Q=${qty})`;
 
-        const deleteButton = document.createElement('button');
-        deleteButton.textContent = '🗑️';
-        deleteButton.style.backgroundColor = '#dc3545';
-        deleteButton.style.color = 'white';
-        deleteButton.style.border = 'none';
-        deleteButton.style.borderRadius = '5px';
-        deleteButton.style.padding = '5px';
-        deleteButton.style.cursor = 'pointer';
-        deleteButton.addEventListener('click', () => {
-            container.removeChild(pieceElement);
-        });
+    const editButton = document.createElement('button');
+    editButton.textContent = '✏️';
+    editButton.style.backgroundColor = '#ffc107';
+    editButton.style.color = 'black';
+    editButton.style.border = 'none';
+    editButton.style.borderRadius = '5px';
+    editButton.style.padding = '5px';
+    editButton.style.cursor = 'pointer';
+    editButton.addEventListener('click', () => {
+        const refInput = document.querySelector('input[type="text"]');
+        const qtyInput = document.querySelector('input[type="number"]');
+        if (refInput) refInput.value = ref;
+        if (qtyInput) qtyInput.value = qty;
+        container.removeChild(pieceElement);
+    });
 
-        pieceElement.appendChild(pieceText);
-        pieceElement.appendChild(editButton);
-        pieceElement.appendChild(deleteButton);
-        container.appendChild(pieceElement);
-    }
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = '🗑️';
+    deleteButton.style.backgroundColor = '#dc3545';
+    deleteButton.style.color = 'white';
+    deleteButton.style.border = 'none';
+    deleteButton.style.borderRadius = '5px';
+    deleteButton.style.padding = '5px';
+    deleteButton.style.cursor = 'pointer';
+    deleteButton.addEventListener('click', () => container.removeChild(pieceElement));
+
+    pieceElement.appendChild(pieceText);
+    pieceElement.appendChild(editButton);
+    pieceElement.appendChild(deleteButton);
+    container.appendChild(pieceElement);
 }
 
 
+}
+
+
+function parsePiecesPayload(payloadStr) {
+  // accepte: "[PIE1:2@A/1/C/03, PIE2:1@B/2/A/07]" ou "PIE1:2@..., PIE2:1@..."
+  if (!payloadStr || typeof payloadStr !== 'string') return [];
+  const s = payloadStr.trim().replace(/^\[/, '').replace(/\]$/, '');
+  if (!s) return [];
+  return s.split(',')
+    .map(x => x.trim())
+    .filter(Boolean)
+    .map(chunk => {
+      // "ID:QTT@PLACE"
+      const [left, placeRaw=''] = chunk.split('@');
+      const [idRaw, qtyRaw=''] = (left || '').split(':');
+      const id = (idRaw || '').trim();
+      const qty = parseInt((qtyRaw || '').trim(), 10) || 1;
+      const place = (placeRaw || '').trim();
+      if (!id) return null;
+      return { id, qty, place };
+    })
+    .filter(Boolean);
+}
 
 
 let lieuGlobal = null; // Ou placez ici la valeur initiale si nécessaire
-function ouvrirModalModifierPiece(Lieu, Pièces) {
-    // Affecter le lieu passé en argument à la variable globale
-    lieuGlobal = Lieu;
 
-    const modal = document.getElementById('modifierPieceModal');
-    modal.style.display = 'block';
-
-    // Réinitialiser les champs et les listes
-    resetModal();
-
-    // Mettre à jour le texte de la modal avec le nom du lieu
-    const texteModal = document.getElementById('texteModal');
-    if (texteModal) {
-        //texteModal.innerText = `Choisissez les pièces à ajouter pour : ${Lieu}`;
-        texteModal.innerText = `Magasin portatif (BETA)`;
-    } else {
-        console.error('L\'élément texteModal est introuvable dans le DOM');
+// helper pour laisser le navigateur peindre avant le travail lourd
+function __afterPaint() {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame !== 'function') {
+      setTimeout(resolve, 0);
+      return;
     }
-
-    // Déclarer `piecesParsed` en dehors de la condition pour qu'elle soit accessible
-    let piecesParsed = [];
-
-    if (!Pièces || typeof Pièces !== 'string' || Pièces.trim() === '') {
-        // Si Pièces est vide ou contient uniquement des espaces, ne rien faire
-    } else {
-        // Nettoyer et parser Pièces
-        piecesParsed = Pièces.split(',').map(piece => {
-            const cleanedPiece = piece.replace(/[\[\]]/g, ''); // Retirer les crochets
-            const [id, qtt] = cleanedPiece.split(':');
-
-            if (id && qtt) {
-                return {
-                    id: id.trim(),
-                    qtt: parseInt(qtt.trim(), 10)
-                };
-            } else {
-                console.error(`Format invalide pour la pièce: ${piece}`);
-                return null;
-            }
-        }).filter(piece => piece !== null); // Filtrer les pièces invalides
-
-    }
-
-    // Utiliser la fonction `parcourirArborescenceSansPreconfigurationIterative` pour gérer l'affichage des pièces
-    const arborescencePieces = document.getElementById('arborescencePieces');
-    const nomPieceActuel = "NomDeLaPiece"; // Exemple de valeur par défaut, remplacez par la logique appropriée
-    parcourirArborescenceSansPreconfigurationIterative(pieces, arborescencePieces, '', 0, nomPieceActuel, []);
-
-    // Vérifier si `piecesParsed` est bien un tableau valide
-    if (Array.isArray(piecesParsed) && piecesParsed.length > 0) {
-        const selectedPiecesList = document.getElementById('selectedPiecesList');
-        selectedPiecesList.innerHTML = ''; // Vider la liste précédente
-
-        piecesParsed.forEach(piece => {
-            if (piece && typeof piece === 'object' && piece.id && piece.qtt !== undefined) {
-                const idPiece = piece.id;
-                const qtt = piece.qtt;
-
-                // Ajouter chaque pièce comme une bulle
-                const bubble = document.createElement('div');
-                bubble.classList.add('piece-bubble');
-                bubble.dataset.id = idPiece; // Ajouter l'ID à data-id
-
-                const bubbleContent = document.createElement('span');
-                bubbleContent.innerText = `ID: ${idPiece}`;
-
-                const quantitySelector = document.createElement('input');
-                quantitySelector.type = 'number';
-                quantitySelector.value = qtt;
-                quantitySelector.min = 1;
-
-                const deleteButton = document.createElement('button');
-                deleteButton.innerText = '🗑️';
-                deleteButton.onclick = () => supprimerPiece(idPiece); // Suppression de la pièce
-
-                bubble.appendChild(bubbleContent);
-                bubble.appendChild(quantitySelector);
-                bubble.appendChild(deleteButton);
-
-                // Ajouter la bulle à la liste des pièces sélectionnées
-                selectedPiecesList.appendChild(bubble);
-            } else {
-                console.error('La pièce n\'est pas au format attendu ou est invalide :', piece);
-            }
-        });
-    } else {
-    }
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
 }
+
+async function ouvrirModalModifierPiece(Lieu, Pièces) {
+  // mémorise le lieu courant
+  lieuGlobal = Lieu;
+
+  // ouvre la modal immédiatement
+  const modal = document.getElementById('modifierPieceModal');
+  if (modal) modal.style.display = 'block';
+
+  // loader léger dans la modal
+  let __loader = document.getElementById('__loaderModifierPiece');
+  if (!__loader) {
+    __loader = document.createElement('div');
+    __loader.id = '__loaderModifierPiece';
+    __loader.setAttribute('aria-live', 'polite');
+    __loader.style.cssText = 'padding:8px;font-size:12px;opacity:0.8';
+    __loader.textContent = 'Chargement…';
+    modal?.appendChild(__loader);
+  }
+  __loader.style.display = 'block';
+
+  // Désactiver Bip.js et activer le scanner fantôme pour cette modal
+  if (typeof pauseBip === 'function') pauseBip();
+  attachModifierScannerForModifierPiece?.();
+
+  // Réinitialiser les champs et les listes
+  resetModal?.();
+
+  // Titre
+  const texteModal = document.getElementById('texteModal');
+  const enregistrerModifications = document.getElementById('enregistrerModifications');
+
+  if (!lieuGlobal || lieuGlobal === undefined) {
+    if (texteModal) texteModal.innerText = 'Magasin portatifs';
+    if (typeof selectedPiecesContainer !== 'undefined') selectedPiecesContainer.style.display = "none";
+    if (typeof btnScannerBoite !== 'undefined') btnScannerBoite.style.display = "none";
+    if (enregistrerModifications) enregistrerModifications.textContent = "Fermer";
+  } else if (texteModal) {
+    texteModal.innerText = 'Sortie de pièces : ' + lieuGlobal;
+    if (typeof selectedPiecesContainer !== 'undefined') selectedPiecesContainer.style.display = "block";
+    if (typeof btnScannerBoite !== 'undefined') btnScannerBoite.style.display = "block";
+    if (enregistrerModifications) enregistrerModifications.textContent = "Enregistrer";
+  } else {
+    console.error("L'élément #texteModal est introuvable.");
+  }
+
+  // Laisse le navigateur peindre la modal + loader avant de faire le travail coûteux
+  await __afterPaint();
+
+  // --- parsing au nouveau format ---
+  let piecesParsed = [];
+  try {
+    if (typeof Pièces === 'string' && Pièces.trim() !== '') {
+      piecesParsed = parsePiecesPayload(Pièces);
+    }
+  } catch (e) {
+    console.warn('parsePiecesPayload a échoué :', e);
+    piecesParsed = [];
+  }
+
+  // --- remplir l’arborescence des pièces (côté gauche) sans recharger si déjà construite pour ce lieu ---
+  try {
+    const arborescencePieces = document.getElementById('arborescencePieces');
+    const nomPieceActuel = "NomDeLaPiece";
+    if (arborescencePieces) {
+      const dejaConstruitPourLieu = arborescencePieces.getAttribute('data-lieu') === String(lieuGlobal || '');
+      const estVide = arborescencePieces.children.length === 0;
+
+      if (!dejaConstruitPourLieu || estVide) {
+        arborescencePieces.innerHTML = '';
+        parcourirArborescenceSansPreconfigurationIterative?.(
+          pieces,            // objet global "pieces"
+          arborescencePieces,
+          '',
+          nomPieceActuel,
+          []
+        );
+        arborescencePieces.setAttribute('data-lieu', String(lieuGlobal || ''));
+      }
+    }
+  } catch (e) {
+    console.warn('Impossible de construire arborescencePieces :', e);
+  }
+
+  // --- afficher les bulles à partir des données initiales ---
+  try {
+    if (Array.isArray(piecesParsed) && piecesParsed.length > 0) {
+      const selectedPiecesList = document.getElementById('selectedPiecesList');
+      if (selectedPiecesList) {
+        selectedPiecesList.innerHTML = '';
+        const batchSize = 50;
+        for (let i = 0; i < piecesParsed.length; i += batchSize) {
+          const slice = piecesParsed.slice(i, i + batchSize);
+          slice.forEach(({ id, qty, place }) => {
+            const placeFinal = (place && place.trim()) ? place.trim() : (getPlaceById?.(id) || '');
+            createPieceBubble(id, qty, placeFinal);
+          });
+          // respiration UI entre lots
+          // eslint-disable-next-line no-await-in-loop
+          await __afterPaint();
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Affichage des bulles impossible :', e);
+  } finally {
+    if (__loader) __loader.style.display = 'none';
+  }
+}
+
 
 // Fonction pour réinitialiser la modal
 function resetModal() {
@@ -607,7 +775,8 @@ function resetModal() {
     // Garder les données d'arborescence intactes
     const arborescencePieces = document.getElementById('arborescencePieces');
     if (arborescencePieces) {
-        arborescencePieces.innerHTML = ''; // Réinitialiser uniquement si nécessaire
+        clearSearchInput3()
+        //arborescencePieces.innerHTML = ''; // Réinitialiser uniquement si nécessaire
     }
 }
 
@@ -629,81 +798,79 @@ function supprimerPiece(idPiece) {
 
 
 
-
-// Fonction pour ajouter une pièce sélectionnée
 function choisirpieces(lieu, idPiece) {
-
-    // Créer une nouvelle bulle pour la pièce
-    const selectedPiecesList = document.getElementById('selectedPiecesList');
-
-    const bubble = document.createElement('div');
-    bubble.classList.add('piece-bubble');
-    bubble.dataset.id = idPiece;
-
-    const bubbleContent = document.createElement('span');
-    bubbleContent.innerText = `ID: ${idPiece}`;
-
-    const quantitySelector = document.createElement('input');
-    quantitySelector.type = 'number';
-    quantitySelector.value = 1;
-    quantitySelector.min = 1;
-
-    const deleteButton = document.createElement('button');
-    deleteButton.innerText = '🗑️';
-    deleteButton.onclick = () => supprimerPiece(idPiece);
-
-    bubble.appendChild(bubbleContent);
-    bubble.appendChild(quantitySelector);
-    bubble.appendChild(deleteButton);
-
-    selectedPiecesList.appendChild(bubble);
+  const existing = findBubbleById(idPiece);   // ✅ plus de "const existing =" en double
+  if (existing) {
+    const qty = existing.querySelector('input[type="number"]');
+    qty.value = (parseInt(qty.value, 10) || 0) + 1;
+  } else {
+    createPieceBubble(idPiece, 1);
+  }
 }
 
 
 
-// Fonction pour fermer la modal des pièces
 function fermerModalModifierPiece() {
-    const modal = document.getElementById('modifierPieceModal');
-    modal.style.display = 'none';
+  const modal = document.getElementById('modifierPieceModal');
+
+  // Nettoyage + réactiver Bip.js
+  if (typeof detachModifierScanner === 'function') detachModifierScanner();
+  if (typeof resumeBip === 'function') resumeBip();
+
+  if (modal) modal.style.display = 'none';
 }
 
 function enregistrerModifications() {
-    // Récupère la liste des pièces sélectionnées
-    const selectedPiecesList = document.getElementById('selectedPiecesList');
-    const pieces = selectedPiecesList.getElementsByClassName('piece-bubble'); // Récupère toutes les bulles des pièces sélectionnées
-
-    const piecesData = [];
-
-    // Récupérer les ID et quantités des pièces sélectionnées
-    for (let i = 0; i < pieces.length; i++) {
-        const piece = pieces[i];
-        const idPiece = piece.dataset.id; // ID de la pièce
-        const quantity = piece.querySelector('input[type="number"]').value; // Quantité de la pièce
-
-        // Vérifier si la quantité est un nombre valide avant de l'ajouter
-        if (quantity && !isNaN(quantity) && quantity > 0) {
-            piecesData.push(`${idPiece}:${quantity}`); // Ajouter l'ID et la quantité sous la forme ID:QTT
-        }
-    }
-
-    // Créer la chaîne formatée ID:QTT,ID:QTT,... ou un tableau vide si aucune pièce
-    const piecesDataString = piecesData.length > 0 ? "[" + piecesData.join(',') + "]" : "[]";
-
-    // Récupérer toutes les iframes
-    const iframes = document.getElementsByTagName('iframe');
-
-    // Envoyer les données à toutes les iframes via postMessage
-    for (let iframe of iframes) {
-        iframe.contentWindow.postMessage({
-            type: "modifierPieces",
-            lieu: lieuGlobal,
-            pieces: piecesDataString
-        }, '*'); // '*' pour autoriser l'envoi à toutes les iframes
-    }
-
-    // Optionnel : Fermer la modale après enregistrement
+  const selectedPiecesList = document.getElementById('selectedPiecesList');
+  if (!selectedPiecesList) {
+    console.warn('[enregistrerModifications] #selectedPiecesList introuvable');
     fermerModalModifierPiece();
+    return;
+  }
+
+  const bubbles = selectedPiecesList.getElementsByClassName('piece-bubble');
+  const items = [];
+  for (let i = 0; i < bubbles.length; i++) {
+    const b = bubbles[i];
+    const id = (b.dataset.id || '').trim();
+    const place = (b.dataset.place || '').trim();
+    const qty = parseInt((b.querySelector('input[type="number"]')?.value || '0'), 10);
+    if (!id || isNaN(qty) || qty <= 0) continue;
+    items.push(`${id}:${qty}@${place}`);
+  }
+  const payload = items.length ? `[${items.join(', ')}]` : '[]';
+
+  const ctx = window.modalContext || { origin: null, targetId: null, sourceWindow: null };
+  const idOrLieu = ctx.targetId || window.lieuGlobal || '';
+
+  // ---- ROUTAGE ----
+  if (ctx.origin === 'gestion') {
+    // ➜ Mise à jour locale (Gestion.js)
+    if (typeof window.onPiecesModified === 'function') {
+      window.onPiecesModified({ id: idOrLieu, pieces: payload });
+    }
+  } else if (ctx.origin === 'iframe') {
+    // ➜ Retour uniquement à l’iframe qui a lancé la modale (via son contentWindow)
+    if (ctx.sourceWindow && typeof ctx.sourceWindow.postMessage === 'function') {
+      ctx.sourceWindow.postMessage({
+        type: 'modifierPieces',
+        lieu: window.lieuGlobal || idOrLieu, // ⚠️ les iframes s’identifient par le lieu
+        pieces: payload
+      }, '*');
+    }
+  } else {
+    console.warn('[enregistrerModifications] Contexte inconnu, aucune diffusion.');
+  }
+
+  // reset + close
+  window.modalContext = { origin: null, targetId: null, sourceWindow: null };
+  fermerModalModifierPiece();
 }
+
+
+
+
+
 
 function normalizeString(str) {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9\s]/g, "");
@@ -747,20 +914,31 @@ function parcourirArborescenceSansPreconfigurationIterative(arbre, parent, chemi
                 const idPiece = currentNode.id; // Récupère l'ID de la pièce
 
                 // Si l'ID existe, créer le bouton, sinon logguer une erreur
-                if (idPiece) {
-                    lieuItem.innerHTML = `
-                    <div class="place-card level-${niveau}">
-                        <span>${lieu}</span>
-                        <button onclick="choisirpieces('${lieu}', '${idPiece}', this)">👆</button>
-                    </div>`;
+if (idPiece) {
+  const lieuItemDiv = document.createElement('div');
+  lieuItemDiv.className = `place-card level-${niveau}`;
 
-                } else {
-                    console.error(`ID manquant pour le lieu : ${lieu}`);
-                }
+  const span = document.createElement('span');
+  span.textContent = lieu;
+  lieuItemDiv.appendChild(span);
+
+  const btn = document.createElement('button');
+  btn.textContent = '👆';
+  btn.addEventListener('click', function () {
+    choisirpieces(lieu, idPiece, btn);
+  });
+  lieuItemDiv.appendChild(btn);
+
+  lieuItem.innerHTML = ''; // nettoie si besoin
+  lieuItem.appendChild(lieuItemDiv);
+} else {
+  console.error(`ID manquant pour le lieu : ${lieu}`);
+}
+
             } else {
                 lieuItem.innerHTML = `
                     <div class="place-card level-${niveau}" onclick="toggleNiveau2(this, ${niveau})">
-                        <span>▶ ${lieu}</span>
+                        <span>> ${lieu}</span>
                     </div>`;
             }
 
@@ -783,96 +961,9 @@ function parcourirArborescenceSansPreconfigurationIterative(arbre, parent, chemi
 }
 
 
-function searchLieu3() {
-    const searchInput = document.getElementById('searchInput3');
-    const searchTerm = normalizeString(searchInput.value.toLowerCase());
-
-    const clearButton = document.getElementById('clearButton2');
-    clearButton.style.display = searchTerm.trim() !== '' ? 'block' : 'none';
-
-    const arborescencePieces = document.getElementById('arborescencePieces');
-
-    // Si le champ de recherche est vide, réinitialiser l'arborescence
-    if (searchTerm === '') {
-        // Réinitialiser tous les éléments visibles
-        const lieuxItems = arborescencePieces.querySelectorAll('li');
-        lieuxItems.forEach(lieuItem => {
-            lieuItem.style.display = 'block'; // S'assurer que tous les éléments sont visibles
-        });
-
-        // Fermer toutes les branches
-        const allBranches = arborescencePieces.querySelectorAll('ul');
-        allBranches.forEach(branch => {
-            branch.style.display = 'none';
-        });
-
-        // Réinitialiser les icônes des éléments de niveau supérieur
-        const allPlaceCards = arborescencePieces.querySelectorAll('.place-card');
-        allPlaceCards.forEach(placeCard => {
-            const iconElement = placeCard.querySelector('span');
-            if (iconElement) {
-                const texteElement = iconElement.textContent.trim();
-                iconElement.textContent = texteElement;
-            }
-        });
-
-        return; // Sortir de la fonction
-    }
-
-    // Masquer tous les éléments au départ
-    const lieuxItems = arborescencePieces.querySelectorAll('li');
-    lieuxItems.forEach(lieuItem => {
-        lieuItem.style.display = 'none';
-    });
-
-    // Rechercher uniquement dans les derniers niveaux (avec un bouton "Sélectionner")
-    const lastLevelItems = Array.from(arborescencePieces.querySelectorAll('li')).filter(lieuItem => {
-        return lieuItem.querySelector('button');
-    });
-
-    lastLevelItems.forEach(lieuItem => {
-        const placeCard = lieuItem.querySelector('.place-card');
-        if (placeCard) {
-            const placeCardText = normalizeString(placeCard.innerText.toLowerCase());
-            const matchesSearch = placeCardText.includes(searchTerm);
-
-            if (matchesSearch) {
-                // Afficher l'élément et tous ses parents
-                let current = lieuItem;
-                while (current && current !== arborescencePieces) {
-                    current.style.display = 'block';
-
-                    // Ouvrir le parent ul
-                    const parentUl = current.parentElement;
-                    if (parentUl && parentUl.tagName.toLowerCase() === 'ul') {
-                        parentUl.style.display = 'block';
-                    }
-
-                    // Mettre à jour l'icône pour montrer l'état ouvert
-                    const placeCardDiv = current.querySelector('.place-card');
-                    const iconElement = placeCardDiv ? placeCardDiv.querySelector('span') : null;
-                    if (iconElement) {
-                        const texteElement = iconElement.textContent.trim();
-                        iconElement.textContent = texteElement;
-                    }
-
-                    current = current.parentElement.closest('li');
-                }
-            }
-        }
-    });
-}
 
 
 
-function clearSearchInput3() {
-    const searchInput = document.getElementById('searchInput3');
-    searchInput.value = ''; // Vider le champ de recherche
-
-    searchLieu3();
-
-
-}
 
 
 function toggleNiveau2(element, niveau) {
@@ -883,9 +974,9 @@ function toggleNiveau2(element, niveau) {
 
         const iconElement = element.querySelector('span');
         if (iconElement) {
-            // Modifier l'icône (▶ ou ▼)
-            const texteElement = iconElement.textContent.trim().substring(1).trim();
-            iconElement.textContent = (isHidden ? '▼' : '▶') + ' ' + texteElement;
+            // Modifier l'icône (> ou ∨)
+            const texteElement = iconElement.textContent.trim();
+            iconElement.textContent = (isHidden ? '∨' : '>') + ' ' + texteElement;
         }
     }
 }
@@ -984,7 +1075,7 @@ document.getElementById("btnScannerBoite").addEventListener("click", function ()
 changerCouleur();
     // Focus sur l'input masqué
     const scannerInput = document.getElementById("scannerInput");
-    scannerInput.focus();
+    //scannerInput.focus();
 });
 
 // Bouton pour fermer la modal
@@ -993,16 +1084,11 @@ document.getElementById("closeScannerModal").addEventListener("click", function 
 });
 
 document.getElementById("scannerInput").addEventListener("input", function (e) {
-    // Utilisation d'une expression régulière pour extraire le code-barres
-    const inputText = e.target.value;
-    const barcodePattern = /scan-(\d+)-fin/;
-    const match = barcodePattern.exec(inputText);
-
-    if (match) {
-        const barcode = match[1]; // Capture le groupe de chiffres
-        cherBarre(barcode);
-        e.target.value = ""; // Réinitialise l'input après la capture
-    }
+  const barcode = extractBarcode(e.target.value);
+  if (barcode) {
+    cherBarre(barcode);   // ou addOrIncrementByBarcode(barcode) selon ton choix
+    e.target.value = "";
+  }
 });
 
 function findPieceByBarcode(obj, barcode) {
@@ -1020,15 +1106,13 @@ function findPieceByBarcode(obj, barcode) {
 }
 
 function cherBarre(barcode) {
-    const result = findPieceByBarcode(pieces, barcode);
-    if (result) {
-        choisirpieces("OK", result.id);
-        document.getElementById("scannerModal").style.display = "none";
-
-    } else {
-        alert("Code-barres introuvable !");
-    }
+  addOrIncrementByBarcode(barcode);
+  const sm = document.getElementById("scannerModal");
+  if (sm) sm.style.display = "none";
 }
+
+
+
 
 async function afficherModalTechniciens(enregistrement, techniciensExclus = []) {
     // Récupérer le nom de l'utilisateur dans l'URL (par exemple, "?user=NomUtilisateur")
@@ -1198,4 +1282,230 @@ function fermerModal(buttonElement) {
 }
 
 
-    
+    // --- scanner fantôme pour modifierPieceModal ---
+let detachModifierScanner = null;
+
+function attachModifierScannerForModifierPiece() {
+  // Crée un input invisible qui reçoit le focus (les douchettes USB tapent au clavier)
+  let input = document.getElementById('modifierScannerInput');
+  if (!input) {
+    input = document.createElement('input');
+    input.id = 'modifierScannerInput';
+    input.type = 'text';
+    input.autocomplete = 'off';
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    input.style.pointerEvents = 'none';
+    input.style.width = '1px';
+    input.style.height = '1px';
+    input.tabIndex = -1;
+    document.body.appendChild(input);
+  }
+  input.value = '';
+  //input.focus();
+
+const onInput = function (e) {
+  const txt = e.target.value;
+
+  // tolère scan-123-fin, scan-http://123-fin, scan-https://123-fin
+  const m = /^scan-(?:https?:\/\/)?(\d+)-fin$/i.exec((txt || '').trim());
+  const barcode = m ? m[1] : null;
+
+  if (barcode) {
+    // ✅ clé : on passe par la logique qui cherche la bulle par ID et propose “+1 ?”
+    addOrIncrementByBarcode(barcode);
+    e.target.value = ''; // prêt pour le prochain scan
+  }
+};
+
+
+
+  // attache
+  input.addEventListener('input', onInput);
+
+  // fonction de nettoyage (détacher + enlever l’input)
+  detachModifierScanner = function () {
+    input.removeEventListener('input', onInput);
+    // optionnel: supprimer l'input pour éviter les fuites
+    if (input && input.parentNode) input.parentNode.removeChild(input);
+    detachModifierScanner = null;
+  };
+}
+
+function getSelectedPiecesList() {
+  return document.getElementById('selectedPiecesList');
+}
+
+function createPieceBubble(idPiece, qty, placeOverride = null) {
+  const selectedPiecesList = document.getElementById('selectedPiecesList');
+  if (!selectedPiecesList) {
+    console.warn('[createPieceBubble] #selectedPiecesList introuvable');
+    return null;
+  }
+
+  const safeId = String(idPiece ?? '').trim();
+  const addQty = Math.max(1, parseInt(qty, 10) || 1);
+
+  // si déjà présent → on incrémente seulement la quantité
+  const existing = selectedPiecesList.querySelector(
+    `.piece-bubble[data-id="${CSS.escape(safeId)}"]`
+  );
+  if (existing) {
+    const q = existing.querySelector('input[type="number"]');
+    const current = parseInt(q.value, 10) || 0;
+    q.value = current + addQty;
+    existing.style.outline = '2px solid #28a745';
+    setTimeout(() => { existing.style.outline = ''; }, 350);
+    return existing;
+  }
+
+  // place (override > lookup > vide)
+  const pieceObj = findPieceById(pieces, safeId);
+  const placeLookup = pieceObj && pieceObj.place ? String(pieceObj.place) : '';
+  const place = placeOverride && placeOverride.trim() ? placeOverride.trim() : placeLookup;
+
+  const bubble = document.createElement('div');
+  bubble.classList.add('piece-bubble');
+  bubble.dataset.id = safeId;          // ID caché
+  bubble.dataset.place = place || '';
+
+
+  const label = document.createElement('span');
+  label.textContent = place ? `${place}` : `Place inconnue`;
+
+const quantityInput = document.createElement('input');
+quantityInput.type = 'number';
+quantityInput.min = '1';
+quantityInput.value = addQty;
+quantityInput.style.width = '50px';
+quantityInput.style.textAlign = 'center';
+
+// ✅ On laisse l’utilisateur taper librement
+quantityInput.addEventListener('blur', () => {
+  const v = parseInt(quantityInput.value, 10);
+  // Si vide, NaN, ou < 1 → remet à 1
+  if (isNaN(v) || v < 1) {
+    quantityInput.value = 1;
+  }
+});
+
+// (optionnel) empêche d’entrer des valeurs négatives via la molette
+quantityInput.addEventListener('wheel', e => {
+  if (document.activeElement === quantityInput) e.preventDefault();
+});
+
+
+  const deleteButton = document.createElement('button');
+  deleteButton.textContent = '🗑️';
+  deleteButton.style.backgroundColor = '#dc3545';
+  deleteButton.style.color = 'white';
+  deleteButton.style.border = 'none';
+  deleteButton.style.borderRadius = '5px';
+  deleteButton.style.padding = '5px';
+  deleteButton.style.cursor = 'pointer';
+  deleteButton.addEventListener('click', () => supprimerPiece(safeId));
+
+  bubble.appendChild(label);
+  bubble.appendChild(quantityInput);
+  bubble.appendChild(deleteButton);
+
+  selectedPiecesList.appendChild(bubble);
+  return bubble;
+}
+
+
+function addOrIncrementPiece(idPiece, incrementIfExists = 1) {
+  const existing = findBubbleById(idPiece);   // ✅ corrigé
+
+  if (existing) {
+    const qtyInput = existing.querySelector('input[type="number"]');
+    const current = parseInt(qtyInput.value, 10) || 0;
+
+    const doit = confirm(
+      `La pièce ${idPiece} est déjà dans la liste (Q=${current}).\n\nVoulez-vous ajouter +${incrementIfExists} ?`
+    );
+    if (doit) {
+      qtyInput.value = current + incrementIfExists;
+      existing.style.outline = '2px solid #28a745';
+      setTimeout(() => { existing.style.outline = ''; }, 400);
+    }
+    return;
+  }
+  createPieceBubble(idPiece, 1);
+}
+
+
+
+function findPieceById(obj, id) {
+  for (const key in obj) {
+    if (typeof obj[key] === 'object') {
+      if (obj[key].id === id) return obj[key];
+      const r = findPieceById(obj[key], id);
+      if (r) return r;
+    }
+  }
+  return null;
+}
+function addOrIncrementByBarcode(barcode) {
+  const selectedPiecesList = document.getElementById('selectedPiecesList');
+  if (!selectedPiecesList) return;
+
+  const scannedPiece = findPieceByBarcode(pieces, barcode);
+  if (!scannedPiece) { alert("Code-barres introuvable !"); return; }
+
+  const id = (scannedPiece.id || '').trim();  // ✅ bonne variable
+
+  const existing = findBubbleById(id);        // ✅ pas "idPiece" ici
+  if (existing) {
+    const qtyInput = existing.querySelector('input[type="number"]');
+    const current = parseInt(qtyInput.value, 10) || 0;
+
+    const ok = confirm(
+      `La pièce (ID=${id}, barcode=${barcode}) est déjà dans la liste (Q=${current}).\n\nVoulez-vous ajouter +1 ?`
+    );
+    if (ok) {
+      qtyInput.value = current + 1;
+      existing.style.outline = '2px solid #28a745';
+      setTimeout(() => { existing.style.outline = ''; }, 350);
+    }
+    return;
+  }
+  createPieceBubble(id, 1);
+}
+
+
+function extractBarcode(input) {
+  // Accepte: brut, "scan-123-fin", "scan-http://123-fin", "scan-https://123-fin"
+  const s = String(input ?? '').trim();
+  const m = /(\d+)/.exec(s);
+  return m ? m[1] : null;
+}
+
+function cssEscapeSafe(str) {
+  if (window.CSS && typeof CSS.escape === 'function') return CSS.escape(str);
+  return String(str).replace(/["\\]/g, '\\$&').replace(/\0/g, '\uFFFD');
+}
+
+function findBubbleById(id) {
+  const selectedPiecesList = document.getElementById('selectedPiecesList');
+  if (!selectedPiecesList) return null;
+  return selectedPiecesList.querySelector(
+    `.piece-bubble[data-id="${cssEscapeSafe(String(id))}"]`
+  );
+}
+
+function getPlaceById(id) {
+  const p = findPieceById(pieces, id); // tu as déjà findPieceById(obj, id)
+  return p && typeof p.place === 'string' && p.place.trim() ? p.place.trim() : null;
+}
+
+function findPieceById(obj, id) {
+  for (const key in obj) {
+    if (typeof obj[key] === 'object') {
+      if (obj[key].id === id) return obj[key];
+      const r = findPieceById(obj[key], id);
+      if (r) return r;
+    }
+  }
+  return null;
+}

@@ -1,3 +1,49 @@
+const LS_FASTSTART_OVERRIDE = 'DEV_FASTSTART_OVERRIDE';
+const LIEUX_PHP = {
+  get: '/G-MAPP/Ressources/PHP/lieuxHebdo_get.php',
+  set: '/G-MAPP/Ressources/PHP/lieuxHebdo_set.php'
+};
+function isLieuxHebdoKeyString(k){
+  // k peut être "lieuxHebdo" ou "Work_lieuxHebdo" ou "Comm_lieuxHebdo_CRH" etc.
+  return typeof k === 'string' && k.toLowerCase().includes('lieuxhebdo');
+}
+// Remplacement de : /G-MAPP/Ressources/PHP/lieuxHebdo_get.php
+async function fetchLieuxHebdoFromSecondary(username, key) {
+  // On construit une clé unique pour le localStorage
+  const localKey = `${username}_${key}`;
+  
+  const val = localStorage.getItem(localKey);
+  
+  if (val) {
+    try {
+      return JSON.parse(val);
+    } catch (e) {
+      console.warn("Erreur de parsing JSON pour LieuxHebdo, retour tableau vide.");
+      return [];
+    }
+  }
+  return [];
+}
+
+// Remplacement de : /G-MAPP/Ressources/PHP/lieuxHebdo_set.php
+async function pushLieuxHebdoToSecondary(prefix, keyOnServer, valueToSend) {
+  try {
+    // Si la clé contient déjà le préfixe, on ne le rajoute pas, sinon on concatène
+    // (Dans ton code original, keyOnServer semble parfois déjà inclure le contexte)
+    const localKey = keyOnServer.startsWith(prefix) ? keyOnServer : `${prefix}_${keyOnServer}`;
+    
+    // On s'assure que ce soit une string avant de stocker
+    const stringValue = typeof valueToSend === 'string' ? valueToSend : JSON.stringify(valueToSend);
+    
+    localStorage.setItem(localKey, stringValue);
+    return true; // Succès simulé
+  } catch (e) {
+    console.error("Erreur écriture localStorage (Quota dépassé ?):", e);
+    return false;
+  }
+}
+
+
 
 // Flag pour message reçu
 if (typeof window.createMessageReceived === "undefined") {
@@ -355,28 +401,19 @@ console.log("⏳ Nouvelle session recalée à :", extendedTime);
 }
 
 
-
 async function fetchAndUpdatePrefixedItem(prefixedKey, key, prefix) {
-  const url = `/G-MAPP/Ressources/PHP/getData.php?username=${encodeURIComponent(prefix)}&key=${encodeURIComponent(key)}`;
+  // Ici, 'prefixedKey' est déjà la clé complète (ex: User_Work_MaClef)
+  const val = localStorage.getItem(prefixedKey);
 
-  try {
-    const response = await fetchWithRetry(url);
-    if (response) {
-      const data = await response.json();
-      if (data.value !== undefined && data.value !== null) {
-        inMemoryStorage[prefixedKey] = data.value;
-        return data.value;
-      }
-    }
-  } catch (error) {
-    console.error(`❌ Erreur lors de la récupération des données (${key}) :`, error);
+  if (val !== null && val !== undefined) {
+    window.inMemoryStorage[prefixedKey] = val;
+    return val;
   }
-
-  // ✅ Fallback final (équivalent ancien return null)
-  inMemoryStorage[prefixedKey] = "";
+  
+  // Fallback : vide si introuvable
+  window.inMemoryStorage[prefixedKey] = "";
   return "";
 }
-
 
 
 
@@ -390,70 +427,53 @@ function removeFromQueue(operationKey) {
   }
 }
 
+// Remplacement de : /G-MAPP/Ressources/PHP/removeData.php
 async function removePrefixedItemInBackground(key, prefix = null) {
   try {
-
-
-    const sessionVerified = await verifySession(window.VariHR);
-    if (!sessionVerified) return;
-
     prefix = prefix || getStoragePrefix();
-    const prefixedKey = key;
+    const prefixedKey = key.startsWith(prefix) ? key : prefix + key;
 
-    if (connectionQuality > 0) {
-      const response = await fetchWithRetry('/G-MAPP/Ressources/PHP/removeData.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: prefix,
-          key: prefixedKey
-        })
-      });
+    localStorage.removeItem(prefixedKey);
 
-      if (response && response.ok) {
-        const data = await response.json();
-        if (data.status === 'success') {
-          const localQueueKey = getLocalQueueKey();
-          let localQueue = JSON.parse(await idbGet(localQueueKey) || "[]");
-          localQueue = localQueue.filter(op => !(op.type === 'delete' && op.key === key));
-          await idbSet(localQueueKey, JSON.stringify(localQueue));
+    // ✅ Nettoyage de la queue locale
+    const localQueueKey = getLocalQueueKey(); 
+    let localQueue = JSON.parse(await idbGet(localQueueKey) || "[]");
+    localQueue = localQueue.filter(op => !(op.type === 'delete' && op.key === key));
+    await idbSet(localQueueKey, JSON.stringify(localQueue));
 
-          //console.log(`🟧 Clé ${key} supprimée côté serveur et retirée de la queue`);
-        } else {
-          console.error(`Erreur lors de la suppression côté serveur pour ${key}:`, data.message);
-        }
-      }
-    } else {
-      console.warn(`Connexion indisponible, suppression pour ${key} conservée dans la queue`);
-    }
   } catch (error) {
-    console.error(`⚠️ Erreur suppression en arrière-plan pour ${key}:`, error);
+    console.error(`Erreur suppression local pour ${key}:`, error);
   }
 }
-
-
 async function processQueue(fromSyncro = false) {
-  const baseTypes = ['Priv', 'Work', 'Story', 'Comm'];
+  // Comme nous sommes en mode "LocalStorage Only", nous n'envoyons rien au PHP.
+  // Cependant, nous devons vider la queue IndexedDB pour que l'indicateur de synchro (point jaune/rouge) repasse au vert/blanc.
+  
+  const allTypes = ['Priv', 'Work', 'Story', 'Comm'];
   const username = getStoragePrefix();
 
-  for (const type of baseTypes) {
-    await processQueueForType(type, username);
+  for (const type of allTypes) {
+    // On définit les clés de queue
+    let queueKeys = [`${username}${type}_processQueue`];
+    if (window.crhono === true) {
+      queueKeys.push(`${username}${type}_CRH_processQueue`);
+    }
 
-    if (fromSyncro) {
-      await processQueueForType(`${type}_CRH`, username);
+    for (const finalQueueKey of queueKeys) {
+      // On vide simplement la queue
+      await idbSet(finalQueueKey, "[]");
     }
   }
+  
+  // On vide aussi le tableau en mémoire
+  window.syncManager.operations = [];
 }
 
-/**
- * Process queued operations for a given data type.
- * If the type ends with "_CRH", the corresponding CRH queue is processed.
- *
- * @param {string} type - Data category to process (e.g., "Priv" or "Priv_CRH").
- * @param {string} username - User identifier used when communicating with the server.
- */
-async function processQueueForType(type, username) {
-  const queueKeyType = `${type}_processQueue`;
+async function processQueueForType(type, isCRH = false, username) {
+  let queueKeyType = `${type}_processQueue`;
+  if (isCRH) {
+    queueKeyType = `${type}_CRH_processQueue`;
+  }
 
   const prefix = getStoragePrefix();
   const finalQueueKey = `${prefix}${queueKeyType}`;
@@ -529,59 +549,33 @@ await idbSet(finalQueueKey, JSON.stringify(updatedQueue));
 
 
 
-
+// Remplacement de : /G-MAPP/Ressources/PHP/saveData.php
 async function updatePrefixedItemInBackground(prefixedKey, key, prefix) {
   try {
+    const valueToSend = window.inMemoryStorage[prefixedKey];
+    
+    if (valueToSend !== undefined) {
+      localStorage.setItem(prefixedKey, valueToSend);
+      
+      // ✅ On simule le succès du réseau pour nettoyer la queue locale (IndexedDB)
+      // C'est important pour que la synchro ne tourne pas en boucle pour rien.
+      const isCommKey = key.startsWith("Comm_");
+      const type = isCommKey ? "Comm" : window.CléType;
+      
+      let baseQueueKey = `${type}_processQueue`;
+      if (window.crhono === true) baseQueueKey = `${type}_CRH_processQueue`;
+      const finalQueueKey = `${prefix}${baseQueueKey}`;
 
-
-    const sessionVerified = await verifySession(window.VariHR);
-    if (!sessionVerified) return;
-
-    if (connectionQuality > 0) {
-      const valueToSend = inMemoryStorage[prefixedKey];
-
-      //console.log(`📤 updatePrefixedItemInBackground — Clé : ${key} — Valeur : ${valueToSend}`);
-
-      const response = await fetchWithRetry('/G-MAPP/Ressources/PHP/saveData.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: prefix,
-          key: key,
-          value: valueToSend
-        })
-      });
-
-      if (response && response.ok) {
-        const data = await response.json();
-        if (data.status === 'success') {
-          // ✅ Nettoyer queue locale correspondante
-          const isCommKey = key.startsWith("Comm_");
-          const type = isCommKey ? "Comm" : CléType;
-
-          let baseQueueKey = `${type}_processQueue`;
-          if (window.crhono === true) {
-            baseQueueKey = `${type}_CRH_processQueue`;
-          }
-
-          const finalQueueKey = `${prefix}${baseQueueKey}`;
-
-          let localQueue = JSON.parse(await idbGet(finalQueueKey) || "[]");
-          localQueue = localQueue.filter(op => !(op.type === 'set' && op.key === key));
-          await idbSet(finalQueueKey, JSON.stringify(localQueue));
-
-          //console.log(`✅ Clé ${key} mise à jour et tampon local nettoyé — Valeur envoyée : ${valueToSend}`);
-        } else {
-          console.error(`Erreur lors de la mise à jour pour ${key}:`, data.message);
-        }
-      }
-    } else {
-      //console.warn(`Connexion hors ligne, opération de mise à jour pour ${key} conservée dans le tampon.`);
+      let localQueue = JSON.parse(await idbGet(finalQueueKey) || "[]");
+      // On retire l'opération de la file d'attente car elle est "sauvegardée"
+      localQueue = localQueue.filter(op => !(op.type === 'set' && op.key === key));
+      await idbSet(finalQueueKey, JSON.stringify(localQueue));
     }
   } catch (error) {
-    console.error(`Erreur mise à jour en arrière-plan pour ${key}:`, error);
+    console.error(`Erreur update local pour ${key}:`, error);
   }
 }
+
 async function createDeviceId() {
   try {
     const browserInfo = navigator.userAgent;
@@ -715,26 +709,26 @@ async function showRefreshWarning() {
 // });
 
 // Chargement de toutes les clés depuis le serveur
+// Remplacement de : /G-MAPP/Ressources/PHP/getAllKeys.php
 async function loadAllKeys() {
   const prefix = getStoragePrefix();
-  if (!prefix) {
-    console.error('Erreur : le préfixe utilisateur est vide. Assurez-vous que l\'URL contient ?user=USERNAME.');
-    return;
-  }
-  if (connectionQuality <= 0) { return; }
-  try {
-    const response = await fetch(`/G-MAPP/Ressources/PHP/getAllKeys.php?username=${encodeURIComponent(prefix)}`);
-    const data = await response.json();
-    if (data.status === 'success' && Array.isArray(data.keys)) {
-      data.keys.forEach((key) => {
-        inMemoryStorage[key] = null; // Initialise les clés en mémoire
-      });
-    } else {
-      console.error('Erreur dans la réponse :', data);
+  if (!prefix) return;
+
+  // On parcourt tout le localStorage
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    
+    // Si la clé commence par le préfixe de l'utilisateur (ex: "Toto_")
+    if (key && key.startsWith(prefix)) {
+      // On charge la valeur en mémoire
+      const val = localStorage.getItem(key);
+      window.inMemoryStorage[key] = val;
+      
+      // Optionnel : Mettre à jour le sommaire local si tu l'utilises
+      updateLocalSummary(key);
     }
-  } catch (error) {
-    console.error('Erreur réseau lors du chargement des clés :', error);
   }
+  console.log("✅ Toutes les clés locales chargées en mémoire.");
 }
 window.sessionManager = {
   isVerifyingSession: false,
@@ -769,88 +763,44 @@ function getLocalIP() {
 async function setPrefixedItemNoVerify(key, value) {
   const prefix = getStoragePrefix();
   const prefixedKey = prefix + key;
+  
   try {
-    const response = await fetch('/G-MAPP/Ressources/PHP/saveData.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: prefix,
-        key: prefixedKey,
-        value: JSON.stringify(value) // ✅ encode la valeur
-      })
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("Erreur HTTP:", response.status, text);
-      return;
-    }
-
-    const data = await response.json();
-if (data.status !== 'success') {
-  alert(`❌ Échec suppression CRH pour ${key}`, data);
-}
-
-
-    // ✅ Sauvegarde locale
-    await idbSet(prefixedKey, value);
+    // Si value est un objet, on stringify. Sinon on stocke tel quel.
+    const valToStore = typeof value === 'object' ? JSON.stringify(value) : value;
+    
+    localStorage.setItem(prefixedKey, valToStore);
+    
+    // On met aussi à jour IndexedDB pour rester cohérent avec le reste de ton code
+    await idbSet(prefixedKey, valToStore);
   } catch (error) {
-    //console.error('Erreur lors de l\'envoi des données sans vérification:', error);
+    console.error("Erreur setNoVerify localStorage:", error);
   }
 }
 
 
 
 async function removePrefixedItemNoVerify(key) {
-  const prefix = getStoragePrefix(); // récupère ton identifiant utilisateur ou dossier
+  const prefix = getStoragePrefix();
   const prefixedKey = prefix + key;
-
-  try {
-    const response = await fetch('/G-MAPP/Ressources/PHP/removeData.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: prefix,
-        key: prefixedKey
-      })
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("Erreur HTTP:", response.status, text);
-      return;
-    }
-
-    const data = await response.json();
-
-    if (data.status === 'success') {
-      //console.log('Clé supprimée avec succès:', prefixedKey);
-    } else {
-      console.warn('Suppression échouée :', data.message || data.status);
-    }
-  } catch (error) {
-    console.error("Erreur lors de la suppression sans vérification :", error);
-  }
+  localStorage.removeItem(prefixedKey);
 }
-
 async function getPrefixedItemNoVerify(key) {
   const prefix = getStoragePrefix();
   const prefixedKey = prefix + key;
-  const url = `/G-MAPP/Ressources/PHP/getData.php?username=${encodeURIComponent(prefix)}&key=${encodeURIComponent(prefixedKey)}`;
-
-  try {
-    const response = await fetch(url);
-    const text = await response.text();
-
-    if (!response.ok) {
+  
+  const val = localStorage.getItem(prefixedKey);
+  
+  if (val) {
+    try {
+      // Ton ancien code PHP renvoyait un JSON { value: ... }
+      // Ici on retourne directement la valeur brute ou parsée selon le besoin.
+      // Vu l'usage pour device_id, on retourne la string brute souvent.
+      return val; 
+    } catch {
       return null;
     }
-
-    const data = JSON.parse(text);
-    return data.value ?? null;
-  } catch (error) {
-    return null;
   }
+  return null;
 }
 
 
@@ -887,13 +837,25 @@ async function verifySession(forceLogoutOnMismatch = false) {
   window.sessionManager.isVerifyingSession = true;
   window.sessionManager.sessionVerifiedPromise = new Promise(async (resolve, reject) => {
     try {
-      let storedDevice1 = await getDeviceId(); //serveur
-      const current = currentDeviceId;  //crée
+      let storedDevice1 = await getDeviceId(); // serveur
+      const current = currentDeviceId;         // créé localement
 
       storedDevice = stripQuotes(storedDevice1);
       const currentClean = stripQuotes(current);
-      //alert(storedDevice + ' \n vs \n' + currentClean)
-      //console.log(storedDevice + ' vs ' + currentClean)
+
+      // ⏩ FAST-START OVERRIDE: si actif, on ignore toute détection de conflit
+      const fastStartOverride =
+        localStorage.getItem(LS_FASTSTART_OVERRIDE) === 'true' || window.fastStart === true;
+
+      if (fastStartOverride) {
+        console.log('⏩ Fast start override actif : on ignore la vérif d’ID appareil.');
+        // (optionnel) consommer l’override une seule fois :
+        // localStorage.removeItem(LS_FASTSTART_OVERRIDE);
+        resolve(true);
+        return;
+      }
+
+      // === Comportement normal : on vérifie le conflit ===
       if (storedDevice !== null && storedDevice !== currentClean) {
         console.warn("⚠️ ID d'appareil différent détecté.");
         if (forceLogoutOnMismatch === true) {
@@ -915,7 +877,6 @@ async function verifySession(forceLogoutOnMismatch = false) {
                 innerResolve(false);
               }
             }
-
             window.addEventListener('message', handleMessage);
           });
 
@@ -938,6 +899,7 @@ async function verifySession(forceLogoutOnMismatch = false) {
 
   return window.sessionManager.sessionVerifiedPromise;
 }
+
 
 
 
@@ -1190,18 +1152,39 @@ async function getPrefixedItem(key) {
   const prefix = getStoragePrefix();
   const isCommKey = filterKeys.some(filter => key.includes(filter));
   let finalKey = isCommKey ? "Comm_" + key : `${CléType}_` + key;
-  if (window.crhono === true) {
-    finalKey += "_CRH";
-  }
+  if (window.crhono === true) finalKey += "_CRH";
+
   const prefixedKey = prefix + finalKey;
 
-  // ✅ Toujours regarder d'abord dans inMemoryStorage
-  if (inMemoryStorage.hasOwnProperty(prefixedKey) && inMemoryStorage[prefixedKey] !== "") {
+  // ✅ Décide si on force le fetch online (uniquement pour lieuxHebdo)
+  const canOnline = navigator.onLine && connectionQuality > 0;
+  const isLieux = isLieuxHebdoKeyString(finalKey);
+  const forceOnlineFetch = isLieux && canOnline;
+
+  // 🔁 1) Chemin ONLINE prioritaire pour lieuxHebdo
+  if (forceOnlineFetch) {
+    try {
+      const fetchedValue = await fetchLieuxHebdoFromSecondary(prefix, finalKey); // <- PHP secondaire
+      if (fetchedValue !== null && fetchedValue !== undefined && fetchedValue !== "") {
+        const stringVal = (typeof fetchedValue === "string") ? fetchedValue : JSON.stringify(fetchedValue);
+        await idbSet(prefixedKey, stringVal);
+        updateLocalSummary(prefixedKey);
+        inMemoryStorage[prefixedKey] = stringVal;
+        return stringVal; // ← on renvoie la valeur fraiche du serveur
+      }
+      // si le serveur ne renvoie rien → on tombera en fallback local
+    } catch (e) {
+      console.warn("fetch lieuxHebdo online KO, fallback local :", e);
+    }
+  }
+
+  // 🧠 2) Fallback RAM (sauf si on a tenté et raté le online pour lieuxHebdo)
+  if (!forceOnlineFetch && inMemoryStorage.hasOwnProperty(prefixedKey) && inMemoryStorage[prefixedKey] !== "") {
     return inMemoryStorage[prefixedKey];
   }
 
-  // ✅ Si pas de connexion
-  if (connectionQuality <= 1500) {
+  // 💾 3) Fallback hors-ligne ou qualité réseau faible → IDB
+  if (!canOnline) {
     const localVal = await idbGet(prefixedKey);
     if (localVal !== null && localVal !== "") {
       inMemoryStorage[prefixedKey] = localVal;
@@ -1211,11 +1194,11 @@ async function getPrefixedItem(key) {
     return "";
   }
 
-  // ✅ Si connecté (ne pas regarder dans DB locale, juste fetch)
+  // 🌐 4) Online normal (toutes les autres clés non-lieuxHebdo)
   try {
     const fetchedValue = await fetchAndUpdatePrefixedItem(prefixedKey, finalKey, prefix);
     if (fetchedValue !== null && fetchedValue !== undefined && fetchedValue !== "") {
-      const stringVal = typeof fetchedValue === "string" ? fetchedValue : JSON.stringify(fetchedValue);
+      const stringVal = (typeof fetchedValue === "string") ? fetchedValue : JSON.stringify(fetchedValue);
       await idbSet(prefixedKey, stringVal);
       updateLocalSummary(prefixedKey);
       inMemoryStorage[prefixedKey] = stringVal;
@@ -1223,12 +1206,11 @@ async function getPrefixedItem(key) {
     }
   } catch (e) {
     console.error(`⚠️ Fetch failed for ${prefixedKey}:`, e);
-    return "";
   }
 
-  //console.warn(`❌ Clé ${prefixedKey} non trouvée en ligne.`);
   return "";
 }
+
 
 
 

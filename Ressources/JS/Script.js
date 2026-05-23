@@ -298,27 +298,35 @@ async function openTab(tabName) {
     const buttons = document.getElementsByClassName(group);
     Array.from(buttons).forEach(btn => btn.classList.remove("active"));
   });
+// Si on est sur "visu2", on traite comme "visu"
+let effectiveTab = tabName;
+if (tabName === "visu2") {
+  effectiveTab = "visu";
+}
 
-  // Afficher l'onglet sélectionné
-  const currentTabElement = document.getElementById(tabName + "Tab");
-  if (currentTabElement) {
-    currentTabElement.style.display = "block";
-  } else {
-    console.error("Tab element not found for ID:", tabName + "Tab");
-  }
+// Afficher l'onglet sélectionné
+const currentTabElement = document.getElementById(effectiveTab + "Tab");
+if (currentTabElement) {
+  currentTabElement.style.display = "block";
+} else {
+  console.error("Tab element not found for ID:", effectiveTab + "Tab");
+}
 
-  // Ajouter la classe "active" au bouton correspondant
-  const currentButtonElement = document.getElementById(tabName + "Button");
-  if (currentButtonElement) {
-    currentButtonElement.classList.add("active");
-  } else {
-    console.error("Button element not found for ID:", tabName + "Button");
-  }
+// Ajouter la classe "active" au bouton correspondant
+const currentButtonElement = document.getElementById(tabName + "Button");
+if (currentButtonElement) {
+  currentButtonElement.classList.add("active");
+} else {
+  console.error("Button element not found for ID:", tabName + "Button");
+}
+
+// Gérer les classes "priv"
 Array.from(document.querySelectorAll('.tab-button, .tab-button_u, .tab-button_z'))
   .forEach(btn => {
     const isPriv = (CléType === 'Priv');
     btn.classList.toggle('priv', isPriv);
   });
+
 
   // Logique spécifique aux onglets
   switch (tabName) {
@@ -385,6 +393,30 @@ case "visu": {
   if (interventionsTab) interventionsTab.style.display = "block";
 
   if (univ === "Priv") {
+    const plannTab = document.getElementById("creerTab");
+    if (plannTab) plannTab.style.display = "block";
+  } else if (univ === "Work" || univ === "Story") {
+    const creerTab = document.getElementById("creerTab");
+    if (creerTab) creerTab.style.display = "block";
+  }
+
+  await setPrefixedItem("TABUL", "true");
+  break;
+}
+case "visu2": {
+  const autoUser = localStorage.getItem("AUTOUSER");
+  const univ = localStorage.getItem(autoUser + "_uver") || "Work";
+
+  const visuTab = document.getElementById("visuTab");
+  if (visuTab) visuTab.classList.add("active");
+
+  const chronoTab = document.getElementById("ChronoTab");
+  if (chronoTab) chronoTab.style.display = "block";
+
+  const interventionsTab = document.getElementById("interventionsTab");
+  if (interventionsTab) interventionsTab.style.display = "block";
+
+  if (univ === "Priv") {
     const plannTab = document.getElementById("plannTab");
     if (plannTab) plannTab.style.display = "block";
   } else if (univ === "Work" || univ === "Story") {
@@ -408,7 +440,7 @@ case "visu": {
       break;
     }
     default: {
-      setTimeout(stopCamera, 100);
+      //setTimeout(stopCamera, 100);
       break;
     }
   }

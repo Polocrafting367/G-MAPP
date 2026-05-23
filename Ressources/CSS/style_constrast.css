@@ -4,11 +4,35 @@ body {
   color: #000000;
 }
 
-h1, h2, h3, h4, h5, h6, p, label, li, span, div, td {
+/* 1) Typo globale (sans forcer la couleur partout) */
+ h2, h3, h4, h5, h6, p, label, li, td {
+  font-size: 17px;
+  font-weight: bold;
+}
+
+/* 2) Par défaut, tous les spans sont blancs */
+span,  {
   font-size: 20px;
   font-weight: bold;
-  color: #000000;
+  color: #FFF;
 }
+
+/* 3) Spans dans .AFregis en noir (sauf exceptions) */
+.AFregis span, .jour-selector span,  {
+  color: #000 !important;
+}
+
+/* 4) Exception: spans .bad NE DOIVENT PAS être forcés en noir */
+.AFregis span.bad {
+  color: inherit !important; /* ou une couleur spécifique, ex: red */
+}
+
+/* 5) Exception: spans à l'intérieur d'un button dans .AFregis => blancs */
+.AFregis button span {
+  color: #FFF !important;
+}
+
+
 
 /* Champs texte */
 input[type="text"],
@@ -17,7 +41,7 @@ input[type="date"],
 input[type="time"],
 select,
 textarea {
-  font-size: 18px;
+  font-size: 18px !important;
   font-weight: bold;
   color: #000000;
 }
@@ -67,4 +91,37 @@ button:not(.no-contrast-overlay)::after {
   background-color: rgba(0, 0, 0, 0.3);
   pointer-events: none;
   z-index: 0;
+}
+
+
+.modal-button { 
+padding: 1px;}
+
+#updateTimeButton  {height: 50px !important; width: 50px !important; 
+}
+
+#clearCauseBtn, #clearTypeBtn {
+  height: 39px !important;
+}
+
+#globalEditBar {
+  z-index: 99;
+}
+
+
+.floating-list { max-height: 190px; outline: 1px dashed red; border-radius: 10px;  }
+
+.contrast-on .highlight-mirror {
+  color:transparent !important;              /* tout le texte est invisible... */
+}
+
+/* iframe {height: 350px !important}*/
+
+
+#capsules-container, #zone-texte, #tempsArretsInput, #typeDropdown, #causeDropdown
+ {height: 40px;}
+
+.chrono-status {
+    font-size: 23px;
+
 }

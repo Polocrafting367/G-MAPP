@@ -1,7 +1,7 @@
 {
-    "title": "Note d'information :",
+    "title": "Demo G-MAPP:",
     "accessInfo": "Cette note est accessible dans \"Paramètres ⚙️\" → \"Informations\".",
-    "intro": "Bienvenue sur <strong>G-MAPP</strong> !<br>Lancez un <strong>Chrono</strong> sur un <strong>Lieu</strong>, créant ainsi une <strong>Intervention PERSONNELLE</strong> !<br><strong>Comment utiliser la Web App :</strong><br><br><br><br><br><br>",
+    "intro": "Bienvenue sur <strong>G-MAPP</strong> ! <br>Trouvez si dessous un petit <strong>tutoriel</strong> ! <br>Fermer fermer cette fenêtre pour continuer<br><strong>Comment utiliser G-MAPP :</strong><br><br><br><br><br><br>",
     "sections": [
         {
             "title": "En cas de problème, n'hésitez pas à actualiser la page",

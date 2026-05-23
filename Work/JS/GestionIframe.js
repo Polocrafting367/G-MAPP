@@ -21,7 +21,10 @@ window.addEventListener('message', async function(event) {
                     // Ajouter le nouvel enregistrement
                     enregistrements.push(ajouterInformationsSupplementaires(iframeData.data));
                     await setPrefixedItem('enregistrements', JSON.stringify(enregistrements));
-                    
+
+
+     
+
                     // Vérifier la préférence TABUL
                     const tabulValue = await getPrefixedItem('TABUL');
                     if (tabulValue === "true") {
@@ -55,7 +58,9 @@ window.addEventListener('message', async function(event) {
                     const iframeASupprimer = document.getElementById(iframeId);
                     if (iframeASupprimer) {
                         await gererFermetureIframe(iframeData.data);
-                        await removePrefixedItem(iframeData.data);
+                        await removePrefixedItem(iframeData.data + "_CRH");
+
+    setTimeout(nettoyerCRHSiPlusDeChronos, 200); // micro-délai pour laisser le DOM se stabiliser
 
                     }
                 } catch (error) {
@@ -96,7 +101,7 @@ case 'centerIframe': {
                         const [nouveauLieu, tempsAffiche, lieu, zoneTexteValue, zonePiecesValue, typeValue, causeValue, tempsArretValue] = parts;
                         await gererFermetureIframe(lieu);
                         setTimeout(async () => {
-                            ouvrirIframe(nouveauLieu, tempsAffiche, zoneTexteValue, zonePiecesValue, typeValue, causeValue, tempsArretValue);
+                            ouvrirIframe(nouveauLieu, tempsAffiche,  typeValue, causeValue, zoneTexteValue, zonePiecesValue, tempsArretValue);
                         }, 100);
                     }
                 } catch (error) {
@@ -121,20 +126,29 @@ case 'centerIframe': {
                 }
                 break;
             }
-            case 'pieces': {
-                try {
-                    const parts = iframeData.data.split(' _ ');
-                    if (parts.length < 2) {
-                        console.error("Données pieces invalides :", iframeData.data);
-                    } else {
-                        const [lieu, ZoneTexte3] = parts;
-                        ouvrirModalModifierPiece(lieu, ZoneTexte3);
-                    }
-                } catch (error) {
-                    console.error("Erreur lors du traitement de 'pieces' :", error);
-                }
-                break;
-            }
+case 'pieces': {
+  try {
+    const parts = String(event.data.data || '').split(' _ ');
+    if (parts.length < 2) {
+      console.error("Données pieces invalides :", event.data.data);
+      break;
+    }
+    const [lieu, zoneTexte3] = parts;
+
+    // ➜ on note QUI a demandé l’édition pour lui répondre seulement
+    window.modalContext = { origin: 'iframe', targetId: null, sourceWindow: event.source };
+    window.lieuGlobal = lieu;
+
+    // Ouvre la modale avec ce lieu + la chaîne pièces reçue (quel que soit le format)
+    ouvrirModalModifierPiece(lieu, zoneTexte3);
+  } catch (e) {
+    console.error("Erreur 'pieces' :", e);
+  }
+  break;
+}
+
+
+
             case 'Desconec': {
                 try {
                     localStorage.removeItem('AUTOUSER');
@@ -176,6 +190,10 @@ async function supprimerBlocComplet(iframeId, nomLieu) {
     nombreChronosActifs--;
     const chronoButton = document.getElementById('ChronoButton');
     chronoButton.textContent = `${nombreChronosActifs} Chrono${nombreChronosActifs !== 1 ? 's' : ''}`;
+setTimeout(async () => {
+  await removePrefixedItem(nomLieu + "_CRH");
+}, 400);
+
 
 }
 
@@ -187,7 +205,7 @@ async function supprimerRestolieu(lieuASupprimer) {
     const index = listeEnregistree.indexOf(lieuASupprimer);
     if (index !== -1) {
         listeEnregistree.splice(index, 1);
-        await setPrefixedItem('maListe', JSON.stringify(listeEnregistree));
+        //await setPrefixedItem('maListe', JSON.stringify(listeEnregistree));
     }
 }
 async function gererFermetureIframe(lieu) {
@@ -203,8 +221,7 @@ async function gererFermetureIframe(lieu) {
 
 
         // Modifier le contenu de l'attribut "onclick" pour revenir à la fonction d'origine
-        boutonLancerChrono.setAttribute('onclick', `ouvrirIframe('${lieu.replace(/_/g, ' ')}')`);
-
+boutonLancerChrono.setAttribute("onclick", 'ouvrirIframe("' + lieu.replace(/_/g, ' ') + '")');
         // Réactiver les boutons de préconfiguration associés
         const preconfButtons = document.querySelectorAll(`[id^="relancer-preconf-btn-${lieu}"]`);
         preconfButtons.forEach(button => {
@@ -253,6 +270,7 @@ function ouvrirBranchesPourLieu(lieu) {
 async function chargerIframesDepuisLocalStorage() {
     // Récupérer les données de la liste
     const listeEnregistreeData = await getPrefixedItem('maListe');
+    //setPrefixedItem('maListe',"")
     const listeEnregistree = JSON.parse(listeEnregistreeData || '[]'); // Si `null`, remplace par un tableau vide
 
 
@@ -404,6 +422,7 @@ async function ouvrirIframe(nomLieu, temps, liste1, liste2, Text1, Text2, arret)
     });
         nombreChronosActifs++;
         await removePrefixedItem(nomLieuAffiche);
+
         mettreAJourBoutonChrono(nombreChronosActifs);
         Restolieu(nomLieuAffiche);
         ajouterTitreEtIframe(nomLieuAffiche, temps, Text1, Text2, liste1, liste2, arret);
@@ -612,9 +631,33 @@ const themeValue = savedTheme;
   btnModifier.addEventListener('click', () => ouvrirModalModifierLieu(nomLieuAffiche));
   divTitre.appendChild(btnModifier);
 
+
+  // Bouton "vider contenu" (page blanche)
+  const btnClear = document.createElement('button');
+  btnClear.id = `clear-btn-${nomLieuAffiche.replace(/\s+/g, '_')}`; // ID unique pour le CSS
+  btnClear.textContent = "📄"; // Icône page blanche
+  btnClear.title = "Vider le contenu de l'iframe";
+  btnClear.setAttribute('aria-label', "Vider le contenu de l'iframe");
+
+  // Action : envoyer le message à l'iframe correspondante
+  btnClear.addEventListener('click', () => {
+    const cible = document.getElementById(nomLieuAffiche);
+    if (cible && cible.contentWindow) {
+      cible.contentWindow.postMessage({ type: 'removeallcontent' }, '*');
+    } else {
+      console.warn("Iframe introuvable pour", nomLieuAffiche);
+    }
+  });
+
+  // Ajouter le bouton dans la barre de titre
+  divTitre.appendChild(btnClear);
+
+
   // Création de l'iframe
   const iframe = document.createElement('iframe');
   iframe.id = nomLieuAffiche;
+
+ ajusterIframe(iframe);
 
   // Chargement du contenu de l'iframe depuis IndexedDB avec injection du <base>
   try {
@@ -685,6 +728,19 @@ async function Restolieu(nomLieu) {
     // Ajouter le nouveau nom d'iframe seulement s'il n'existe pas déjà
     if (!listeEnregistree.includes(nomLieu)) {
         listeEnregistree.push(nomLieu);
-        await setPrefixedItem('maListe', JSON.stringify(listeEnregistree));
+        //await setPrefixedItem('maListe', JSON.stringify(listeEnregistree));
     }
+}
+async function nettoyerCRHSiPlusDeChronos() {
+  try {
+    const raw = await getPrefixedItem('maListe');
+    let liste = [];
+    try { liste = JSON.parse(raw || '[]'); } catch {}
+    if (!Array.isArray(liste) || liste.length === 0) {
+      console.warn("🧹 Aucun chrono restant — nettoyage CRH.");
+      await nettoyerCRH();
+    }
+  } catch (e) {
+    console.error("Erreur nettoyerCRHSiPlusDeChronos :", e);
+  }
 }

@@ -3,9 +3,23 @@ let buffer = "";
 let shiftActive = false;
 let isScanning = false;
 
+// --- interrupteur pour (dés)activer Bip.js ---
+let bipActive = true;
+window.pauseBip = function () {
+  bipActive = false;
+  buffer = "";
+  isScanning = false;
+};
+window.resumeBip = function () {
+  bipActive = true;
+};
+
 
 // Fonction pour traiter les saisies (keydown ou input)
 function handleKeydown(event) {
+    if (!bipActive) return;            // <-- ajoute ceci
+
+
     const key = event.key; // Récupère la touche pressée
 
     // Ignorer les touches non identifiées
@@ -31,6 +45,8 @@ function handleKeydown(event) {
 }
 
 function handleInput(event) {
+        if (!bipActive) return;            // <-- ajoute ceci
+
     // Utilisé principalement pour les claviers virtuels sur mobile
     const data = event.data; // Récupère le dernier caractère ajouté
 

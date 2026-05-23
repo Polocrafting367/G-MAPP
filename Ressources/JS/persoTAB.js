@@ -2,21 +2,23 @@
 // --- Configuration par défaut ---
 const defaultButtons = [
   { id: 'visuButton', type: 'tab-button_u',  container: 'tab_under', label: '🖥️ VisuPC', labelU: '🖥️', labelZ: '🖥️ VisuPC', onclick: "openTab('visu')", hidden: true },
-  { id: 'creerButton', type: 'tab-button', container: 'tab_under', label: 'Ajouter', labelU: '➕', labelZ: '➕ Ajouter', onclick: "openTab('creer')" },
-  { id: 'plannButton', type: 'tab-button', container: 'tab_under', label: 'Planning', labelU: '📅', labelZ: '📅 Planning', onclick: "openTab('plann')" },
+  //{ id: 'visu2Button', type: 'tab-button_u',  container: 'tab_under', label: '🖥️ Visu2PC', labelU: '🖥️2', labelZ: '🖥️ Visu2PC', onclick: "openTab('visu2')", hidden: true },
+
+  { id: 'creerButton', type: 'tab-button', container: 'tab_under', label: 'Ajouter Correctif', labelU: '➕', labelZ: '➕ Ajouter Correctif', onclick: "openTab('creer')" },
+  //{ id: 'plannButton', type: 'tab-button', container: 'tab_under', label: 'Planning', labelU: '📅', labelZ: '📅 Planning', onclick: "openTab('plann')" },
   { id: 'ChronoButton', type: 'tab-button', container: 'tab_under', label: 'Chronos', labelU: '🕧', labelZ: '🕧 Chronos', onclick: "openTab('Chrono')" },
-  { id: 'retourButton', type: 'tab-button_u', container: 'tab_under', label: '🔙', labelU: '🔙', labelZ: '🔙', onclick: "switRet()" },
-  { id: 'interventionsButton', type: 'tab-button', container: 'tab_under', label: 'Inters.', labelU: '📝', labelZ: '📝 Inters.', onclick: "openTab('interventions')" },
-    { id: 'ArchiveButton', type: 'tab-button_z', container: 'optionMenu', label: 'Archives', labelU: '🗃️', labelZ: '🗃️ Archives', onclick: "switArc()" },
+  //{ id: 'retourButton', type: 'tab-button_u', container: 'tab_under', label: '🔙', labelU: '🔙', labelZ: '🔙', onclick: "switRet()" },
+  { id: 'interventionsButton', type: 'tab-button', container: 'tab_under', label: 'Interv fini', labelU: '📝', labelZ: '📝 Interv fini', onclick: "openTab('interventions')" },
+   // { id: 'ArchiveButton', type: 'tab-button_z', container: 'optionMenu', label: 'Archives', labelU: '🗃️', labelZ: '🗃️ Archives', onclick: "switArc()", hidden: true },
   { id: 'MagaButton', type: 'tab-button_z', container: 'optionMenu', label: 'Magasin', labelU: '🗄️', labelZ: '🗄️ Magasin', onclick: "ouvrirModalModifierPiece()" },
-  { id: 'NoteButton', type: 'tab-button_z', container: 'optionMenu', label: 'Note', labelU: '📜', labelZ: '📜 Note', onclick: "openTab('Note')" },
-  { id: 'NotifButton', type: 'tab-button_u', container: 'tab_under', label: 'Notif', labelU: '🔔', labelZ: '🔔 Notif', onclick: "showModal()", hidden: true },
-  { id: 'cameraButton', type: 'tab-button_z', container: 'optionMenu', label: 'Camera', labelU: '📷', labelZ: '📷 Camera', onclick: "openTab('camera')" },
-  { id: 'CintresButton', type: 'tab-button_z', container: 'optionMenu', label: 'Cintres', labelU: '📶', labelZ: '📶 Cintres', onclick: "Gocintre()" },
-    { id: 'retourButton2', type: 'tab-button_z', container: 'optionMenu', label: '🔙 Quitter', labelU: '🔙 Quitter', labelZ: '🔙 Quitter', onclick: "switRet()", hidden: false },
-  { id: 'switPreButton', type: 'tab-button_z', container: 'optionMenu', label: 'Preventif', labelU: '↔️', labelZ: '↔️ Preventif', onclick: "switPre()", hidden: false },
+  //{ id: 'NoteButton', type: 'tab-button_z', container: 'optionMenu', label: 'Note', labelU: '📜', labelZ: '📜 Note', onclick: "openTab('Note')" },
+  { id: 'NotifButton', type: 'tab-button_u', container: 'tab_under', label: 'Notif', labelU: '🔔', labelZ: '🔔 Notif', onclick: "showModal()", hidden: false },
+  //{ id: 'cameraButton', type: 'tab-button_z', container: 'optionMenu', label: 'Camera', labelU: '📷', labelZ: '📷 Camera', onclick: "openTab('camera')" },
+  //{ id: 'CintresButton', type: 'tab-button_z', container: 'optionMenu', label: 'Cintres', labelU: '📶', labelZ: '📶 Cintres', onclick: "Gocintre()" },
+   // { id: 'retourButton2', type: 'tab-button_z', container: 'optionMenu', label: '🔙 Quitter', labelU: '🔙 Quitter', labelZ: '🔙 Quitter', onclick: "switRet()", hidden: true },
+  //{ id: 'switPreButton', type: 'tab-button_z', container: 'optionMenu', label: 'Preventif', labelU: '↔️', labelZ: '↔️ Preventif', onclick: "switPre()", hidden: true },
   { id: 'parametresButton', type: 'tab-button_z', container: 'optionMenu', label: 'Paramètres', labelU: '⚙️', labelZ: '⚙️ Paramètres', onclick: "openTab('parametres')" },
-  { id: 'decoButton', type: 'tab-button_z', container: 'optionMenu', label: 'Déconnexion', labelU: '🚪', labelZ: '🚪 Déconnexion', onclick: "deco()" },
+  //{ id: 'decoButton', type: 'tab-button_z', container: 'optionMenu', label: 'Déconnexion', labelU: '🚪', labelZ: '🚪 Déconnexion', onclick: "deco()" , hidden: true },
   { id: 'debugButton', type: 'tab-button_z', container: 'optionMenu', label: 'Debug', labelU: '🖥️', labelZ: '🖥️ Debug', onclick: "showOverlay()", hidden: true },
   { id: 'actuButton', type: 'tab-button_z', container: 'optionMenu', label: 'Actu', labelU: '🔄', labelZ: '🔄 Actualiser', onclick: "Act()", hidden: true },
   { id: 'actuDAButton', type: 'tab-button_z', container: 'optionMenu', label: 'ActuDA', labelU: '🔄', labelZ: '🔄 ACT DATA', onclick: "ActDATA()", hidden: false }
@@ -62,48 +64,56 @@ async function initConfig() {
   const archiveBtn = buttons.find(btn => btn.id === 'ArchiveButton');
   const retourButton = buttons.find(btn => btn.id === 'retourButton');
   const retourButton2 = buttons.find(btn => btn.id === 'retourButton2');
+const visu2Button = buttons.find(btn => btn.id === 'visu2Button');
 
-  const isPriv = (CléType === 'Priv');
-  const isStory = (CléType === 'Story');
+
+const isPriv = (CléType === 'Priv');
+const isStory = (CléType === 'Story');
+const isWork = (CléType === 'Work');
+
+
 
   document.querySelectorAll('.tab-button, .tab-button_u, .container, .options-menu').forEach(el => {
     el.classList.toggle('priv', isPriv);
   });
 
   if (switPreButton) {
-    if (isPriv) {
-      switPreButton.labelZ = '↔️ Correctif';
-      switPreButton.label = 'Correctif';
-      if (plannBtn) plannBtn.hidden = false;
-      if (archiveBtn) archiveBtn.hidden = false;
-      if (retourButton) retourButton.hidden = true;
-      if (retourButton2) retourButton2.hidden = true;
-      if (interventionsButton) interventionsButton.hidden = false;
-      switPreButton.hidden = false;
-      creerButton.type = 'tab-button_u';
-    } else if (isStory) {
-      switPreButton.labelZ = '↔️ Correctif';
-      switPreButton.label = 'Correctif';
-      if (plannBtn) plannBtn.hidden = true;
-      if (archiveBtn) archiveBtn.hidden = true;
-      if (interventionsButton) interventionsButton.hidden = true;
-      switPreButton.hidden = true;
-      if (retourButton) retourButton.hidden = false;
-      if (retourButton2) retourButton2.hidden = false;
-      creerButton.type = 'tab-button';
-      creerButton.labelZ = 'Lieu';
-      creerButton.label = 'Lieu';
-    } else {
-      switPreButton.labelZ = '↔️ Préventifs';
-      switPreButton.label = 'Préventifs';
-      if (archiveBtn) archiveBtn.hidden = false;
-      if (plannBtn) plannBtn.hidden = true;
-      if (retourButton) retourButton.hidden = true;
-      switPreButton.hidden = false;
-      if (interventionsButton) interventionsButton.hidden = false;
-      if (retourButton2) retourButton2.hidden = true;
-      creerButton.type = 'tab-button';
-    }
+  if (isPriv) {
+    switPreButton.labelZ = '↔️ Correctif';
+    switPreButton.label = 'Correctif';
+    if (plannBtn) plannBtn.hidden = false;
+    if (archiveBtn) archiveBtn.hidden = true;
+
+    if (retourButton) retourButton.hidden = true;
+    if (retourButton2) retourButton2.hidden = true;
+    if (interventionsButton) interventionsButton.hidden = false;
+    switPreButton.hidden = true;
+    creerButton.type = 'tab-button_u';
+
+  } else if (isStory) {
+    switPreButton.labelZ = '↔️ Correctif';
+    switPreButton.label = 'Correctif';
+    if (plannBtn) plannBtn.hidden = true;
+    if (archiveBtn) archiveBtn.hidden = true;
+    if (interventionsButton) interventionsButton.hidden = true;
+    switPreButton.hidden = true;
+    if (retourButton) retourButton.hidden = false;
+    if (retourButton2) retourButton2.hidden = false;
+    creerButton.type = 'tab-button';
+    creerButton.labelZ = 'Lieu';
+    creerButton.label = 'Lieu';
+
+  } else { // Work ou autres
+    switPreButton.labelZ = '↔️ Préventifs';
+    switPreButton.label = 'Préventifs';
+    if (archiveBtn) archiveBtn.hidden = true;
+    if (plannBtn) plannBtn.hidden = true;
+    if (retourButton) retourButton.hidden = true;
+    switPreButton.hidden = true;
+    if (interventionsButton) interventionsButton.hidden = false;
+    if (retourButton2) retourButton2.hidden = true;
+    creerButton.type = 'tab-button';
+  }
   }
 
   // NE sauvegarder que si savedConfig non vide
@@ -115,7 +125,51 @@ async function initConfig() {
 
   renderButtons();
   populateButtonSelect();
+
 }
+
+// ----- handleResize -----
+function handleResize(e) {
+  const visuButton = document.getElementById("visuButton");
+  const visu2Button = document.getElementById("visu2Button");
+
+  if (visuButton) {
+    if (e.matches) {
+      visuButton.style.setProperty("display", "block", "important");
+      visuButton.style.setProperty("filter", "invert(1)", "important");
+    } else {
+      visuButton.style.removeProperty("display");
+      visuButton.style.removeProperty("filter");
+    }
+  }
+
+  if (visu2Button) {
+    const isPriv = (CléType === "Priv");
+    if (isPriv) {
+      if (e.matches) {
+        visu2Button.style.setProperty("display", "block", "important");
+        visu2Button.style.setProperty("filter", "invert(1)", "important");
+      } else {
+        visu2Button.style.removeProperty("display");
+        visu2Button.style.removeProperty("filter");
+      }
+    } else {
+      // Si Work ou Story => forcé masqué
+      visu2Button.style.setProperty("display", "none", "important");
+      visu2Button.style.removeProperty("filter");
+    }
+  }
+}
+
+// ----- mediaQuery setup -----
+const mediaQuery = window.matchMedia("(min-width: 1000px)");
+handleResize(mediaQuery);
+mediaQuery.addEventListener("change", handleResize);
+
+// Applique une première fois
+
+// Écoute les changements
+mediaQuery.addEventListener("change", handleResize);
 
 
 
@@ -157,6 +211,8 @@ function renderButtons() {
   });
 
   displayUsernameAndLogout();
+  handleResize(mediaQuery);
+
 }
 
 // --- Remplissage de la liste déroulante des boutons ---

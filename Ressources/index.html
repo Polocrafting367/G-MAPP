@@ -11,7 +11,7 @@
   <style>
     body {
       font-family: 'Arial', sans-serif;
-      margin: 0;
+      margin: 0 !important;
       padding: 0;
       user-select: none;
     }
@@ -101,6 +101,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 const urlParams2 = new URLSearchParams(window.location.search);
 
 const deviceName = localStorage.getItem('DEVICE_NAME') || 'unknownDevice';
+const LS_PIECES_KEY = 'DEV_PIECES'; // "true" | "false"
+const LS_FASTSTART_OVERRIDE = 'DEV_FASTSTART_OVERRIDE'; // "true" => force fast start
+
+function setPiecesInLS(enabled) {
+  localStorage.setItem(LS_PIECES_KEY, enabled ? 'true' : 'false');
+}
+
 
 
 let modeFinal;
@@ -190,13 +197,9 @@ async function retryInit() {
 }
 
 async function startInit() {
-  const modeLabels = {
-    "Work": "Correctif",
-    "Priv": "Préventifs",
-    "Story": "Archives"
-  };
-
-  document.getElementById("loadingText").innerHTML = `Redirection vers ${modeLabels[modeFinal]}<br>après chargement`;
+  const modeLabels = { "Work": "Correctif", "Priv": "Préventifs", "Story": "Archives" };
+  document.getElementById("loadingText").innerHTML =
+    `Redirection vers ${modeLabels[modeFinal]}<br>après chargement`;
 
   const connected = await checkConnection();
   if (!connected) {
@@ -211,34 +214,42 @@ async function startInit() {
   }
 
   try {
-    const skipFullReload = await checkLastUpdate();
+    await guardByNow8hRule();
+    const skipFullReload = await checkLastUpdate(); // définit window.fastStart
 
+    // === Chargement des données (toujours) ===
     if (!skipFullReload) {
-totalFiles = await getAllFilesCount();
-console.log("Nombre total exact de fichiers :", totalFiles);
-
-
+      totalFiles = await getAllFilesCount();
       for (const mode of MODES) {
-        await processMode(mode);
+        await processMode(mode); // alimente IndexedDB pour chaque mode
       }
     } else {
       console.log("✅ Cache récent détecté. Saut du rechargement complet.");
-      //totalFiles = 2; // seulement iframes
     }
 
+    // === Mémoriser le mode courant ===
     localStorage.setItem(user + "_uver", modeFinal);
-    const canContinue = await verifyDeviceIdBeforePreload();
-    if (!canContinue) return;
 
-await preloadAllStartPages(deviceName);
-    console.log("✅ Redirection finale vers start.html du mode :", modeFinal);
+    // === Branchements selon fastStart ===
+    if (window.fastStart === true) {
+      // ⏩ Fast start : PAS de vérif IP/appareil, PAS de preload des autres pages
+      console.log("⏩ Fast start actif : skip verifyDeviceIdBeforePreload & preloadAllStartPages");
+      console.log("✅ Redirection vers start.html (depuis IndexedDB) pour :", modeFinal);
+      await redirectToStartPage(modeFinal, deviceName);
+      return;
+    } else {
+      // Mode normal : on fait la vérif et le préchargement
+      const canContinue = await verifyDeviceIdBeforePreload();
+      if (!canContinue) return;
 
-await redirectToStartPage(modeFinal, deviceName);
+      await preloadAllStartPages(deviceName);
+      console.log("✅ Redirection finale vers start.html du mode :", modeFinal);
+      await redirectToStartPage(modeFinal, deviceName);
+    }
   } catch (error) {
     console.error("❌ Erreur init :", error);
   }
 }
-
 
 
 async function checkLastUpdate() {
@@ -248,25 +259,43 @@ async function checkLastUpdate() {
 
     const text = await response.text();
     const lines = text.trim().split('\n');
-    const forceReload = lines[0].trim().toLowerCase() === "true";
-    const maxHours = parseInt(lines[1].trim(), 10);
+
+    const forceReload = (lines[0] || '').trim().toLowerCase() === "true";
+    const maxHours    = parseInt((lines[1] || '').trim(), 10);
+
+    const piecesFlag  = (lines[2] || "false").trim().toLowerCase() === "true";
+    setPiecesInLS(piecesFlag);
+    console.log('Prise en compte des pièces : ' + piecesFlag);
+
+    // --- 4e ligne : fast start ---
+    const fastStart = (lines[3] || "false").trim().toLowerCase() === "true";
+    window.fastStart = fastStart;
+    console.log('Fast start activé (Dev.txt) : ' + fastStart);
+
+    // 👉 MàJ du localStorage selon la 4e ligne :
+    //    (A) garder en phase avec le fichier :
+    if (fastStart) {
+      localStorage.setItem(LS_FASTSTART_OVERRIDE, 'true');
+    } else {
+      localStorage.removeItem(LS_FASTSTART_OVERRIDE); // <-- retire si false (optionnel)
+      // // Si tu préfères ne PAS enlever quand false, commente la ligne ci-dessus.
+    }
+
+    if (forceReload) {
+      console.log("⚠️ Dev.txt indique de forcer le rechargement complet.");
+      window.globalForceReload = true;
+      return false;
+    }
 
     const now = Date.now();
-    const lastSaveKey = DB_CONFIG[modeFinal].LAST_SAVE_KEY;
+    const lastSaveKey   = DB_CONFIG[modeFinal].LAST_SAVE_KEY;
     const localTimestamp = parseInt(localStorage.getItem(lastSaveKey), 10);
-
-if (forceReload) {
-  console.log("⚠️ Dev.txt indique de forcer le rechargement complet.");
-  window.globalForceReload = true;  // ✅ Définir globalement
-  return false;
-}
-
 
     if (!isNaN(localTimestamp) && !isNaN(maxHours)) {
       const maxMs = maxHours * 60 * 60 * 1000;
       if (now - localTimestamp < maxMs) {
         console.log(`✅ Cache encore valide (${maxHours}h), pas besoin de recharger totalement.`);
-        return true; // Ne pas recharger
+        return true;
       } else {
         console.log(`⏰ Cache trop vieux (> ${maxHours}h), on recharge.`);
       }
@@ -279,6 +308,7 @@ if (forceReload) {
 
   return false; // Par défaut, recharger
 }
+
 
 
 async function processMode(mode) {
@@ -506,10 +536,7 @@ window.addEventListener('message', async function(event) {
     await reloadStartIframe();
   }
 
-  if (data.type === 'decoParent') {
-  console.log("🚪 Message reçu de l'iframe enfant : déco demandée");
-window.location.href = '../HTML/Loggin.html' ;
-}
+
 
   // 📥 Changer de start page
   if (data.action === 'changeStart') {
@@ -833,7 +860,7 @@ async function setPrefixedItemNoVerify2(key, value) {
 
 async function deco() {
   localStorage.removeItem('AUTOUSER');
-  window.location.assign('../HTML/Loggin.html');
+  
 }
 
 async function fetchWithRetry2(url, options = {}, retries = 3, backoff = 300) {
@@ -895,10 +922,97 @@ async function getAllFilesCount() {
 }
 
 
+// ---[ Contrôle "time" vs maintenant (8h) ]----------------------------------
+
+function parseAppTime(str) {
+  // attend "YYYY-MM-DD_HH:mm:ss", possiblement encodé (%3A)
+  if (!str || typeof str !== 'string') return null;
+  const clean = decodeURIComponent(str).trim();
+  const parts = clean.split('_');
+  if (parts.length !== 2) return null;
+
+  const [d, t] = parts;
+  const [Y, M, D] = d.split('-').map(n => parseInt(n, 10));
+  const [h, m, s] = t.split(':').map(n => parseInt(n, 10));
+  if ([Y, M, D, h, m, s].some(n => Number.isNaN(n))) return null;
+
+  // Date en heure locale
+  return new Date(Y, M - 1, D, h, m, s, 0);
+}
+
+async function getSavedLoginTime(user) {
+  // ../data/${user}_/Comm_lastLoginTime.json (peut être texte ou JSON)
+  const url = `../data/${encodeURIComponent(user)}_/Comm_lastLoginTime.json`;
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const txt = await res.text();
+    let raw = txt.trim();
+
+    if (raw.startsWith('{') || raw.startsWith('[')) {
+      try {
+        const obj = JSON.parse(raw);
+        raw = (obj && (obj.time || obj.value || obj.lastLogin || obj[0])) || raw;
+      } catch { /* ignore */ }
+    }
+    return parseAppTime(raw.replace(/^"|"$/g, ''));
+  } catch {
+    return null;
+  }
+}
+
+function diffMoreThan8Hours(dateA, dateB) {
+  const diffMs = Math.abs(dateA.getTime() - dateB.getTime());
+  const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+  return diffMs > EIGHT_HOURS_MS;
+}
+
+async function guardByNow8hRule() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const user = urlParams.get("user") || "default";
+  const urlTimeParam = urlParams.get("time");
+  const now = new Date();
+
+  if (urlTimeParam) {
+    // Cas 1 : time dans l'URL → NE PAS lire la mémoire
+    const urlTime = parseAppTime(urlTimeParam);
+    if (!urlTime) { await deco(); return false; }
+    if (diffMoreThan8Hours(now, urlTime)) { await deco(); return false; }
+    return true;
+  } else {
+    // Cas 2 : pas de time → lire la mémoire, sinon déco
+    const savedTime = await getSavedLoginTime(user);
+    if (!(savedTime instanceof Date) || Number.isNaN(savedTime.getTime())) {
+      await deco();
+      return false;
+    }
+    if (diffMoreThan8Hours(now, savedTime)) { await deco(); return false; }
+    return true;
+  }
+}
+
+function redirectDirectToStartPage(mode) {
+  const currentUrl = window.location.href;
+  const parts = currentUrl.split("index.html");
+  let paramsString = "";
+
+  if (parts[1]?.startsWith("?")) paramsString = parts[1].substring(1);
+  if (paramsString.startsWith("&")) paramsString = paramsString.substring(1);
+
+  const baseUrl = `/G-MAPP/${mode}/start.html`;
+  const finalUrl = paramsString ? `${baseUrl}?${paramsString}` : baseUrl;
+
+  // Redirection immédiate (remplace l’historique pour éviter "Retour" ambigu)
+  window.location.replace(finalUrl);
+}
 
 
 
-startInit();
+
+    startInit();
+
+
+
 </script>
 
 

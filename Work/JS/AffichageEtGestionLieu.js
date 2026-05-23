@@ -13,7 +13,7 @@ async function chargerLieux() {
             const nomLieuPourJS = lieu.trim().replace(/'/g, "\\'");
 
             const lieuItem = document.createElement('li');
-            const icon = (Object.keys(arbre[lieu]).length > 0) ? '▶' : ' ';
+            const icon = (Object.keys(arbre[lieu]).length > 0) ? '>' : ' ';
             const displayStyle = (niveau === 0) ? 'block' : 'none';
 
             // Conteneur des boutons
@@ -23,16 +23,18 @@ async function chargerLieux() {
                 </button>`;
 
             // Si des préconfigurations existent, créer les boutons avec `flex-wrap: wrap`
-            if (preConfigurations[nomLieuBrut]) {
-                buttonsHTML += `<div class="button-container">`;
-                preConfigurations[nomLieuBrut].forEach((config, index) => {
-                    buttonsHTML += `
-                        <button id="relancer-preconf-btn-${nomLieuBrut}-${index}" data-lieu="${nomLieuBrut}" onclick="relancerPreconfiguration('${nomLieuBrut}', ${index})">
-                            ${config.titre}
-                        </button>`;
-                });
-                buttonsHTML += `</div>`;
-            }
+if (preConfigurations[nomLieuBrut]) {
+  buttonsHTML += `<div class="button-container">`;
+  preConfigurations[nomLieuBrut].forEach((config, index) => {
+    buttonsHTML += `
+<button id="relancer-preconf-btn-${nomLieuBrut}-${index}" 
+        data-lieu="${nomLieuBrut}" 
+        onclick="relancerPreconfiguration('${nomLieuPourJS}', ${index})">
+  ${config.titre}
+</button>`;
+  });
+  buttonsHTML += `</div>`;
+}
 
             lieuItem.innerHTML = `
                 <div class="place-card level-${niveau}" onclick="toggleNiveau(this, ${niveau})">
@@ -70,7 +72,7 @@ function relancerPreconfiguration(nomLieu, index) {
 
     if (config) {
         // Lancer la préconfiguration avec les valeurs stockées
-        ouvrirIframe(nomLieu, config.temps, config.Text1, config.Text2, config.liste1, config.liste2, config.arret);
+        ouvrirIframe(nomLieu, config.temps, config.liste1, config.liste2, config.Text1, config.Text2, config.arret);
     }
 }
 
@@ -79,7 +81,7 @@ function UsePreconfig(lieu, tempsRéelCommencer, index, Pièces) {
     const config = preConfigurations[LieuOK][index];
     if (config) {
         // Lancer la préconfiguration avec les valeurs stockées
-        ouvrirIframe(lieu, tempsRéelCommencer,   config.Text1, Pièces,config.liste1, config.liste2,config.arret);
+        ouvrirIframe(lieu, tempsRéelCommencer, config.liste1, config.liste2,  config.Text1, Pièces,config.arret);
     }
 
 
@@ -92,7 +94,7 @@ function toggleNiveau(element, niveau) {
         ulElement.style.display = (ulElement.style.display === 'none' || ulElement.style.display === '') ? 'block' : 'none';
         const iconElement = element.querySelector('.pastille');
         const texteElement = iconElement.getAttribute('data-texte');
-        iconElement.innerHTML = (ulElement.style.display === 'none') ? '▶ ' + texteElement : '▼ ' + texteElement;
+        iconElement.innerHTML = (ulElement.style.display === 'none') ? '> ' + texteElement : '∨ ' + texteElement;
 
         const boutonLancerChrono = document.getElementById(`lancer-chrono-btn-${texteElement}`);
         if (boutonLancerChrono && element.classList.contains('non-cliquable')) {

@@ -1,8 +1,4 @@
 <?php
-/**
- * Delete the JSON file associated with a user/key pair and report the result as JSON.
- * Keys ending with "_CRH" are handled like any other key.
- */
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -42,6 +38,7 @@ $userDir = $baseDir . DIRECTORY_SEPARATOR . $username;
 $filePath = $userDir . DIRECTORY_SEPARATOR . $key . '.json';
 
 $globalAttempts = 0;
+$isCRH = function_exists('str_ends_with') ? str_ends_with($key, '_CRH') : (substr($key, -4) === '_CRH');
 
 if (!file_exists($filePath)) {
     echo json_encode([
@@ -82,7 +79,7 @@ if ($success) {
     exit;
 }
 
-// Real failure after retries → always return an error
+// Ici: ÉCHEC RÉEL → ne JAMAIS renvoyer success, même pour CRH
 $lastError = error_get_last();
 echo json_encode([
     'status'   => 'error',
